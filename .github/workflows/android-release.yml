@@ -1,0 +1,111 @@
+name: Android release
+
+# Buduje podpisany APK, publikuje go jako GitHub Release (tag v<versionName>
+# z app/build.gradle.kts) i aktualizuje backend/api/version.json (OTA).
+# Wersję podbijasz w android/app/build.gradle.kts — reszta dzieje się sama.
+# workflow_dispatch pozwala wydać bez zmiany kodu (np. ponowny build).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - '.github/workflows/android-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
+
+      - name: Keystore + keystore.properties (z sekretów)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          cat > android/keystore.properties <<EOF
+          storeFile=$RUNNER_TEMP/release.keystore
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Testy jednostkowe (planer + dane)
+        working-directory: android
+        run: gradle --no-daemon testDebugUnitTest
+
+      - name: Build podpisanego APK
+        working-directory: android
+        run: gradle --no-daemon assembleRelease
+
+      - name: Wersja z build.gradle.kts
+        id: ver
+        working-directory: android
+        run: |
+          VN=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          VC=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
+          echo "name=$VN" >> "$GITHUB_OUTPUT"
+          echo "code=$VC" >> "$GITHUB_OUTPUT"
+
+      - name: Publikacja GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="v${{ steps.ver.outputs.name }}"
+          cp android/app/build/outputs/apk/release/app-release.apk app-release.apk
+          if gh release view "$V" >/dev/null 2>&1; then
+            echo "Release $V już istnieje — podmieniam APK."
+            gh release upload "$V" app-release.apk --clobber
+          else
+            NOTES=$(git log -1 --pretty=%s)
+            gh release create "$V" app-release.apk --title "$V" --notes "$NOTES"
+          fi
+
+      - name: Aktualizacja backend/api/version.json (OTA)
+        run: |
+          V="${{ steps.ver.outputs.name }}"
+          C="${{ steps.ver.outputs.code }}"
+          CHANGELOG=$(git log -1 --pretty=%s)
+          jq -n \
+            --argjson versionCode "$C" \
+            --arg versionName "$V" \
+            --arg changelog "$CHANGELOG" \
+            --arg publishedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{
+              versionCode: $versionCode,
+              versionName: $versionName,
+              apkUrl: "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
+              changelog: $changelog,
+              force: false,
+              publishedAt: $publishedAt
+            }' > backend/api/version.json
+          git config user.name "kiedy-release-bot"
+          git config user.email "kiedy-release-bot@users.noreply.github.com"
+          git add backend/api/version.json
+          if git diff --cached --quiet; then
+            echo "version.json bez zmian"
+          else
+            git commit -m "release: v$V [skip ci]"
+            git pull --rebase --autostash -q origin main || true
+            git push
+          fi
