@@ -1,0 +1,69 @@
+name: Refresh data & deploy
+
+# Daily refresh of the harvested schedule data + build & deploy to GitHub Pages.
+# The harvest is incremental: unchanged upstream data only re-probes fingerprints
+# and leaves the trip files untouched.
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # 02:17 UTC — schedules change at most once a day (nightly publishing)
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Harvest schedule data
+        run: node scripts/harvest.mjs
+
+      - name: Commit refreshed data
+        run: |
+          git config user.name "kiedy-data-bot"
+          git config user.email "kiedy-data-bot@users.noreply.github.com"
+          git add public/data
+          if git diff --cached --quiet; then
+            echo "data unchanged"
+          else
+            git commit -m "data: refresh $(date -u +%F)"
+            git push
+          fi
+
+      - name: Build
+        run: npm run build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: refresh
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
