@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Cache danych rozkładowych odtwarza się sam — nie ma czego backupować. -->
+    <exclude domain="sharedpref" path="kd_schedule_cache.xml" />
+</full-backup-content>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="search"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_search"
+        android:shortcutShortLabel="@string/shortcut_search"
+        android:shortcutLongLabel="@string/shortcut_search_long">
+        <intent
+            android:action="com.kiedziedojade.app.action.OPEN_SEARCH"
+            android:targetPackage="com.kiedziedojade.app"
+            android:targetClass="com.kiedziedojade.app.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="board"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_board"
+        android:shortcutShortLabel="@string/shortcut_board"
+        android:shortcutLongLabel="@string/shortcut_board_long">
+        <intent
+            android:action="com.kiedziedojade.app.action.OPEN_BOARD"
+            android:targetPackage="com.kiedziedojade.app"
+            android:targetClass="com.kiedziedojade.app.MainActivity" />
+    </shortcut>
+</shortcuts>

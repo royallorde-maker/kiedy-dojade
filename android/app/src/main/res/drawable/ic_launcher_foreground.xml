@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Autobus (widok z boku) na granatowym tle — obszar bezpieczny adaptive icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- nadwozie -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M37,30 h34 a9,9 0 0 1 9,9 v26 a9,9 0 0 1 -9,9 h-34 a9,9 0 0 1 -9,-9 v-26 a9,9 0 0 1 9,-9 z" />
+    <!-- pasek trasy (akcent) -->
+    <path
+        android:fillColor="#5B8CFF"
+        android:pathData="M35,35 h20 v5 h-20 z" />
+    <!-- okna -->
+    <path
+        android:fillColor="#182642"
+        android:pathData="M35,45 h13 v12 h-13 z" />
+    <path
+        android:fillColor="#182642"
+        android:pathData="M52,45 h19 v12 h-19 z" />
+    <!-- drzwi -->
+    <path
+        android:fillColor="#182642"
+        android:pathData="M64,61 h7 v13 h-7 z" />
+    <path
+        android:fillColor="#182642"
+        android:pathData="M35,61 h20 v7 h-20 z" />
+    <!-- koła -->
+    <path
+        android:fillColor="#0B1220"
+        android:pathData="M43,74 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" />
+    <path
+        android:fillColor="#0B1220"
+        android:pathData="M66,74 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M43,74 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M66,74 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+</vector>

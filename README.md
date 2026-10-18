@@ -1,11 +1,15 @@
 # KiedyDojadę — Szczecinek
 
-Planer podróży autobusem miejskim (**Komunikacja Miejska Szczecinek**).
+Planer podróży autobusem miejskim (**Komunikacja Miejska Szczecinek**) — natywna
+aplikacja Android (Kotlin + Jetpack Compose) plus wersja web (PWA).
+
 Mówisz, **dokąd chcesz jechać** — aplikacja znajduje **najbliższy przystanek**
 Twojej lokalizacji i najlepsze połączenie (z przesiadkami), podobnie jak
 wyszukiwarki połączeń kolejowych.
 
-**Aplikacja:** https://royallorde-maker.github.io/kiedy-dojade/
+- **Android (główna aplikacja):** [pobierz APK](https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk)
+  (aktualizacja w aplikacji — zakładka *Zmiany*). Kod: [`android/`](android/).
+- **Web (PWA):** https://royallorde-maker.github.io/kiedy-dojade/
 
 > Aplikacja nieoficjalna. Dane rozkładowe pochodzą z publicznego API systemu
 > [KiedyPrzyjedzie.pl](https://szczecinek.kiedyprzyjedzie.pl) (KM Szczecinek),
@@ -18,28 +22,34 @@ wyszukiwarki połączeń kolejowych.
 - **Planowanie połączeń** — najszybszy przyjazd z maks. 2 przesiadkami,
   z dojściem pieszo (prędkość ~4,7 km/h, współczynnik objazdu 1,25).
 - **Opcja „tylko pieszo”**, gdy spacer jest szybszy od autobusu.
-- **Na żywo** — opóźnienia, odwołania, niskopodłogowość i zapełnienie
-  (publiczne API departures/trip_execution), odświeżane co 20 s.
-- **Rozkłady z wyprzedzeniem** — kalendarz dni (robocze / robocze bez szkoły /
-  sobota / niedziele i święta) na ~2,5 miesiąca wprzód.
-- **PWA** — działa offline (cache rozkładów), instaluje się na ekranie głównym.
-- PL / EN.
+- **Na żywo** — opóźnienia, odwołania, odjazdy z przystanku (publiczne API
+  KiedyPrzyjedzie.pl), odświeżane co 30 s.
+- **Rozkłady offline** — dane wbudowane w aplikację i odświeżane z GitHuba;
+  bez internetu planer i rozkłady nadal działają.
+- **Motywy i języki** — 8 motywów, PL / EN, godziny zawsze w strefie Szczecinka.
+- **Aktualizacje OTA** — nowa wersja pojawia się w aplikacji i instaluje się
+  jednym dotknięciem (GitHub Releases + `backend/api/version.json`).
 
 ## Jak to działa
 
 ```
 scripts/harvest.mjs   →  public/data/*.json   ← odświeżane codziennie (GitHub Actions)
         (API KM Szczecinek)     │
-                                ▼
-src/planner.ts  ── skanowanie połączeń (Bellman-Ford po grafie czasu) + dojścia pieszo
-src/realtime.ts ── odjazdy i pozycje pojazdów „na żywo” (bezpośrednio z przeglądarki)
+                                ├─▶ web PWA (GitHub Pages)
+                                ├─▶ assets aplikacji Android (offline na start)
+                                └─▶ pobierane przez aplikację (atomowa podmiana kopii)
 ```
 
-Dane rozkładowe są pobierane raz (wszystkie przystanki × wzorce dni), zapisywane
-jako zwarte pliki JSON i serwowane statycznie — aplikacja nie potrzebuje
-własnego backendu.
+- `src/planner.ts` (web) i `android/.../core/Planner.kt` (Kotlin) to ten sam
+  algorytm: skanowanie połączeń (Bellman–Ford po grafie czasu) + dojścia pieszo.
+- Dane rozkładowe są pobierane raz (wszystkie przystanki × wzorce dni), zapisywane
+  jako zwarte pliki JSON i serwowane statycznie — bez własnego backendu.
+- Aplikacja Android czyta te same pliki (`meta.json` porównuje wersję, resztę
+  dociąga tylko gdy się zmieniły).
 
 ## Rozwój
+
+Web:
 
 ```bash
 npm install
@@ -48,15 +58,25 @@ npm run harvest    # odśwież dane rozkładowe (public/data/)
 npm run build      # produkcyjny build (dist/)
 ```
 
-Zmienna `BASE_PATH` ustawia ścieżkę bazową (np. `/kiedy-dojade/` na GitHub Pages).
+Android:
+
+```bash
+cd android
+gradle :app:testDebugUnitTest    # testy planera na prawdziwych danych
+gradle :app:assembleDebug        # app/build/outputs/apk/debug/app-debug.apk
+```
+
+Szczegóły (podpisywanie, wydania, architektura): [`android/README.md`](android/README.md).
 
 ## Wdrożenie
 
-`.github/workflows/refresh-and-deploy.yml`:
-
-1. codziennie o 02:17 UTC (oraz przy pushu na `main` i ręcznie) odświeża dane,
-2. commituje zmiany w `public/data/`,
-3. buduje aplikację i publikuje `dist/` na GitHub Pages.
+- **Web:** `.github/workflows/refresh-and-deploy.yml` — codziennie o 02:17 UTC
+  (oraz przy pushu na `main` i ręcznie) odświeża dane, commituje `public/data/`
+  i publikuje `dist/` na GitHub Pages.
+- **Android:** `.github/workflows/android-release.yml` — przy zmianach w `android/`
+  buduje podpisany APK (klucz z sekretów repo), tworzy GitHub Release
+  `v<versionName>` z assetem `app-release.apk` i aktualizuje
+  `backend/api/version.json` (manifest aktualizacji OTA).
 
 ## Licencja / źródła
 

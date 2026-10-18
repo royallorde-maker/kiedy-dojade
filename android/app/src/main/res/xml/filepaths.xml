@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Cel DownloadManagera: getExternalFilesDir(DOWNLOADS)/updates — ścieżka
+         FileProvidera MUSI pokrywać dokładnie "Download/updates/". -->
+    <external-files-path name="updates" path="Download/updates/" />
+    <cache-path name="updates_cache" path="updates/" />
+</paths>

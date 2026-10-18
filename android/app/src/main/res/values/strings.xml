@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">KiedyDojadę</string>
+    <string name="shortcut_search">Szukaj połączenia</string>
+    <string name="shortcut_search_long">Zaplanuj jazdę autobusem</string>
+    <string name="shortcut_board">Tablica odjazdów</string>
+    <string name="shortcut_board_long">Otwórz tablicę odjazdów</string>
+</resources>

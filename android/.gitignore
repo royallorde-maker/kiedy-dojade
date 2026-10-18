@@ -1,0 +1,17 @@
+# Android / Gradle
+.local/
+.gradle/
+.idea/
+.kotlin/
+app/build/
+build/
+*.iml
+local.properties
+keystore.properties
+*.jks
+*.keystore
+gradle/wrapper/gradle-wrapper.jar
+
+# OS
+.DS_Store
+Thumbs.db
