@@ -114,6 +114,7 @@ const STRINGS = {
     showMap: 'Pokaż na mapie',
     alsoWalk: 'Możesz też dojść pieszo',
     tripsCount: 'kursów',
+    scheduleVariants: 'rozkłady dnia',
   },
   en: {
     appName: 'KiedyDojadę',
@@ -226,6 +227,7 @@ const STRINGS = {
     showMap: 'Show on map',
     alsoWalk: 'You can also walk',
     tripsCount: 'trips',
+    scheduleVariants: 'day schedules',
   },
 } as const;
 
