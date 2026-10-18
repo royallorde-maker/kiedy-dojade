@@ -2,7 +2,7 @@
   "versionCode": 1,
   "versionName": "1.0.0",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "ci: wydania Androida — podpisany APK, GitHub Release, manifest OTA",
+  "changelog": "Pierwsze wydanie: planer połączeń KM Szczecinek, odjazdy na żywo, rozkłady offline, 8 motywów i aktualizacje w aplikacji.",
   "force": false,
   "publishedAt": "2026-10-18T23:19:52Z"
 }
