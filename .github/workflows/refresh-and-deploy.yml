@@ -2,7 +2,8 @@ name: Refresh data & deploy
 
 # Daily refresh of the harvested schedule data + build & deploy to GitHub Pages.
 # The harvest is incremental: unchanged upstream data only re-probes fingerprints
-# and leaves the trip files untouched.
+# and leaves the trip files untouched. The bot commit carries [skip ci] so the
+# data commit does not start another run (meta.json always gets a new timestamp).
 
 on:
   push:
@@ -18,7 +19,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -45,7 +46,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "data unchanged"
           else
-            git commit -m "data: refresh $(date -u +%F)"
+            git commit -m "data: refresh $(date -u +%F) [skip ci]"
+            git pull --rebase --autostash -q origin main || true
             git push
           fi
 
