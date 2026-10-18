@@ -43,7 +43,7 @@ export function renderSettings(root: HTMLElement, world: World) {
   dataBox.append(
     el('div', { class: 'settings-card__title', text: `🗂 ${t('source')}` }),
     el('div', { class: 'settings-card__text' },
-      el('div', { text: `${t('dataUpdated')}: ${gen.toLocaleString(getLang() === 'pl' ? 'pl-PL' : 'en-GB')}` }),
+      el('div', { text: `${t('dataUpdated')}: ${gen.toLocaleString(getLang() === 'pl' ? 'pl-PL' : 'en-GB', { timeZone: 'Europe/Warsaw' })}` }),
       el('div', { text: `${stopsLabel(world.meta.counts.stops)} · ${world.meta.counts.trips ?? '?'} ${t('tripsCount')} · ${Object.keys(world.meta.patterns).length} ${t('scheduleVariants')}` }),
       el('div', { text: `${t('scheduleDate')}: ${world.meta.horizon.from} → ${world.meta.horizon.to}` }),
     ),

@@ -70,6 +70,15 @@ export function parseTime(s: string): number {
   return h * 60 + (m || 0);
 }
 
+/** Minutes since midnight in Szczecinek (Europe/Warsaw), regardless of device timezone. */
 export function nowMinutes(d: Date = new Date()): number {
-  return d.getHours() * 60 + d.getMinutes();
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Warsaw',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(d);
+  const h = Number(parts.find((p) => p.type === 'hour')?.value ?? 0);
+  const m = Number(parts.find((p) => p.type === 'minute')?.value ?? 0);
+  return h * 60 + m;
 }
