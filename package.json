@@ -1,0 +1,18 @@
+{
+  "name": "kiedy-dojade",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "KiedyDojadę — journey planner for Komunikacja Miejska Szczecinek (bus). Type where you want to go, we find the nearest stop and the best connection, live.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "harvest": "node scripts/harvest.mjs",
+    "geocode": "node scripts/geocode.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0"
+  }
+}
