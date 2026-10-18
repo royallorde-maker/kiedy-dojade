@@ -18,7 +18,7 @@ function describe(ref: PlaceRef): string {
     case 'stop':
       return t('stop');
     case 'street':
-      return 'ulica';
+      return t('street');
     case 'place':
       return ref.pkind;
   }

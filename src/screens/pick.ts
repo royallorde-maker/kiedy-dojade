@@ -139,7 +139,12 @@ export function openPicker(opts: PickerOptions) {
         list.append(
           row({
             name: r.name,
-            sub: r.sub ?? r.pkind,
+            sub:
+              r.kind === 'stop'
+                ? `${t('stop')} ${r.code}${r.onDemand ? ' · NŻ' : ''}`
+                : r.kind === 'street'
+                  ? t('street')
+                  : r.pkind,
             kind: r.kind,
             ref: r.ref,
             dist,

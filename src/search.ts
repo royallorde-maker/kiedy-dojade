@@ -11,6 +11,9 @@ export interface SearchItem {
   pkind?: string;
   name: string;
   sub?: string;
+  /** stop details (rendered per-language by the UI) */
+  code?: number;
+  onDemand?: boolean;
   lat: number;
   lng: number;
   norm: string;
@@ -39,7 +42,8 @@ export function buildIndex(world: World): SearchItem[] {
       id: `stop:${s.i}`,
       kind: 'stop',
       name: s.name,
-      sub: `przystanek ${s.code}${s.onDemand ? ' · NŻ' : ''}`,
+      code: s.code,
+      onDemand: s.onDemand,
       lat: s.lat,
       lng: s.lng,
       norm: norm(s.name + ' ' + s.code),
@@ -53,7 +57,6 @@ export function buildIndex(world: World): SearchItem[] {
       id: `street:${idx}`,
       kind: 'street',
       name,
-      sub: 'ulica',
       lat: mid[0],
       lng: mid[1],
       norm: norm(name),
