@@ -4,6 +4,7 @@ name: Refresh data & deploy
 # The harvest is incremental: unchanged upstream data only re-probes fingerprints
 # and leaves the trip files untouched. The bot commit carries [skip ci] so the
 # data commit does not start another run (meta.json always gets a new timestamp).
+# If the harvest fails (upstream down), the committed data is still deployed.
 
 on:
   push:
@@ -36,9 +37,12 @@ jobs:
       - run: npm ci
 
       - name: Harvest schedule data
+        id: harvest
+        continue-on-error: true
         run: node scripts/harvest.mjs
 
       - name: Commit refreshed data
+        if: steps.harvest.outcome == 'success'
         run: |
           git config user.name "kiedy-data-bot"
           git config user.email "kiedy-data-bot@users.noreply.github.com"
