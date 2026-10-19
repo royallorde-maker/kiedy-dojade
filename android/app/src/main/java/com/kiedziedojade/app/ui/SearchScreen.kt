@@ -194,6 +194,13 @@ fun SearchScreen(
                                 onClick = onPickDate,
                             )
                         }
+                        Spacer(Modifier.height(8.dp))
+                        TimeChip(
+                            label = t("Moja lokalizacja", "My location"),
+                            icon = Icons.Filled.MyLocation,
+                            selected = from is PlaceRef.Gps,
+                            onClick = onUseGps,
+                        )
                     }
                 }
             }
@@ -216,62 +223,22 @@ fun SearchScreen(
             }
         }
 
-        item {
-            Appear(3) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(top = 4.dp),
-                ) {
-                    TimeChip(
-                        label = t("Moja lokalizacja", "My location"),
-                        icon = Icons.Filled.MyLocation,
-                        selected = from is PlaceRef.Gps,
-                        onClick = onUseGps,
-                    )
-                }
-            }
-        }
-
         item { SectionTitle(t("Popularne cele", "Popular destinations")) }
 
-        items(quick, key = { "q" + it.id }) { item ->
-            val stopIdx = (item.ref as? PlaceRef.StopRef)?.index
-            Appear(4) {
-                KdCard(onClick = { onQuickDestination(item) }) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(34.dp)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f), CircleShape),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                Icons.Filled.DirectionsBus,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp),
-                            )
+        item {
+            Appear(3) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    quick.chunked(2).forEach { pair ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            pair.forEach { item ->
+                                QuickDestination(
+                                    item = item,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { onQuickDestination(item) },
+                                )
+                            }
+                            if (pair.size == 1) Spacer(Modifier.weight(1f))
                         }
-                        Spacer(Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                item.name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                t("Przystanek ", "Stop ") + item.code,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Text(
-                            t("wybierz →", "pick →"),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                     }
                 }
             }
@@ -287,6 +254,56 @@ fun SearchScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 10.dp),
             )
+        }
+    }
+}
+
+@Composable
+private fun QuickDestination(
+    item: SearchItem,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        onClick = onClick,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.DirectionsBus,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    item.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    t("Przystanek ", "Stop ") + item.code,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }

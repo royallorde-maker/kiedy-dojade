@@ -49,6 +49,9 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.kiedziedojade.app.core.Api
 import com.kiedziedojade.app.core.Fix
 import com.kiedziedojade.app.core.FootRoute
@@ -91,6 +94,7 @@ fun NavScreen(
 ) {
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
+    val lifecycleOwner = LocalLifecycleOwner.current
     val locator = remember { Locator(context) }
 
     var fix by remember { mutableStateOf<Fix?>(null) }
@@ -126,21 +130,38 @@ fun NavScreen(
             )
         }
     }
-    LaunchedEffect(canLocate) {
+    LaunchedEffect(canLocate, lifecycleOwner) {
         if (!canLocate) return@LaunchedEffect
-        locator.stream().collect { f ->
-            if (f.lat != fix?.lat || f.lng != fix?.lng) {
-                prev = fix
-                fix = f
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            locator.stream().collect { f ->
+                val last = fix
+                // ostatnia znana pozycja bywa stara — nie zaczynajmy od niej,
+                // jeśli telefon ma już świeższy odczyt za chwilę
+                if (last == null && f.timeMs > 0 &&
+                    System.currentTimeMillis() - f.timeMs > 60_000
+                ) {
+                    return@collect
+                }
+                // GPS pod drzewami potrafi mieć 100 m błędu; taka ramka nie
+                // powinna przesuwać kamery ani zaliczać przystanku
+                if (last != null && f.accuracy != null && f.accuracy > 120f) return@collect
+                val moved = last == null ||
+                    haversine(last.lat, last.lng, f.lat, f.lng) >= 0.8
+                if (moved) {
+                    prev = last
+                    fix = f
+                }
             }
         }
     }
 
     // zegar: odjazd/przyjazd liczone na bieżąco
-    LaunchedEffect(Unit) {
-        while (true) {
-            nowMin = nowMinutes()
-            delay(20_000)
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                nowMin = nowMinutes()
+                delay(20_000)
+            }
         }
     }
 
@@ -182,8 +203,9 @@ fun NavScreen(
     var busPos by remember { mutableStateOf<Pair<Double, Double>?>(null) }
     var busHeading by remember { mutableStateOf<Float?>(null) }
 
-    // autobus na żywo: co 12 s pozycja pojazdu, ETA i postęp kursu
-    LaunchedEffect(liveRide, state.finished) {
+    // autobus na żywo: pozycja pojazdu, ETA i postęp kursu. Częściej pytamy,
+    // gdy pojazd jest blisko lub stoi na przystanku; rzadziej w trasie.
+    LaunchedEffect(liveRide, state.finished, lifecycleOwner) {
         val r = liveRide
         if (r == null || state.finished) {
             live = null
@@ -203,41 +225,53 @@ fun NavScreen(
         var execId: String? = null
         var execIndex = 0
         var fails = 0
-        while (true) {
-            if (execId == null) {
-                val rows = runCatching {
-                    Api.stopBoard(world.stops[r.boardStop.i].id)
-                }.getOrDefault(emptyList())
-                val row = matchLiveRide(rows, r)
-                if (row != null) {
-                    delayMin = row.delayMin ?: 0
-                    canceled = row.canceled
-                    execId = row.tripExecutionId
-                    execIndex = row.index ?: 0
-                }
-            }
-            val id = execId
-            if (id != null) {
-                val ex = runCatching { Api.tripExecution(id, execIndex) }.getOrNull()
-                if (ex != null) {
-                    fails = 0
-                    live = ex
-                    val pos = ex.vehicle
-                    if (pos != null && pos != busPos) {
-                        busHeading = busPos?.let { headingDeg(it, pos) } ?: busHeading
-                        busPos = pos
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                if (execId == null) {
+                    val rows = runCatching {
+                        Api.stopBoard(world.stops[r.boardStop.i].id)
+                    }.getOrDefault(emptyList())
+                    val row = matchLiveRide(rows, r)
+                    if (row != null) {
+                        delayMin = row.delayMin ?: 0
+                        canceled = row.canceled
+                        execId = row.tripExecutionId
+                        execIndex = row.index ?: 0
                     }
-                } else if (++fails >= 3) {
-                    live = null
-                    busPos = null
-                    busHeading = null
-                    delayMin = 0
-                    canceled = false
-                    execId = null
-                    fails = 0
                 }
+                val id = execId
+                if (id != null) {
+                    val ex = runCatching { Api.tripExecution(id, execIndex) }.getOrNull()
+                    if (ex != null) {
+                        fails = 0
+                        live = ex
+                        val pos = ex.vehicle
+                        if (pos != null && pos != busPos) {
+                            busHeading = busPos?.let { headingDeg(it, pos) } ?: busHeading
+                            busPos = pos
+                        }
+                    } else if (++fails >= 3) {
+                        live = null
+                        busPos = null
+                        busHeading = null
+                        delayMin = 0
+                        canceled = false
+                        execId = null
+                        fails = 0
+                    }
+                }
+                val proximity = if (busPos != null && fix != null) {
+                    haversine(fix!!.lat, fix!!.lng, busPos!!.first, busPos!!.second)
+                } else {
+                    null
+                }
+                val wait = when {
+                    live?.atStop == true -> 8_000L
+                    proximity != null && proximity < 1_200.0 -> 10_000L
+                    else -> 15_000L
+                }
+                delay(wait)
             }
-            delay(12_000)
         }
     }
 
@@ -333,8 +367,10 @@ fun NavScreen(
         }
     }
 
-    // kierunek ruchu: bearing z GPS, a bez niego — z różnicy dwóch pozycji
+    // kierunek ruchu: bearing z GPS, a bez niego — z różnicy dwóch pozycji.
+    // W miejscu (postój, przystanek) nie obracamy strzałki przypadkowym szumem.
     val heading: Float? = fix?.let { b ->
+        if (b.speed != null && b.speed < 0.7f) return@let null
         val a = prev
         if (a == null || (a.lat == b.lat && a.lng == b.lng)) {
             b.bearing
@@ -387,10 +423,18 @@ fun NavScreen(
             heading = heading,
             activeLeg = state.stepIndex,
             dark = dark,
-            zoom = if (step is NavStep.Walk) 16 else 15,
+            baseZoom = when {
+                state.finished -> 16.5f
+                getOffNow -> 16.8f
+                getOffSoon -> 16.2f
+                step is NavStep.Walk -> 16f
+                waiting || boardAtStop -> 15.8f
+                else -> 15f
+            },
             bus = busPos.takeIf { liveVisible },
             busHeading = busHeading,
             busColor = lineColor(chipLine.orEmpty()),
+            showAttribution = false,
             modifier = Modifier.fillMaxSize(),
         )
 
@@ -461,6 +505,12 @@ fun NavScreen(
             }
 
             Spacer(Modifier.weight(1f))
+
+            MapAttribution(
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .padding(end = 2.dp, bottom = 4.dp),
+            )
 
             Surface(
                 shape = RoundedCornerShape(20.dp),

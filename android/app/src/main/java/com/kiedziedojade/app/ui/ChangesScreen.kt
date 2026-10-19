@@ -52,7 +52,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-fun ChangesScreen(prefs: Prefs) {
+fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var state by remember { mutableStateOf<UpdateState>(UpdateState.Idle) }
@@ -70,14 +70,25 @@ fun ChangesScreen(prefs: Prefs) {
     }
 
     val info = (state as? UpdateState.Available)?.info
-    LaunchedEffect(info) {
+    var pollDownload by remember(info) { mutableStateOf(false) }
+    LaunchedEffect(info, pollDownload) {
         if (info == null) {
             dl = null
             return@LaunchedEffect
         }
+        dl = queryDownloadStatus(context, info.versionName)
+        if (!pollDownload) {
+            // pobieranie mogło zacząć się przed wejściem w ten ekran
+            if (dl?.state == DlState.RUNNING) pollDownload = true
+            return@LaunchedEffect
+        }
         while (true) {
             dl = queryDownloadStatus(context, info.versionName)
-            if (dl?.state == DlState.FAILED) break
+            val current = dl?.state
+            if (current == DlState.SUCCESS || current == DlState.FAILED) {
+                pollDownload = false
+                break
+            }
             delay(1000)
         }
     }
@@ -89,18 +100,11 @@ fun ChangesScreen(prefs: Prefs) {
     ) {
         item {
             Appear(0) {
-                Column {
-                    Text(
-                        t("Zmiany", "Changes"),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        t("Historia wersji i aktualizacje", "Version history and updates"),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                ScreenHeader(
+                    title = t("Zmiany", "Changes"),
+                    subtitle = t("Historia wersji i aktualizacje", "Version history and updates"),
+                    onBack = onBack,
+                )
             }
         }
 
@@ -183,7 +187,10 @@ fun ChangesScreen(prefs: Prefs) {
                                     onClick = {
                                         when (dl?.state) {
                                             DlState.SUCCESS -> installApkFile(context, s.info.versionName)
-                                            else -> downloadAndInstall(context, s.info)
+                                            else -> {
+                                                downloadAndInstall(context, s.info)
+                                                pollDownload = true
+                                            }
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth().height(46.dp),
@@ -221,6 +228,39 @@ fun ChangesScreen(prefs: Prefs) {
         }
 
         item { SectionTitle(t("Historia wersji", "Version history")) }
+
+        item {
+            InfoCard(
+                title = "1.4.0",
+                lines = listOf(
+                    t(
+                        "Mniej zbędnych ekranów: cztery zakładki, a aktualizacje i historię wersji znajdziesz w Ustawieniach.",
+                        "Fewer screens: four tabs, with updates and version history moved into Settings.",
+                    ),
+                    t(
+                        "Mapa prowadzenia reaguje na gesty: przeciągnij, aby rozejrzeć się, i użyj pinch lub przycisków +/−. Przycisk lokalizacji wraca do śledzenia.",
+                        "The navigation map responds to gestures: drag to look around, pinch or use +/−. The location button returns to following.",
+                    ),
+                    t(
+                        "Automatyczny zoom przed zakrętami, jak w Mapach Google — bliżej na skręcie, spokojniej na prostej.",
+                        "Automatic zoom before corners, like Google Maps — closer at a turn, calmer on a straight.",
+                    ),
+                    t(
+                        "Jaśniejszy styl mapy Humanitarian (HOT), pełna atrybucja OpenStreetMap i ograniczony cache kafelków.",
+                        "A brighter Humanitarian (HOT) map style, full OpenStreetMap attribution and a bounded tile cache.",
+                    ),
+                    t(
+                        "Oszczędniejsze odświeżanie: GPS i autobus na żywo pauzują w tle, a zapytania są częstsze tylko przy przystanku lub blisko autobusu.",
+                        "Leaner refreshing: GPS and live buses pause in the background, and polling speeds up only at a stop or near the bus.",
+                    ),
+                    t(
+                        "Lżejsze wyniki i tablica: mapa trasy dopiero po rozwinięciu, kompaktowe popularne cele, czytelniejsze stany ładowania.",
+                        "Lighter results and board: the route map appears on expand, compact popular destinations and clearer loading states.",
+                    ),
+                ),
+                index = 2,
+            )
+        }
 
         item {
             InfoCard(

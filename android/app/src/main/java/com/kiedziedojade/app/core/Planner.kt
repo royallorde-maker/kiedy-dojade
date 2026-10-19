@@ -67,8 +67,12 @@ object Planner {
         is PlaceRef.Gps -> ResolvedPlace(ref.name, ref.lat, ref.lng)
         is PlaceRef.PoiRef -> ResolvedPlace(ref.name, ref.lat, ref.lng)
         is PlaceRef.StopRef -> {
-            val s = stops[ref.index]
-            ResolvedPlace(s.name, s.lat, s.lng)
+            val s = stops.getOrNull(ref.index) ?: stops.firstOrNull { it.name == ref.name }
+            if (s != null) {
+                ResolvedPlace(s.name, s.lat, s.lng)
+            } else {
+                ResolvedPlace(ref.name, 0.0, 0.0)
+            }
         }
         is PlaceRef.StreetRef -> {
             val first = ref.pts.firstOrNull() ?: (0.0 to 0.0)

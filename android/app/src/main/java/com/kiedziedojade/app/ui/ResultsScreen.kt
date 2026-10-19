@@ -20,8 +20,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsBus
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.EventBusy
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Navigation
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -173,41 +174,6 @@ fun ResultsScreen(
                 }
             }
 
-            if (o.itineraries.isNotEmpty()) {
-                item {
-                    val first = o.itineraries.first().firstRide
-                    if (first != null) {
-                        Appear(2) {
-                            KdCard(onClick = { onOpenStop(first.boardStop.i) }) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Filled.Schedule,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp),
-                                    )
-                                    Spacer(Modifier.width(10.dp))
-                                    Text(
-                                        t("Najbliższe odjazdy", "Upcoming departures"),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Medium,
-                                    )
-                                    Text(
-                                        "  ·  " + first.boardStop.name,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text("→", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -313,17 +279,32 @@ private fun ItineraryCard(
         }
 
         Spacer(Modifier.height(2.dp))
-        Text(
-            metaLine(it),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                metaLine(it),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                contentDescription = if (expanded) {
+                    t("Zwiń trasę", "Collapse route")
+                } else {
+                    t("Pokaż trasę", "Show route")
+                },
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+        }
 
-        // trasa połączenia na mapie (kafelki OSM) — marsz kreską, przejazdy kolorem linii
-        val segs = remember(it) { itinerarySegments(it) }
-        if (segs.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            RouteMiniMap(segs = segs, dots = routeDots(it), dark = dark, height = 122.dp)
+        // mapa trasy dopiero po rozwinięciu — lista wyników zostaje lekka
+        if (expanded) {
+            val segs = remember(it) { itinerarySegments(it) }
+            if (segs.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                RouteMiniMap(segs = segs, dots = routeDots(it), dark = dark, height = 138.dp)
+            }
         }
 
         Spacer(Modifier.height(6.dp))

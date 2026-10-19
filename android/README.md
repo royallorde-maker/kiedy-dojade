@@ -13,21 +13,30 @@ repozytorium: dzieli z nią dane rozkładowe i styl.
   „tylko pieszo”, gdy spacer jest szybszy.
 - **Tablica odjazdów na żywo** — publiczne API KiedyPrzyjedzie.pl (opóźnienia,
   odwołania), odświeżanie co 30 s + rozkład dnia offline.
-- **Mapa przystanków** (OpenStreetMap przez osmdroid — bez klucza API): filtr
-  linii rysuje trasę i zawęża przystanki, pozycja GPS, karta przystanku z
-  przejściem do tablicy/planowania. Kafelki w cache aplikacji, w ciemnych
-  motywach przyciemnione filtrem.
-- **Trasa połączenia na mapie** — każda propozycja w wynikach pokazuje swoją
-  trasę: marsz przerywaną kreską, przejazdy w kolorach linii, kropki
-  przystanków oraz start i meta podróży (miniatura OSM).
+- **Mapa przystanków** (OpenStreetMap Humanitarian/HOT przez osmdroid — bez
+  klucza API): filtr linii rysuje trasę i zawęża przystanki, pozycja GPS, karta
+  przystanku z przejściem do tablicy/planowania. Gesty pinch/pan, przyciski +/−,
+  pełna atrybucja i ograniczony cache kafelków; w ciemnych motywach mapa jest
+  przyciemniona filtrem.
+- **Trasa połączenia na mapie** — propozycja w wynikach pokazuje swoją trasę po
+  rozwinięciu: marsz przerywaną kreską, przejazdy w kolorach linii, kropki
+  przystanków oraz start i meta podróży (miniatura OSM). Zwinięta karta zostaje
+  lekka — sama godzina, czas i jedna linijka faktów.
 - **Prowadzenie po połączeniu** — pełnoekranowa mapa jedzie za pozycją GPS,
   instrukcje prowadzą do przystanku i przez przesiadki, a autobus jest śledzony
-  na żywo: pozycja, ETA i liczba przystanków do wysiadki. Wibracja ostrzega
-  przed przyjazdem autobusu i momentem wysiadki; marsz rysowany jest po ulicach
-  (OSRM), a przycisk „Google Maps” przekazuje nawigację dalej.
+  na żywo: pozycja, ETA i liczba przystanków do wysiadki. Mapę można przesuwać
+  i przybliżać gestami lub przyciskami, a zoom sam przybliża się przed
+  zakrętami. Wibracja ostrzega przed przyjazdem autobusu i momentem wysiadki;
+  marsz rysowany jest po ulicach (OSRM), a przycisk „Google Maps” przekazuje
+  nawigację dalej.
+- **Oszczędne odświeżanie** — GPS i odpytywanie autobusu pauzują, gdy aplikacja
+  jest w tle; interwał rośnie w trasie i maleje przy przystanku lub blisko
+  pojazdu. Zegar tablicy i „za ile minut” aktualizują się same.
 - **Rozkłady offline** — dane wbudowane w APK (assets) i odświeżane z GitHuba
   (atomowa podmiana katalogu; brak sieci = dalej działa).
 - **8 motywów**, PL/EN, aktualizacje w aplikacji (OTA jak w bs-companion).
+  Cztery zakładki: Szukaj, Tablica, Mapa i Ustawienia — aktualizacje oraz
+  historia wersji są w Ustawieniach.
 
 ## Struktura
 
@@ -44,12 +53,13 @@ android/app/src/main/java/com/kiedziedojade/app/
 │   ├── Foot.kt              # geometria marszu po ulicach (OSRM foot)
 │   ├── Live.kt              # dopasowanie kursu na żywo, różnice minut
 │   ├── Nav.kt               # kroki prowadzenia, postęp GPS, wysiadka
+│   ├── Camera.kt            # wykrywanie zakrętów i auto-zoom prowadzenia
 │   ├── DataJson.kt          # parsery public/data/*.json
 │   ├── DataRepo.kt          # assets + atomowe odświeżanie z GitHuba
 │   ├── Api.kt               # odjazdy na żywo (WAF wymaga User-Agenta przeglądarki)
 │   ├── Prefs.kt             # motyw, język, ulubione, ostatnie zapytanie
 │   └── Loc.kt               # lokalizacja jednorazowa i strumień GPS (LocationManager)
-├── ui/                      # ekrany Compose (Szukaj, Tablica, Mapa, Zmiany, Ustawienia)
+├── ui/                      # ekrany Compose (Szukaj, Tablica, Mapa, Ustawienia)
 │   ├── NavScreen.kt         # pełnoekranowe prowadzenie i dane autobusu na żywo
 │   └── Gmaps.kt             # przekazanie nawigacji do Google Maps
 └── update/Update.kt         # OTA: version.json → DownloadManager → instalator
@@ -82,7 +92,7 @@ Wymagania: JDK 17, Android SDK (platform 35, build-tools 34.0.0), Gradle 8.7.
   i podpisze APK, utworzy GitHub Release `v<versionName>` z assetem
   `app-release.apk` i zaktualizuje `backend/api/version.json`.
 - Aplikacja sprawdza `version.json` (raw.githubusercontent) i pokazuje kartę
-  aktualizacji w zakładce **Zmiany**.
+  aktualizacji w **Ustawienia → Aktualizacje i zmiany**.
 
 ## Uwagi techniczne
 
@@ -93,6 +103,7 @@ Wymagania: JDK 17, Android SDK (platform 35, build-tools 34.0.0), Gradle 8.7.
 - **Kalendarz:** harmonogram dni (robocze / wakacje / sobota / niedziele) pochodzi
   z `calendar.json`; poza horyzontem danych planer schodzi na wzorzec wg dnia
   tygodnia i UI to zgłasza („rozkład wg dnia tygodnia”).
-- **Mapa:** osmdroid + kafelki OpenStreetMap (własny User-Agent = nazwa pakietu,
-  zgodnie z polityką OSM). Cache kafelków w `filesDir` — bez uprawnień do pamięci.
+- **Mapa:** osmdroid + kafelki OpenStreetMap Humanitarian/HOT z `tile.openstreetmap.fr`
+  (własny User-Agent z wersją i adresem repo, zgodnie z polityką OSM). Cache
+  kafelków w `filesDir` — bez uprawnień do pamięci, ograniczony do 64 MB.
   Mapa potrzebuje internetu; rozkłady i planer działają dalej offline.

@@ -10,7 +10,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,10 +79,15 @@ fun PickerScreen(
     var query by remember { mutableStateOf("") }
     val focus = remember { FocusRequester() }
 
+    LaunchedEffect(Unit) { focus.requestFocus() }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .imePadding(),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -110,7 +119,10 @@ fun PickerScreen(
         )
 
         val q = query.trim()
-        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp)) {
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
+        ) {
             if (allowGps && q.isEmpty()) {
                 item {
                     PlaceRow(
@@ -128,13 +140,13 @@ fun PickerScreen(
                 if (favs.isNotEmpty()) {
                     item { SectionTitle(t("Ulubione", "Favourites")) }
                     items(favs, key = { "f" + it.key() }) { p ->
-                        SavedRow(world, prefs, p, onPick)
+                        SavedRow(world, prefs, p, current, onPick)
                     }
                 }
                 if (recents.isNotEmpty()) {
                     item { SectionTitle(t("Ostatnio używane", "Recently used")) }
                     items(recents.filter { r -> favs.none { it.key() == r.key() } }, key = { "r" + it.key() }) { p ->
-                        SavedRow(world, prefs, p, onPick)
+                        SavedRow(world, prefs, p, current, onPick)
                     }
                 }
                 if (favs.isEmpty() && recents.isEmpty()) {
@@ -172,7 +184,13 @@ private fun quickStops(world: World, index: List<SearchItem>): List<SearchItem> 
         .distinctBy { it.id }
 
 @Composable
-private fun SavedRow(world: World, prefs: Prefs, place: SavedPlace, onPick: (PlaceRef) -> Unit) {
+private fun SavedRow(
+    world: World,
+    prefs: Prefs,
+    place: SavedPlace,
+    current: PlaceRef?,
+    onPick: (PlaceRef) -> Unit,
+) {
     val icon = when (place.kind) {
         "stop" -> Icons.Filled.DirectionsBus
         "poi" -> Icons.Filled.Storefront
@@ -189,6 +207,7 @@ private fun SavedRow(world: World, prefs: Prefs, place: SavedPlace, onPick: (Pla
         icon = icon,
         name = place.name,
         sub = sub,
+        selected = place.toRef() == current,
         onClick = { place.toRef()?.let(onPick) },
     )
 }

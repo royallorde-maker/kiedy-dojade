@@ -15,6 +15,12 @@ data class Fix(
     val lng: Double,
     /** kierunek ruchu w stopniach (0 = północ) albo null, gdy nieznany */
     val bearing: Float? = null,
+    /** dokładność w metrach (null = system jej nie podał) */
+    val accuracy: Float? = null,
+    /** prędkość w m/s (null = system jej nie podał) */
+    val speed: Float? = null,
+    /** czas pomiaru (epoch ms); 0 = nieznany (np. w testach) */
+    val timeMs: Long = 0L,
 )
 
 /** Krok prowadzenia — jeden odcinek połączenia: marsz albo jazda autobusem. */

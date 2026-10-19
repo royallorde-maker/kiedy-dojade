@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsBus
 import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.CircularProgressIndicator
@@ -99,6 +98,7 @@ fun KdApp(
     var announcements by remember { mutableStateOf<List<Api.Announcement>>(emptyList()) }
 
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    var showChanges by rememberSaveable { mutableStateOf(false) }
     val stack = remember { mutableStateListOf<Route>(Route.Plan) }
     var picker by remember { mutableStateOf<PickerTarget?>(null) }
 
@@ -133,8 +133,9 @@ fun KdApp(
     }
 
     fun setBoard(fromRef: PlaceRef?) {
-        val idx = fromRef?.let { stopForRef(world, it) } ?: -1
-        if (idx >= 0) {
+        val w = world
+        val idx = fromRef?.let { stopForRef(w, it) }
+        if (idx != null && w != null && idx in w.stops.indices) {
             boardStop = idx
             prefs.boardStop = idx
             tab = 1
@@ -154,6 +155,17 @@ fun KdApp(
         delay(650)
         showSplash = false
         announcements = Api.announcements()
+    }
+
+    // Po aktualizacji danych indeksy przystanków mogą się przesunąć.
+    // Nie pozwólmy, żeby nieaktualny zapis wywrócił planer.
+    LaunchedEffect(world) {
+        val w = world ?: return@LaunchedEffect
+        fun valid(ref: PlaceRef?): PlaceRef? =
+            if (ref is PlaceRef.StopRef && ref.index !in w.stops.indices) null else ref
+        from = valid(from)
+        to = valid(to)
+        if (boardStop !in w.stops.indices) boardStop = -1
     }
 
     // ciche odświeżenie danych rozkładowych przy starcie
@@ -182,17 +194,28 @@ fun KdApp(
         }
     }
 
-    BackHandler(enabled = picker != null || stack.size > 1) {
+    BackHandler(
+        enabled = picker != null ||
+            (tab == 0 && stack.size > 1) ||
+            (tab == 3 && showChanges),
+    ) {
         when {
             picker != null -> picker = null
-            stack.size > 1 -> stack.removeAt(stack.lastIndex)
+            tab == 0 && stack.size > 1 -> stack.removeAt(stack.lastIndex)
+            tab == 3 && showChanges -> showChanges = false
         }
+    }
+
+    // Dolny pasek ma teraz cztery zakładki — „Zmiany” są częścią Ustawień.
+    LaunchedEffect(tab) {
+        if (tab !in 0..3) tab = 0
+        if (tab != 3) showChanges = false
     }
 
     // skróty launchera (Szukaj / Tablica)
     LaunchedEffect(openTab) {
         if (openTab != null) {
-            tab = openTab
+            tab = openTab.coerceIn(0, 3)
             onOpenTabHandled()
         }
     }
@@ -225,12 +248,6 @@ fun KdApp(
                         NavigationBarItem(
                             selected = tab == 3,
                             onClick = { tab = 3 },
-                            icon = { Icon(Icons.Filled.NewReleases, contentDescription = null) },
-                            label = { Text(t("Zmiany", "Changes")) },
-                        )
-                        NavigationBarItem(
-                            selected = tab == 4,
-                            onClick = { tab = 4 },
                             icon = { Icon(Icons.Filled.Tune, contentDescription = null) },
                             label = { Text(t("Ustawienia", "Settings")) },
                         )
@@ -363,17 +380,25 @@ fun KdApp(
                                 },
                             )
 
-                            3 -> ChangesScreen(prefs = prefs)
-
-                            4 -> SettingsScreen(
-                                world = w,
-                                prefs = prefs,
-                                appTheme = appTheme,
-                                onThemeChange = onThemeChange,
-                                dataNote = dataNote,
-                                refreshing = refreshing,
-                                onRefreshData = onRefreshData,
-                            )
+                            3 -> {
+                                if (showChanges) {
+                                    ChangesScreen(
+                                        prefs = prefs,
+                                        onBack = { showChanges = false },
+                                    )
+                                } else {
+                                    SettingsScreen(
+                                        world = w,
+                                        prefs = prefs,
+                                        appTheme = appTheme,
+                                        onThemeChange = onThemeChange,
+                                        dataNote = dataNote,
+                                        refreshing = refreshing,
+                                        onRefreshData = onRefreshData,
+                                        onOpenChanges = { showChanges = true },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -394,7 +419,9 @@ fun KdApp(
                     current = when (target) {
                         PickerTarget.FROM -> from
                         PickerTarget.TO -> to
-                        else -> boardStop.takeIf { it >= 0 }?.let { PlaceRef.StopRef(w.stops[it].name, it) }
+                        else -> boardStop.takeIf { it in w.stops.indices }?.let {
+                            PlaceRef.StopRef(w.stops[it].name, it)
+                        }
                     },
                     allowGps = target != PickerTarget.BOARD,
                     onGps = {
@@ -520,7 +547,7 @@ fun SplashScreen() {
 fun stopForRef(world: World?, ref: PlaceRef): Int? {
     if (world == null) return null
     return when (ref) {
-        is PlaceRef.StopRef -> ref.index
+        is PlaceRef.StopRef -> ref.index.takeIf { it in world.stops.indices }
         else -> {
             val resolved = com.kiedziedojade.app.core.Planner.resolvePlace(ref, world.stops)
             nearestStops(world, resolved.lat, resolved.lng, limit = 1, maxMeters = 2000.0)

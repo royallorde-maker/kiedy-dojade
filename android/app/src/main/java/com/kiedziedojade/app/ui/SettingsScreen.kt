@@ -13,9 +13,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.CircularProgressIndicator
@@ -51,6 +52,7 @@ fun SettingsScreen(
     dataNote: String?,
     refreshing: Boolean,
     onRefreshData: () -> Unit,
+    onOpenChanges: () -> Unit,
 ) {
     val uri = LocalUriHandler.current
 
@@ -72,6 +74,41 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            }
+        }
+
+        item {
+            Appear(1) {
+                KdCard(onClick = onOpenChanges) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Filled.NewReleases,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                t("Aktualizacje i zmiany", "Updates and changes"),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            Text(
+                                t(
+                                    "Wersja " + BuildConfig.VERSION_NAME + " · sprawdź lub zobacz historię",
+                                    "Version " + BuildConfig.VERSION_NAME + " · check or view history",
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }
@@ -168,10 +205,6 @@ fun SettingsScreen(
                     Spacer(Modifier.height(10.dp))
                     DataLine(t("Wygenerowano", "Generated"), fmtTimestamp(world.meta.generatedAt, I18n.pl))
                     DataLine(
-                        t("Zasięg rozkładów", "Schedule horizon"),
-                        world.meta.horizonFrom + " → " + world.meta.horizonTo,
-                    )
-                    DataLine(
                         t("Zawartość", "Contents"),
                         "${world.meta.stopsCount} ${I18n.stops(world.meta.stopsCount)} · " +
                             "${world.meta.tripsCount} ${I18n.trips(world.meta.tripsCount)} · " +
@@ -203,35 +236,6 @@ fun SettingsScreen(
                             Text(t("Odśwież dane teraz", "Refresh data now"))
                         }
                     }
-                }
-            }
-        }
-
-        item {
-            Appear(4) {
-                KdCard {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Bolt, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            t("Warto wiedzieć", "Good to know"),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium,
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        t(
-                            "• Odjazdy na żywo pochodzą z publicznego API miasta i wymagają internetu; rozkład działa offline (dane w telefonie).\n" +
-                                "• Godziny liczone są zawsze w czasie Szczecinka — nawet gdy telefon jest w innej strefie.\n" +
-                                "• Rozkłady odświeża codziennie GitHub Actions; aplikacja pobiera je sama, bez aktualizacji.",
-                            "• Live departures come from the city's public API and need the internet; the timetable works offline.\n" +
-                                "• Times are always in Szczecinek's timezone — even when the phone is elsewhere.\n" +
-                                "• Schedules refresh daily via GitHub Actions; the app pulls them in without an app update.",
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                 }
             }
         }

@@ -96,13 +96,13 @@ class Locator(private val context: Context) {
         }
 
     /**
-     * Ciągły strumień pozycji do prowadzenia (nawigacji). Pierwszą ramką jest
-     * ostatnia znana pozycja, żeby mapa nie startowała pusta; potem aktualizacje
-     * co ~1 s / 2 m. Strumień żyje tak długo, jak jego odbiorca — anulowanie
-     * wyrejestrowuje nasłuch.
+     * Ciągły strumień pozycji. Pierwszą ramką jest ostatnia znana pozycja, żeby
+     * mapa nie startowała pusta; potem aktualizacje co [minTimeMs] / [minDistanceM].
+     * Nawigacja używa domyślnych 1 s / 2 m, a przegląd mapy rzadszych aktualizacji.
+     * Strumień żyje tak długo, jak jego odbiorca — anulowanie wyrejestrowuje nasłuch.
      */
     @SuppressLint("MissingPermission")
-    fun stream(): Flow<Fix> = callbackFlow {
+    fun stream(minTimeMs: Long = 1_000L, minDistanceM: Float = 2f): Flow<Fix> = callbackFlow {
         if (!hasPermission()) {
             close()
             awaitClose { }
@@ -127,7 +127,7 @@ class Locator(private val context: Context) {
         var registered = false
         for (p in providers) {
             val ok = runCatching {
-                lm.requestLocationUpdates(p, 1_000L, 2f, listener, Looper.getMainLooper())
+                lm.requestLocationUpdates(p, minTimeMs, minDistanceM, listener, Looper.getMainLooper())
             }.isSuccess
             if (ok) registered = true
         }
@@ -143,5 +143,8 @@ class Locator(private val context: Context) {
         lat = latitude,
         lng = longitude,
         bearing = if (hasBearing()) bearing else null,
+        accuracy = if (hasAccuracy()) accuracy else null,
+        speed = if (hasSpeed()) speed else null,
+        timeMs = time,
     )
 }

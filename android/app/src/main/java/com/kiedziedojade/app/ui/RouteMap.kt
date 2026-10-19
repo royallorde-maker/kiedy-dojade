@@ -8,6 +8,7 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +44,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -53,14 +56,18 @@ import com.kiedziedojade.app.core.Merc
 import com.kiedziedojade.app.core.PathSeg
 import com.kiedziedojade.app.core.RideLeg
 import com.kiedziedojade.app.core.WalkLeg
+import com.kiedziedojade.app.core.autoNavZoom
+import com.kiedziedojade.app.core.cornerAheadMeters
 import com.kiedziedojade.app.core.fitStatic
-import kotlin.math.floor
-import kotlin.math.roundToInt
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlin.math.floor
+import kotlin.math.ln
+import kotlin.math.pow
+import kotlin.math.roundToInt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Miniatura trasy połączenia rysowana wprost na kanwie: kafelki OSM + kreski
@@ -142,24 +149,46 @@ private val nightMatrix = ColorMatrix(
     ),
 )
 
+private fun tileName(z: Int, x: Int, y: Int): String = "${MapTiles.STYLE}/$z/$x/$y"
+
+/** Cache kafelków mapy prowadzenia — ograniczany, żeby nie rósł bez końca. */
+@Volatile
+private var tileWrites = 0
+
+private fun trimTileCache(context: Context) {
+    runCatching {
+        val root = File(context.filesDir, "map-tiles")
+        val files = root.walkTopDown().filter { it.isFile }.toList()
+        if (files.size > 1_200) {
+            files.sortedBy { it.lastModified() }
+                .take(files.size - 1_200)
+                .forEach { it.delete() }
+        }
+    }
+}
+
 private fun fetchTile(context: Context, z: Int, x: Int, y: Int): ByteArray? = runCatching {
-    val conn = URL("https://tile.openstreetmap.org/$z/$x/$y.png").openConnection() as HttpURLConnection
-    conn.setRequestProperty("User-Agent", context.packageName)
-    conn.connectTimeout = 8000
-    conn.readTimeout = 12000
+    val conn = URL(MapTiles.tileUrl(z, x, y)).openConnection() as HttpURLConnection
+    conn.setRequestProperty("User-Agent", MapTiles.USER_AGENT)
+    conn.connectTimeout = 8_000
+    conn.readTimeout = 12_000
     conn.inputStream.use { it.readBytes() }
 }.getOrNull()
 
 private suspend fun loadTile(context: Context, z: Int, x: Int, y: Int): ImageBitmap? =
     withContext(Dispatchers.IO) {
-        val name = "$z/$x/$y"
+        val name = tileName(z, x, y)
         tileMem.get(name)?.let { return@withContext it }
-        val file = File(context.filesDir, "map-tiles/$name.png")
+        val file = File(context.filesDir, "map-tiles/${MapTiles.STYLE}/$z/$x/$y.png")
         val cached = if (file.isFile) runCatching { file.readBytes() }.getOrNull() else null
         val data = cached ?: fetchTile(context, z, x, y)?.also { bytes ->
             runCatching {
                 file.parentFile?.mkdirs()
                 file.writeBytes(bytes)
+            }
+            if (++tileWrites >= 40) {
+                tileWrites = 0
+                trimTileCache(context)
             }
         } ?: return@withContext null
         val bmp = BitmapFactory.decodeByteArray(data, 0, data.size) ?: return@withContext null
@@ -297,33 +326,26 @@ fun RouteMiniMap(
             }
         }
 
-        // atrybucja kafelków
-        Surface(
-            shape = RoundedCornerShape(6.dp),
-            color = scheme.surfaceContainer.copy(alpha = 0.8f),
+        MapAttribution(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(6.dp),
-        ) {
-            Text(
-                "© OpenStreetMap",
-                style = MaterialTheme.typography.labelSmall,
-                color = scheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
-            )
-        }
+            clickable = false,
+        )
     }
 }
 
 /**
- * Mapa prowadzenia (tryb „za mną”): kafelki OpenStreetMap wokół bieżącej
- * pozycji, trasa połączenia z wygaszoną przebytą częścią, kropki przystanków
- * i znacznik pozycji ze strzałką kierunku. Bez gestów — mapa jedzie za
- * użytkownikiem, jak w nawigacji Google Maps.
+ * Mapa prowadzenia (tryb „za mną”): kafelki HOT wokół bieżącej pozycji, trasa
+ * połączenia z wygaszoną przebytą częścią, kropki przystanków i znacznik
+ * pozycji ze strzałką kierunku. Mapę można przesuwać i przybliżać gestami;
+ * po chwili bez dotyku wraca do śledzenia pozycji. Zoom sam przybliża się
+ * przed zakrętami, jak w nawigacji Google Maps.
  *
  * @param fix bieżąca pozycja albo null (wtedy widok pokazuje środek aktywnego odcinka)
  * @param activeLeg indeks nogi, na której jesteśmy — wcześniejsze są wygaszone
  * @param bus pozycja autobusu na żywo (null, gdy nie znamy)
+ * @param baseZoom spokojny zoom prostego odcinka (zakręty same go zwiększają)
  */
 @Composable
 fun RouteNavMap(
@@ -334,10 +356,11 @@ fun RouteNavMap(
     activeLeg: Int,
     dark: Boolean,
     modifier: Modifier = Modifier,
-    zoom: Int = 15,
+    baseZoom: Float = 15f,
     bus: Pair<Double, Double>? = null,
     busHeading: Float? = null,
     busColor: Color = Color(0xFF1E88E5),
+    showAttribution: Boolean = true,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -345,8 +368,10 @@ fun RouteNavMap(
     val walkColor = scheme.tertiary
     val ringColor = scheme.onPrimary
     val night = if (dark) ColorFilter.colorMatrix(nightMatrix) else null
-    val world = 256.0 * (1 shl zoom)
-    val dim = 0.3f
+
+    // 256 dp na kafelek: etykiety ulic są czytelne na telefonie, a zoom
+    // odpowiada temu, co użytkownik widzi w Mapach Google.
+    val tileBasePx = with(density) { 256.dp.toPx() }
 
     // płynne przejście znacznika autobusu między kolejnymi odczytami API
     var prevBus by remember { mutableStateOf<Pair<Double, Double>?>(null) }
@@ -377,79 +402,176 @@ fun RouteNavMap(
         else ((pts.first().first + pts.last().first) / 2.0) to
             ((pts.first().second + pts.last().second) / 2.0)
     }
-    val center = fix ?: bus ?: fallback
-    if (center == null) {
+    val target = fix ?: bus ?: fallback
+    if (target == null) {
         Box(modifier.background(scheme.surfaceContainerHighest))
         return
     }
-    val cx = Merc.x(center.second)
-    val cy = Merc.y(center.first)
 
-    Box(modifier = modifier.background(scheme.surfaceContainerHighest)) {
+    // Środek trzymamy w Double: przy zoomie 18 float traci piksele.
+    var camCX by remember { mutableStateOf(Merc.x(target.second)) }
+    var camCY by remember { mutableStateOf(Merc.y(target.first)) }
+    var camZoom by remember { mutableStateOf(baseZoom) }
+    var follow by remember { mutableStateOf(true) }
+    var manualCX by remember { mutableStateOf<Double?>(null) }
+    var manualCY by remember { mutableStateOf<Double?>(null) }
+    var manualZoom by remember { mutableStateOf<Float?>(null) }
+    var tiles by remember { mutableStateOf<Map<String, ImageBitmap>>(emptyMap()) }
+
+    // nowa noga = wróć do prowadzenia (np. po przesiadce)
+    LaunchedEffect(activeLeg) {
+        follow = true
+        manualCX = null
+        manualCY = null
+        manualZoom = null
+    }
+
+    val activePts = remember(segs, activeLeg) {
+        segs.filter { it.leg == activeLeg }.flatMap { it.pts }
+    }
+    val activeWalk = remember(segs, activeLeg) {
+        segs.any { it.leg == activeLeg && it.walk }
+    }
+    val corner = remember(activePts, fix, activeWalk) {
+        if (fix != null && activeWalk) cornerAheadMeters(activePts, fix) else null
+    }
+    val targetZoom = remember(baseZoom, corner) { autoNavZoom(baseZoom, corner) }
+
+    // Kamera jedzie za pozycją; własna interpolacja w Double wygładza GPS
+    // bez utraty precyzji na dużych zoomach.
+    LaunchedEffect(target, follow, targetZoom) {
+        if (!follow) return@LaunchedEffect
+        val sx = camCX
+        val sy = camCY
+        val sz = camZoom
+        val ex = Merc.x(target.second)
+        val ey = Merc.y(target.first)
+        val ez = targetZoom
+        val start = withFrameNanos { it }
+        while (true) {
+            val frame = withFrameNanos { it }
+            val t = ((frame - start) / 700_000_000.0).coerceIn(0.0, 1.0)
+            val e = t * t * (3.0 - 2.0 * t) // smoothstep
+            camCX = sx + (ex - sx) * e
+            camCY = sy + (ey - sy) * e
+            camZoom = sz + (ez - sz) * e.toFloat()
+            if (t >= 1.0) break
+        }
+    }
+
+    val centerX = manualCX ?: camCX
+    val centerY = manualCY ?: camCY
+    val zoomNow = manualZoom ?: camZoom
+
+    fun zoomBy(delta: Float) {
+        val z = ((manualZoom ?: camZoom) + delta).coerceIn(12.5f, 18f)
+        manualCX = manualCX ?: camCX
+        manualCY = manualCY ?: camCY
+        manualZoom = z
+        follow = false
+    }
+
+    Box(modifier.background(scheme.surfaceContainerHighest)) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val w = with(density) { maxWidth.toPx() }.toInt()
             val h = with(density) { maxHeight.toPx() }.toInt()
 
-            // trwały zestaw kafelków wokół środka: mapa jedzie za pozycją,
-            // więc kafelki dokładamy, a dalekie przycinamy
-            var tiles by remember { mutableStateOf<Map<String, ImageBitmap>>(emptyMap()) }
+            val tileZoom = floor(zoomNow).toInt().coerceIn(MapTiles.MIN_ZOOM, MapTiles.MAX_ZOOM)
+            val tileScale = 2.0.pow((zoomNow - tileZoom).toDouble())
+            val tilePx = tileBasePx * tileScale
+            val world = tileBasePx * 2.0.pow(zoomNow.toDouble())
+            val originX = centerX * world - w / 2.0
+            val originY = centerY * world - h / 2.0
+            val tx0 = floor(originX / tilePx).toInt() - 1
+            val ty0 = floor(originY / tilePx).toInt() - 1
+            val tx1 = floor((originX + w) / tilePx).toInt() + 1
+            val ty1 = floor((originY + h) / tilePx).toInt() + 1
 
-            val originX = cx * world - w / 2.0
-            val originY = cy * world - h / 2.0
-            val tx0 = floor(originX / 256.0).toInt() - 1
-            val ty0 = floor(originY / 256.0).toInt() - 1
-            val tx1 = floor((originX + w) / 256.0).toInt() + 1
-            val ty1 = floor((originY + h) / 256.0).toInt() + 1
-
-            LaunchedEffect(zoom, tx0, ty0, tx1, ty1) {
-                val n = 1 shl zoom
+            LaunchedEffect(tileZoom, tx0, ty0, tx1, ty1) {
+                val n = 1 shl tileZoom
                 val want = LinkedHashSet<String>()
                 for (ty in ty0..ty1) {
                     if (ty < 0 || ty >= n) continue
-                    for (tx in tx0..tx1) want += "$zoom/${((tx % n) + n) % n}/$ty"
+                    for (tx in tx0..tx1) {
+                        want += tileName(tileZoom, ((tx % n) + n) % n, ty)
+                    }
                 }
                 var map = tiles
                 for (name in want) {
                     if (map.containsKey(name)) continue
-                    val (z, x, y) = name.split("/")
-                    val bmp = loadTile(context, z.toInt(), x.toInt(), y.toInt()) ?: continue
+                    val parts = name.split("/")
+                    val bmp = loadTile(
+                        context,
+                        parts[1].toInt(),
+                        parts[2].toInt(),
+                        parts[3].toInt(),
+                    ) ?: continue
                     map = map + (name to bmp)
                     tiles = map // kafelki pojawiają się w miarę pobierania
                 }
-                if (map.size > 64) tiles = map.filterKeys { it in want }
+                if (map.size > 72) tiles = map.filterKeys { it in want }
             }
 
-            Canvas(Modifier.fillMaxSize()) {
+            Canvas(
+                Modifier
+                    .fillMaxSize()
+                    .pointerInput(tileBasePx) {
+                        detectTransformGestures { centroid, pan, zoomChange, _ ->
+                            val z0 = manualZoom ?: camZoom
+                            val z1 = (z0 + ln(zoomChange.coerceAtLeast(0.01f).toDouble()) / ln(2.0))
+                                .toFloat()
+                                .coerceIn(12.5f, 18f)
+                            val c0x = manualCX ?: camCX
+                            val c0y = manualCY ?: camCY
+                            val world0 = tileBasePx * 2.0.pow(z0.toDouble())
+                            val world1 = tileBasePx * 2.0.pow(z1.toDouble())
+                            val halfW = size.width / 2.0
+                            val halfH = size.height / 2.0
+                            // punkt pod palcami zostaje pod palcami po zoomie
+                            val prevX = centroid.x - pan.x
+                            val prevY = centroid.y - pan.y
+                            val pointX = c0x + (prevX - halfW) / world0
+                            val pointY = c0y + (prevY - halfH) / world0
+                            val nx = pointX - (centroid.x - halfW) / world1
+                            val ny = pointY - (centroid.y - halfH) / world1
+                            manualCX = nx.coerceIn(0.0, 1.0)
+                            manualCY = ny.coerceIn(0.02, 0.98)
+                            manualZoom = z1
+                            follow = false
+                        }
+                    },
+            ) {
                 val halfW = size.width / 2.0
                 val halfH = size.height / 2.0
-                val left = cx * world - halfW
-                val top = cy * world - halfH
-                val n = 1 shl zoom
-                val ix0 = floor(left / 256.0).toInt() - 1
-                val iy0 = floor(top / 256.0).toInt() - 1
-                val ix1 = floor((left + size.width) / 256.0).toInt() + 1
-                val iy1 = floor((top + size.height) / 256.0).toInt() + 1
+                val left = centerX * world - halfW
+                val top = centerY * world - halfH
+                val n = 1 shl tileZoom
+                val ix0 = floor(left / tilePx).toInt() - 1
+                val iy0 = floor(top / tilePx).toInt() - 1
+                val ix1 = floor((left + size.width) / tilePx).toInt() + 1
+                val iy1 = floor((top + size.height) / tilePx).toInt() + 1
 
                 for (ty in iy0..iy1) {
                     if (ty < 0 || ty >= n) continue
                     for (tx in ix0..ix1) {
-                        val bmp = tiles["$zoom/${((tx % n) + n) % n}/$ty"] ?: continue
+                        val wrapped = ((tx % n) + n) % n
+                        val bmp = tiles[tileName(tileZoom, wrapped, ty)] ?: continue
                         drawImage(
                             image = bmp,
                             srcOffset = IntOffset.Zero,
                             srcSize = IntSize(bmp.width, bmp.height),
                             dstOffset = IntOffset(
-                                (tx * 256.0 - left).roundToInt(),
-                                (ty * 256.0 - top).roundToInt(),
+                                (tx * tilePx - left).roundToInt(),
+                                (ty * tilePx - top).roundToInt(),
                             ),
-                            dstSize = IntSize(256, 256),
+                            dstSize = IntSize(tilePx.roundToInt(), tilePx.roundToInt()),
                             colorFilter = night,
                         )
                     }
                 }
 
-                fun sxOf(lng: Double) = ((Merc.x(lng) - cx) * world + halfW).toFloat()
-                fun syOf(lat: Double) = ((Merc.y(lat) - cy) * world + halfH).toFloat()
+                fun sxOf(lng: Double) = ((Merc.x(lng) - centerX) * world + halfW).toFloat()
+                fun syOf(lat: Double) = ((Merc.y(lat) - centerY) * world + halfH).toFloat()
                 fun pathOf(seg: PathSeg): Path {
                     val p = Path()
                     seg.pts.forEachIndexed { i, pt ->
@@ -466,7 +588,7 @@ fun RouteNavMap(
                     drawPath(
                         path = pathOf(seg),
                         color = (if (seg.walk) walkColor else lineColor(seg.line.orEmpty()))
-                            .copy(alpha = if (passed) dim else 1f),
+                            .copy(alpha = if (passed) 0.3f else 1f),
                         style = Stroke(
                             width = (if (seg.walk) 5.dp else 6.dp).toPx(),
                             cap = StrokeCap.Round,
@@ -483,7 +605,7 @@ fun RouteNavMap(
                 }
 
                 dots.forEach { dot ->
-                    val alpha = if (dot.leg < activeLeg) dim else 1f
+                    val alpha = if (dot.leg < activeLeg) 0.3f else 1f
                     val x = sxOf(dot.pt.second)
                     val y = syOf(dot.pt.first)
                     val r = dot.sizeDp.dp.toPx() / 2f
@@ -514,8 +636,8 @@ fun RouteNavMap(
                     }
                 }
                 shownBus?.let { b ->
-                    val bx = ((Merc.x(b.second) - cx) * world + halfW).toFloat()
-                    val by = ((Merc.y(b.first) - cy) * world + halfH).toFloat()
+                    val bx = ((Merc.x(b.second) - centerX) * world + halfW).toFloat()
+                    val by = ((Merc.y(b.first) - centerY) * world + halfH).toFloat()
                     val edge = 30.dp.toPx()
                     if (bx in -edge..(size.width + edge) && by in -edge..(size.height + edge)) {
                         drawBusMarker(Offset(bx, by), busHeading, busColor, ringColor)
@@ -529,8 +651,8 @@ fun RouteNavMap(
 
                 // pozycja użytkownika: poświata, strzałka kierunku i kropka
                 fix?.let { f ->
-                    val px = ((Merc.x(f.second) - cx) * world + halfW).toFloat()
-                    val py = ((Merc.y(f.first) - cy) * world + halfH).toFloat()
+                    val px = ((Merc.x(f.second) - centerX) * world + halfW).toFloat()
+                    val py = ((Merc.y(f.first) - centerY) * world + halfH).toFloat()
                     val p = Offset(px, py)
                     drawCircle(
                         color = scheme.primary.copy(alpha = 0.16f),
@@ -553,19 +675,29 @@ fun RouteNavMap(
             }
         }
 
-        // atrybucja kafelków
-        Surface(
-            shape = RoundedCornerShape(6.dp),
-            color = scheme.surfaceContainer.copy(alpha = 0.8f),
+        MapZoomControls(
+            onZoomIn = { zoomBy(1f) },
+            onZoomOut = { zoomBy(-1f) },
+            onRecenter = if (!follow) {
+                {
+                    manualCX = null
+                    manualCY = null
+                    manualZoom = null
+                    follow = true
+                }
+            } else {
+                null
+            },
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(6.dp),
-        ) {
-            Text(
-                "© OpenStreetMap",
-                style = MaterialTheme.typography.labelSmall,
-                color = scheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+                .align(Alignment.CenterEnd)
+                .padding(end = 12.dp),
+        )
+
+        if (showAttribution) {
+            MapAttribution(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(6.dp),
             )
         }
     }

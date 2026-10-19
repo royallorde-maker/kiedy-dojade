@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsBus
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,6 +39,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.kiedziedojade.app.core.Api
 import com.kiedziedojade.app.core.I18n.t
 import com.kiedziedojade.app.core.Planner
@@ -87,30 +91,45 @@ fun StopScreen(
     }
 
     val stop = world.stops[stopIndex]
+    val lifecycleOwner = LocalLifecycleOwner.current
     var board by remember(stopIndex) { mutableStateOf<List<Api.LiveRow>?>(null) }
+    var boardLoaded by remember(stopIndex) { mutableStateOf(false) }
     var boardError by remember(stopIndex) { mutableStateOf(false) }
     var expandedTrip by remember(stopIndex) { mutableStateOf<Long?>(null) }
+    var now by remember(stopIndex) { mutableStateOf(nowMinutes()) }
 
-    LaunchedEffect(stopIndex) {
-        while (true) {
-            try {
-                board = Api.stopBoard(stop.id)
-                boardError = false
-            } catch (_: Exception) {
-                boardError = true
+    LaunchedEffect(stopIndex, lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                try {
+                    board = Api.stopBoard(stop.id)
+                    boardError = false
+                } catch (_: Exception) {
+                    boardError = true
+                }
+                boardLoaded = true
+                delay(30_000)
             }
-            delay(30_000)
         }
     }
 
-    val pattern = remember(world) { Planner.resolvePattern(world, todayStr()) }
+    LaunchedEffect(stopIndex, lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                now = nowMinutes()
+                delay(20_000)
+            }
+        }
+    }
+
+    val today = todayStr()
+    val pattern = remember(world, today) { Planner.resolvePattern(world, today) }
     val timetable = remember(world, stopIndex, pattern.first) {
         world.trips[pattern.first].orEmpty().mapNotNull { tr ->
             val idx = tr.times.indexOfFirst { it.first == stopIndex }
             if (idx < 0) null else TimetableRow(tr, tr.times[idx].second, idx)
         }.sortedBy { it.depMin }
     }
-    val now = nowMinutes()
     val saved = SavedPlace("stop", stop.name, index = stopIndex)
 
     LazyColumn(
@@ -155,6 +174,19 @@ fun StopScreen(
                         .sortedBy { it.depMin }
                         .take(14)
                     when {
+                        !boardLoaded -> Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                t("Ładowanie odjazdów…", "Loading departures…"),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+
                         boardError && rows.isEmpty() -> Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Filled.WifiOff,

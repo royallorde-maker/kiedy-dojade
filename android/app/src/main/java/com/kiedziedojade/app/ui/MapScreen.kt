@@ -48,6 +48,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import com.kiedziedojade.app.core.Locator
 import com.kiedziedojade.app.core.MapIndex
 import com.kiedziedojade.app.core.World
 import com.kiedziedojade.app.core.fmtMeters
@@ -56,7 +61,6 @@ import com.kiedziedojade.app.core.I18n.t
 import com.kiedziedojade.app.core.mapIndex
 import com.kiedziedojade.app.core.walkMinutes
 import com.kiedziedojade.app.update.rememberIsOnline
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
@@ -87,11 +91,14 @@ fun MapScreen(
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
     val density = LocalDensity.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val index: MapIndex = remember(world) { mapIndex(world) }
     val holder = remember { MapHolder() }
+    val locator = remember { Locator(context) }
     var line by rememberSaveable { mutableStateOf<String?>(null) }
     var selected by rememberSaveable { mutableStateOf<Int?>(null) }
     var userFix by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+    var canLocate by remember { mutableStateOf(locator.hasPermission()) }
     var mapReady by remember { mutableStateOf(false) }
     val online = rememberIsOnline()
 
@@ -125,12 +132,12 @@ fun MapScreen(
             modifier = Modifier.fillMaxSize(),
             factory = { ctx ->
                 MapView(ctx).apply {
-                    setTileSource(TileSourceFactory.MAPNIK)
+                    setTileSource(MapTiles.tileSource())
                     setMultiTouchControls(true)
                     setTilesScaledToDpi(true)
-                    setBuiltInZoomControls(false) // pinch/2×tap wystarczą; białe +/- psują wygląd
+                    setBuiltInZoomControls(false) // pinch/2×tap i własne +/−
                     minZoomLevel = 10.0
-                    maxZoomLevel = 19.0
+                    maxZoomLevel = MapTiles.MAX_ZOOM.toDouble()
                     controller.setZoom(13.5)
                     controller.setCenter(center)
                     holder.map = this
@@ -146,8 +153,33 @@ fun MapScreen(
             },
         )
 
-        DisposableEffect(Unit) {
-            onDispose { holder.map?.onDetach() }
+        DisposableEffect(lifecycleOwner) {
+            val observer = LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_RESUME -> holder.map?.onResume()
+                    Lifecycle.Event.ON_PAUSE -> holder.map?.onPause()
+                    else -> Unit
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose {
+                lifecycleOwner.lifecycle.removeObserver(observer)
+                holder.map?.onDetach()
+            }
+        }
+
+        // Żywa kropka pozycji, ale rzadziej niż w nawigacji i bez ruszania kamery —
+        // użytkownik może swobodnie rozglądać się po mapie.
+        LaunchedEffect(canLocate, lifecycleOwner) {
+            if (!canLocate) return@LaunchedEffect
+            lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                locator.stream(minTimeMs = 4_000L, minDistanceM = 8f).collect { f ->
+                    val age = System.currentTimeMillis() - f.timeMs
+                    if (f.timeMs <= 0L || age < 120_000L) {
+                        userFix = f.lat to f.lng
+                    }
+                }
+            }
         }
 
         // jasny/ciemny filtr kafelków wg motywu
@@ -159,6 +191,9 @@ fun MapScreen(
 
         // znaczniki przystanków (przebudowa przy zmianie filtra/selection/kolorów)
         val shown = remember(index, line, world) { index.stopsFor(world, line) }
+        LaunchedEffect(shown) {
+            if (selected != null && selected !in shown) selected = null
+        }
         LaunchedEffect(shown, selected, fill, fillSelected, ring, mapReady) {
             if (!mapReady) return@LaunchedEffect
             val map = holder.map ?: return@LaunchedEffect
@@ -226,7 +261,6 @@ fun MapScreen(
                 map.overlays.add(this)
             }
             marker.position = GeoPoint(fix.first, fix.second)
-            map.controller.animateTo(marker.position, 15.5, 500L)
             map.invalidate()
         }
 
@@ -266,6 +300,12 @@ fun MapScreen(
                         requester.request { fix ->
                             if (fix != null) {
                                 userFix = fix
+                                canLocate = true
+                                holder.map?.controller?.animateTo(
+                                    GeoPoint(fix.first, fix.second),
+                                    15.5,
+                                    500L,
+                                )
                             } else {
                                 Toast.makeText(
                                     context,
@@ -279,6 +319,9 @@ fun MapScreen(
                     Icon(Icons.Filled.MyLocation, contentDescription = t("Moja lokalizacja", "My location"))
                 }
             }
+            MapAttribution(
+                modifier = Modifier.padding(start = 12.dp, top = 6.dp),
+            )
             if (!online) {
                 Surface(
                     shape = RoundedCornerShape(10.dp),
@@ -295,21 +338,13 @@ fun MapScreen(
             }
         }
 
-        // atrybucja kafelków
-        Surface(
-            shape = RoundedCornerShape(8.dp),
-            color = scheme.surfaceContainer.copy(alpha = 0.85f),
+        MapZoomControls(
+            onZoomIn = { holder.map?.controller?.zoomIn() },
+            onZoomOut = { holder.map?.controller?.zoomOut() },
             modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(10.dp),
-        ) {
-            Text(
-                "© OpenStreetMap",
-                style = MaterialTheme.typography.labelSmall,
-                color = scheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            )
-        }
+                .align(Alignment.CenterEnd)
+                .padding(end = 12.dp),
+        )
 
         // karta wybranego przystanku
         val sel = selected?.takeIf { it in world.stops.indices }
@@ -335,15 +370,19 @@ fun MapScreen(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            if (second != null) {
-                                Text(
-                                    second,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = scheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
+                            val sub = buildList {
+                                second?.let { add(it) }
+                                add(t("Przystanek ", "Stop ") + stop.code)
+                                if (stop.onDemand) add(t("na żądanie", "on demand"))
+                                if (stop.station) add(t("dworzec", "station"))
+                            }.joinToString("  ·  ")
+                            Text(
+                                sub,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                         IconButton(onClick = { selected = null }) {
                             Icon(
@@ -355,38 +394,29 @@ fun MapScreen(
                     }
                     val stopLines = index.stopLines[sel].orEmpty()
                     if (stopLines.isNotEmpty()) {
-                        Spacer(Modifier.height(2.dp))
+                        Spacer(Modifier.height(4.dp))
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            stopLines.take(6).forEach { LineChip(it) }
-                            if (stopLines.size > 6) {
+                            stopLines.take(4).forEach { LineChip(it) }
+                            if (stopLines.size > 4) {
                                 Text(
-                                    "+${stopLines.size - 6}",
+                                    "+${stopLines.size - 4}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = scheme.onSurfaceVariant,
                                 )
                             }
                         }
                     }
-                    Spacer(Modifier.height(8.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        StatusChip(t("Przystanek ", "Stop ") + stop.code)
-                        if (stop.onDemand) StatusChip(t("na żądanie", "on demand"))
-                        if (stop.station) StatusChip(t("dworzec", "station"))
-                    }
                     userFix?.let { fix ->
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(6.dp))
                         val meters = haversine(fix.first, fix.second, stop.lat, stop.lng)
                         val dist = fmtMeters(meters)
                         val walk = walkMinutes(meters)
                         WalkRow(t("$dist · $walk min pieszo", "$dist · $walk min walk"))
                     }
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Button(
                             onClick = { onOpenBoard(sel) },
