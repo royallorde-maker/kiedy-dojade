@@ -231,6 +231,27 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.1",
+                lines = listOf(
+                    t(
+                        "Nowy domyślny styl mapy: czytelny OpenStreetMap zamiast pastelowego HOT.",
+                        "A new default map style: clean OpenStreetMap instead of pastel HOT.",
+                    ),
+                    t(
+                        "Styl mapy wybierzesz w Ustawieniach: Domyślny, Kolorowy i HOT. Działa na mapie przystanków, miniaturach tras i w prowadzeniu.",
+                        "Pick the map style in Settings: Default, Colourful and HOT. It applies to the stop map, route thumbnails and navigation.",
+                    ),
+                    t(
+                        "Wybrany styl jest zapamiętywany i działa od razu, bez ponownego uruchamiania.",
+                        "Your choice is remembered and applies immediately, without restarting.",
+                    ),
+                ),
+                index = 1,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.0",
                 lines = listOf(
                     t(

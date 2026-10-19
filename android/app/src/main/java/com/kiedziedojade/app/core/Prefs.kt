@@ -47,6 +47,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("dark_override", false)
         set(v) = sp.edit().putBoolean("dark_override", v).apply()
 
+    /** id stylu kafelków mapy; nieznany/brak = domyślny OpenStreetMap */
+    var mapStyle: String
+        get() = sp.getString("map_style", "standard") ?: "standard"
+        set(v) = sp.edit().putString("map_style", v).apply()
+
     var lang: String
         get() = sp.getString("lang", "pl") ?: "pl"
         set(v) = sp.edit().putString("lang", v).apply()

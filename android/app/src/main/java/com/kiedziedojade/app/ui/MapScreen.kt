@@ -54,6 +54,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.kiedziedojade.app.core.Locator
 import com.kiedziedojade.app.core.MapIndex
+import com.kiedziedojade.app.core.MapStyle
 import com.kiedziedojade.app.core.World
 import com.kiedziedojade.app.core.fmtMeters
 import com.kiedziedojade.app.core.haversine
@@ -87,6 +88,7 @@ fun MapScreen(
     requester: LocationRequester,
     onOpenBoard: (Int) -> Unit,
     onPlanTo: (Int) -> Unit,
+    mapStyle: MapStyle = MapStyle.STANDARD,
 ) {
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
@@ -132,7 +134,7 @@ fun MapScreen(
             modifier = Modifier.fillMaxSize(),
             factory = { ctx ->
                 MapView(ctx).apply {
-                    setTileSource(MapTiles.tileSource())
+                    setTileSource(MapTiles.tileSource(mapStyle))
                     setMultiTouchControls(true)
                     setTilesScaledToDpi(true)
                     setBuiltInZoomControls(false) // pinch/2×tap i własne +/−
@@ -182,8 +184,17 @@ fun MapScreen(
             }
         }
 
+        // zmiana stylu kafelków działa od razu, bez ponownego wejścia na mapę
+        LaunchedEffect(mapStyle, mapReady) {
+            if (!mapReady) return@LaunchedEffect
+            val map = holder.map ?: return@LaunchedEffect
+            map.setTileSource(MapTiles.tileSource(mapStyle))
+            map.overlayManager?.tilesOverlay?.setColorFilter(if (dark) nightFilter else null)
+            map.invalidate()
+        }
+
         // jasny/ciemny filtr kafelków wg motywu
-        LaunchedEffect(dark, mapReady) {
+        LaunchedEffect(dark, mapStyle, mapReady) {
             if (!mapReady) return@LaunchedEffect
             holder.map?.overlayManager?.tilesOverlay?.setColorFilter(if (dark) nightFilter else null)
             holder.map?.invalidate()
@@ -321,6 +332,7 @@ fun MapScreen(
             }
             MapAttribution(
                 modifier = Modifier.padding(start = 12.dp, top = 6.dp),
+                style = mapStyle,
             )
             if (!online) {
                 Surface(

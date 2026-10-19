@@ -43,6 +43,7 @@ import com.kiedziedojade.app.core.Api
 import com.kiedziedojade.app.core.I18n
 import com.kiedziedojade.app.core.I18n.t
 import com.kiedziedojade.app.core.Itinerary
+import com.kiedziedojade.app.core.MapStyle
 import com.kiedziedojade.app.core.PlanInput
 import com.kiedziedojade.app.core.PlanOutcome
 import com.kiedziedojade.app.core.Planner
@@ -64,6 +65,7 @@ fun ResultsScreen(
     world: World,
     query: JourneyQuery,
     dark: Boolean,
+    mapStyle: MapStyle = MapStyle.STANDARD,
     onBack: () -> Unit,
     onOpenStop: (Int) -> Unit,
     onNavigate: (Itinerary) -> Unit,
@@ -164,6 +166,7 @@ fun ResultsScreen(
                         world = world,
                         it = it2,
                         dark = dark,
+                        mapStyle = mapStyle,
                         isBest = it2.tag == Tag.BEST.value,
                         live = if (it2 === best) live else null,
                         expanded = expanded == it2.id,
@@ -230,6 +233,7 @@ private fun ItineraryCard(
     world: World,
     it: Itinerary,
     dark: Boolean,
+    mapStyle: MapStyle,
     isBest: Boolean,
     live: Api.LiveRow?,
     expanded: Boolean,
@@ -303,7 +307,13 @@ private fun ItineraryCard(
             val segs = remember(it) { itinerarySegments(it) }
             if (segs.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                RouteMiniMap(segs = segs, dots = routeDots(it), dark = dark, height = 138.dp)
+                RouteMiniMap(
+                    segs = segs,
+                    dots = routeDots(it),
+                    dark = dark,
+                    mapStyle = mapStyle,
+                    height = 138.dp,
+                )
             }
         }
 

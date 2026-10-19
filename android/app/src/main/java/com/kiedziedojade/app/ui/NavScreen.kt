@@ -59,6 +59,7 @@ import com.kiedziedojade.app.core.I18n
 import com.kiedziedojade.app.core.I18n.t
 import com.kiedziedojade.app.core.Itinerary
 import com.kiedziedojade.app.core.Locator
+import com.kiedziedojade.app.core.MapStyle
 import com.kiedziedojade.app.core.NavStep
 import com.kiedziedojade.app.core.RideLeg
 import com.kiedziedojade.app.core.WALK_DETOUR
@@ -91,6 +92,7 @@ fun NavScreen(
     itinerary: Itinerary,
     dark: Boolean,
     onClose: () -> Unit,
+    mapStyle: MapStyle = MapStyle.STANDARD,
 ) {
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
@@ -435,6 +437,7 @@ fun NavScreen(
             busHeading = busHeading,
             busColor = lineColor(chipLine.orEmpty()),
             showAttribution = false,
+            mapStyle = mapStyle,
             modifier = Modifier.fillMaxSize(),
         )
 
@@ -510,6 +513,7 @@ fun NavScreen(
                 modifier = Modifier
                     .align(Alignment.End)
                     .padding(end = 2.dp, bottom = 4.dp),
+                style = mapStyle,
             )
 
             Surface(

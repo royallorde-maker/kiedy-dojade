@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import com.kiedziedojade.app.BuildConfig
 import com.kiedziedojade.app.core.I18n.t
+import com.kiedziedojade.app.core.MapStyle
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.XYTileSource
 import java.io.File
@@ -43,27 +44,28 @@ import java.io.File
  * mapy, miniatury tras i prowadzenie.
  */
 
-/** Styl mapy: Humanitarian (HOT) — jaśniejszy i spokojniejszy od standardowego OSM. */
+/** Wspólna konfiguracja kafelków OpenStreetMap — bez klucza API. */
 object MapTiles {
-    const val STYLE = "hot"
     const val MAX_ZOOM = 19
     const val MIN_ZOOM = 2
-    const val ATTRIBUTION = "© OpenStreetMap · HOT / OSM France"
 
     /** OSM wymaga kontaktu w User-Agencie, nie samej nazwy pakietu. */
     val USER_AGENT: String
         get() = "KiedyDojade/${BuildConfig.VERSION_NAME} (+${BuildConfig.REPO_URL})"
 
-    fun tileUrl(z: Int, x: Int, y: Int): String =
-        "https://a.tile.openstreetmap.fr/$STYLE/$z/$x/$y.png"
+    fun tileUrl(style: MapStyle, z: Int, x: Int, y: Int): String =
+        "${style.tileBaseUrl}$z/$x/$y.png"
 
-    fun tileSource(): XYTileSource = XYTileSource(
-        "KiedyDojade-$STYLE",
+    fun tileName(style: MapStyle, z: Int, x: Int, y: Int): String =
+        "${style.id}/$z/$x/$y"
+
+    fun tileSource(style: MapStyle): XYTileSource = XYTileSource(
+        "KiedyDojade-${style.id}",
         MIN_ZOOM,
         MAX_ZOOM,
         256,
         ".png",
-        arrayOf("https://a.tile.openstreetmap.fr/$STYLE/"),
+        arrayOf(style.tileBaseUrl),
     )
 }
 
@@ -96,6 +98,7 @@ fun osmNightFilter(): ColorMatrixColorFilter = ColorMatrixColorFilter(
 fun MapAttribution(
     modifier: Modifier = Modifier,
     clickable: Boolean = true,
+    style: MapStyle = MapStyle.STANDARD,
 ) {
     val uri = LocalUriHandler.current
     val scheme = MaterialTheme.colorScheme
@@ -113,7 +116,7 @@ fun MapAttribution(
         ),
     ) {
         Text(
-            MapTiles.ATTRIBUTION,
+            style.attribution,
             style = MaterialTheme.typography.labelSmall,
             color = scheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),

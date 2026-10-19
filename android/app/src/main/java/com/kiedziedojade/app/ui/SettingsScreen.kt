@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Storage
@@ -38,6 +39,7 @@ import com.kiedziedojade.app.BuildConfig
 import com.kiedziedojade.app.core.I18n
 import com.kiedziedojade.app.core.I18n.t
 import com.kiedziedojade.app.core.Lang
+import com.kiedziedojade.app.core.MapStyle
 import com.kiedziedojade.app.core.Prefs
 import com.kiedziedojade.app.core.World
 import com.kiedziedojade.app.core.fmtTimestamp
@@ -49,6 +51,8 @@ fun SettingsScreen(
     prefs: Prefs,
     appTheme: AppTheme,
     onThemeChange: (String) -> Unit,
+    mapStyle: MapStyle,
+    onMapStyleChange: (MapStyle) -> Unit,
     dataNote: String?,
     refreshing: Boolean,
     onRefreshData: () -> Unit,
@@ -70,7 +74,7 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        t("Motyw, język i dane", "Theme, language and data"),
+                        t("Motyw, mapa, język i dane", "Theme, map, language and data"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -185,6 +189,40 @@ fun SettingsScreen(
 
         item {
             Appear(3) {
+                KdCard {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Map, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                t("Mapa", "Map"),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            Text(
+                                t("Kafelki OpenStreetMap", "OpenStreetMap tiles"),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MapStyle.entries.forEach { style ->
+                            TimeChip(
+                                label = t(style.labelPl, style.labelEn),
+                                icon = null,
+                                selected = mapStyle == style,
+                                onClick = { onMapStyleChange(style) },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            Appear(4) {
                 KdCard {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.Storage, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)

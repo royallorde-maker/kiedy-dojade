@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.kiedziedojade.app.core.Itinerary
+import com.kiedziedojade.app.core.MapStyle
 import com.kiedziedojade.app.core.Merc
 import com.kiedziedojade.app.core.PathSeg
 import com.kiedziedojade.app.core.RideLeg
@@ -149,8 +150,6 @@ private val nightMatrix = ColorMatrix(
     ),
 )
 
-private fun tileName(z: Int, x: Int, y: Int): String = "${MapTiles.STYLE}/$z/$x/$y"
-
 /** Cache kafelków mapy prowadzenia — ograniczany, żeby nie rósł bez końca. */
 @Volatile
 private var tileWrites = 0
@@ -167,21 +166,33 @@ private fun trimTileCache(context: Context) {
     }
 }
 
-private fun fetchTile(context: Context, z: Int, x: Int, y: Int): ByteArray? = runCatching {
-    val conn = URL(MapTiles.tileUrl(z, x, y)).openConnection() as HttpURLConnection
+private fun fetchTile(
+    context: Context,
+    style: MapStyle,
+    z: Int,
+    x: Int,
+    y: Int,
+): ByteArray? = runCatching {
+    val conn = URL(MapTiles.tileUrl(style, z, x, y)).openConnection() as HttpURLConnection
     conn.setRequestProperty("User-Agent", MapTiles.USER_AGENT)
     conn.connectTimeout = 8_000
     conn.readTimeout = 12_000
     conn.inputStream.use { it.readBytes() }
 }.getOrNull()
 
-private suspend fun loadTile(context: Context, z: Int, x: Int, y: Int): ImageBitmap? =
+private suspend fun loadTile(
+    context: Context,
+    style: MapStyle,
+    z: Int,
+    x: Int,
+    y: Int,
+): ImageBitmap? =
     withContext(Dispatchers.IO) {
-        val name = tileName(z, x, y)
+        val name = MapTiles.tileName(style, z, x, y)
         tileMem.get(name)?.let { return@withContext it }
-        val file = File(context.filesDir, "map-tiles/${MapTiles.STYLE}/$z/$x/$y.png")
+        val file = File(context.filesDir, "map-tiles/$name.png")
         val cached = if (file.isFile) runCatching { file.readBytes() }.getOrNull() else null
-        val data = cached ?: fetchTile(context, z, x, y)?.also { bytes ->
+        val data = cached ?: fetchTile(context, style, z, x, y)?.also { bytes ->
             runCatching {
                 file.parentFile?.mkdirs()
                 file.writeBytes(bytes)
@@ -209,6 +220,7 @@ fun RouteMiniMap(
     dark: Boolean,
     modifier: Modifier = Modifier,
     height: Dp = 138.dp,
+    mapStyle: MapStyle = MapStyle.STANDARD,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -233,7 +245,7 @@ fun RouteMiniMap(
             val fit = remember(pts, w, h, padPx) { fitStatic(pts, w, h, padPx) }
 
             var tiles by remember { mutableStateOf<List<Tile>>(emptyList()) }
-            LaunchedEffect(fit, w, h) {
+            LaunchedEffect(fit, w, h, mapStyle) {
                 tiles = emptyList()
                 val world = fit.world
                 val n = 1 shl fit.zoom
@@ -249,7 +261,7 @@ fun RouteMiniMap(
                     if (ty < 0 || ty >= n) continue
                     for (tx in tx0..tx1) {
                         val wrapped = ((tx % n) + n) % n
-                        val bmp = loadTile(context, fit.zoom, wrapped, ty) ?: continue
+                        val bmp = loadTile(context, mapStyle, fit.zoom, wrapped, ty) ?: continue
                         out += Tile(x = tx, y = ty, bmp = bmp)
                         tiles = ArrayList(out) // kafelki pojawiają się w miarę pobierania
                     }
@@ -331,6 +343,7 @@ fun RouteMiniMap(
                 .align(Alignment.BottomEnd)
                 .padding(6.dp),
             clickable = false,
+            style = mapStyle,
         )
     }
 }
@@ -361,6 +374,7 @@ fun RouteNavMap(
     busHeading: Float? = null,
     busColor: Color = Color(0xFF1E88E5),
     showAttribution: Boolean = true,
+    mapStyle: MapStyle = MapStyle.STANDARD,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -487,21 +501,23 @@ fun RouteNavMap(
             val tx1 = floor((originX + w) / tilePx).toInt() + 1
             val ty1 = floor((originY + h) / tilePx).toInt() + 1
 
-            LaunchedEffect(tileZoom, tx0, ty0, tx1, ty1) {
+            LaunchedEffect(mapStyle, tileZoom, tx0, ty0, tx1, ty1) {
                 val n = 1 shl tileZoom
                 val want = LinkedHashSet<String>()
                 for (ty in ty0..ty1) {
                     if (ty < 0 || ty >= n) continue
                     for (tx in tx0..tx1) {
-                        want += tileName(tileZoom, ((tx % n) + n) % n, ty)
+                        want += MapTiles.tileName(mapStyle, tileZoom, ((tx % n) + n) % n, ty)
                     }
                 }
-                var map = tiles
+                var map = tiles.filterKeys { it.startsWith("${mapStyle.id}/") }
+                if (map.size != tiles.size) tiles = map
                 for (name in want) {
                     if (map.containsKey(name)) continue
                     val parts = name.split("/")
                     val bmp = loadTile(
                         context,
+                        mapStyle,
                         parts[1].toInt(),
                         parts[2].toInt(),
                         parts[3].toInt(),
@@ -555,7 +571,7 @@ fun RouteNavMap(
                     if (ty < 0 || ty >= n) continue
                     for (tx in ix0..ix1) {
                         val wrapped = ((tx % n) + n) % n
-                        val bmp = tiles[tileName(tileZoom, wrapped, ty)] ?: continue
+                        val bmp = tiles[MapTiles.tileName(mapStyle, tileZoom, wrapped, ty)] ?: continue
                         drawImage(
                             image = bmp,
                             srcOffset = IntOffset.Zero,
@@ -698,6 +714,7 @@ fun RouteNavMap(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(6.dp),
+                style = mapStyle,
             )
         }
     }

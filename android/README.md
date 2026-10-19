@@ -13,11 +13,12 @@ repozytorium: dzieli z nią dane rozkładowe i styl.
   „tylko pieszo”, gdy spacer jest szybszy.
 - **Tablica odjazdów na żywo** — publiczne API KiedyPrzyjedzie.pl (opóźnienia,
   odwołania), odświeżanie co 30 s + rozkład dnia offline.
-- **Mapa przystanków** (OpenStreetMap Humanitarian/HOT przez osmdroid — bez
-  klucza API): filtr linii rysuje trasę i zawęża przystanki, pozycja GPS, karta
-  przystanku z przejściem do tablicy/planowania. Gesty pinch/pan, przyciski +/−,
-  pełna atrybucja i ograniczony cache kafelków; w ciemnych motywach mapa jest
-  przyciemniona filtrem.
+- **Mapa przystanków** (OpenStreetMap przez osmdroid — bez klucza API):
+  domyślnie czytelny styl standardowy, a w Ustawieniach wybierzesz też Kolorowy
+  (OSM France) i HOT. Filtr linii rysuje trasę i zawęża przystanki, pozycja GPS,
+  karta przystanku z przejściem do tablicy/planowania. Gesty pinch/pan, przyciski
+  +/−, pełna atrybucja i ograniczony cache kafelków; w ciemnych motywach mapa
+  jest przyciemniona filtrem.
 - **Trasa połączenia na mapie** — propozycja w wynikach pokazuje swoją trasę po
   rozwinięciu: marsz przerywaną kreską, przejazdy w kolorach linii, kropki
   przystanków oraz start i meta podróży (miniatura OSM). Zwinięta karta zostaje
@@ -54,6 +55,7 @@ android/app/src/main/java/com/kiedziedojade/app/
 │   ├── Live.kt              # dopasowanie kursu na żywo, różnice minut
 │   ├── Nav.kt               # kroki prowadzenia, postęp GPS, wysiadka
 │   ├── Camera.kt            # wykrywanie zakrętów i auto-zoom prowadzenia
+│   ├── MapStyle.kt          # style kafelków OSM i ich atrybucja
 │   ├── DataJson.kt          # parsery public/data/*.json
 │   ├── DataRepo.kt          # assets + atomowe odświeżanie z GitHuba
 │   ├── Api.kt               # odjazdy na żywo (WAF wymaga User-Agenta przeglądarki)
@@ -103,7 +105,9 @@ Wymagania: JDK 17, Android SDK (platform 35, build-tools 34.0.0), Gradle 8.7.
 - **Kalendarz:** harmonogram dni (robocze / wakacje / sobota / niedziele) pochodzi
   z `calendar.json`; poza horyzontem danych planer schodzi na wzorzec wg dnia
   tygodnia i UI to zgłasza („rozkład wg dnia tygodnia”).
-- **Mapa:** osmdroid + kafelki OpenStreetMap Humanitarian/HOT z `tile.openstreetmap.fr`
-  (własny User-Agent z wersją i adresem repo, zgodnie z polityką OSM). Cache
-  kafelków w `filesDir` — bez uprawnień do pamięci, ograniczony do 64 MB.
-  Mapa potrzebuje internetu; rozkłady i planer działają dalej offline.
+- **Mapa:** osmdroid + kafelki OpenStreetMap: standard (`tile.openstreetmap.org`),
+  OSM France i HOT (`tile.openstreetmap.fr`). Styl wybiera się w Ustawieniach;
+  domyślny to standard. Własny User-Agent z wersją i adresem repo, zgodnie
+  z polityką OSM. Cache kafelków w `filesDir` — bez uprawnień do pamięci,
+  ograniczony do 64 MB. Mapa potrzebuje internetu; rozkłady i planer działają
+  dalej offline.

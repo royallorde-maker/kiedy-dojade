@@ -53,6 +53,7 @@ import com.kiedziedojade.app.core.I18n
 import com.kiedziedojade.app.core.I18n.t
 import com.kiedziedojade.app.core.Itinerary
 import com.kiedziedojade.app.core.Locator
+import com.kiedziedojade.app.core.MapStyle
 import com.kiedziedojade.app.core.PlaceRef
 import com.kiedziedojade.app.core.Prefs
 import com.kiedziedojade.app.core.SavedPlace
@@ -107,6 +108,7 @@ fun KdApp(
     var date by remember { mutableStateOf<String?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
     var boardStop by remember { mutableIntStateOf(prefs.boardStop) }
+    var mapStyle by remember { mutableStateOf(MapStyle.from(prefs.mapStyle)) }
     var dismissedAlert by remember { mutableStateOf<Int?>(null) }
     var showSplash by remember { mutableStateOf(true) }
     /** prowadzenie po wybranym połączeniu (pełnoekranowe, jak nawigacja) */
@@ -130,6 +132,11 @@ fun KdApp(
     fun setTo(ref: PlaceRef?) {
         to = ref
         prefs.lastTo = ref?.let { SavedPlace.from(it) }
+    }
+
+    fun setMapStyle(style: MapStyle) {
+        mapStyle = style
+        prefs.mapStyle = style.id
     }
 
     fun setBoard(fromRef: PlaceRef?) {
@@ -338,6 +345,7 @@ fun KdApp(
                                         world = w,
                                         query = route.query,
                                         dark = mapDark,
+                                        mapStyle = mapStyle,
                                         onBack = { stack.removeAt(stack.lastIndex) },
                                         onOpenStop = { idx -> stack += Route.Stop(idx) },
                                         onNavigate = { nav = it },
@@ -366,6 +374,7 @@ fun KdApp(
                             2 -> MapScreen(
                                 world = w,
                                 dark = mapDark,
+                                mapStyle = mapStyle,
                                 requester = requestLocation,
                                 onOpenBoard = { idx ->
                                     boardStop = idx
@@ -392,6 +401,8 @@ fun KdApp(
                                         prefs = prefs,
                                         appTheme = appTheme,
                                         onThemeChange = onThemeChange,
+                                        mapStyle = mapStyle,
+                                        onMapStyleChange = { setMapStyle(it) },
                                         dataNote = dataNote,
                                         refreshing = refreshing,
                                         onRefreshData = onRefreshData,
@@ -462,6 +473,7 @@ fun KdApp(
                     world = w,
                     itinerary = navIt,
                     dark = mapDark,
+                    mapStyle = mapStyle,
                     onClose = { nav = null },
                 )
             }
