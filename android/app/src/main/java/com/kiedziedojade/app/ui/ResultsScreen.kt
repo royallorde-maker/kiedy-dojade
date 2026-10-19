@@ -20,10 +20,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsBus
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.EventBusy
+import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,6 +54,7 @@ import com.kiedziedojade.app.core.fmtDuration
 import com.kiedziedojade.app.core.fmtMeters
 import com.kiedziedojade.app.core.fmtTime
 import com.kiedziedojade.app.core.itinerarySegments
+import com.kiedziedojade.app.core.matchLiveRide
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -62,6 +65,7 @@ fun ResultsScreen(
     dark: Boolean,
     onBack: () -> Unit,
     onOpenStop: (Int) -> Unit,
+    onNavigate: (Itinerary) -> Unit,
 ) {
     var outcome by remember(query) { mutableStateOf<PlanOutcome?>(null) }
     var expanded by remember(query) { mutableStateOf<String?>(null) }
@@ -87,7 +91,7 @@ fun ResultsScreen(
         val first = o.itineraries.firstOrNull()?.firstRide ?: return@LaunchedEffect
         val stop = world.stops[first.boardStop.i]
         live = runCatching { Api.stopBoard(stop.id) }.getOrNull()
-            ?.firstOrNull { it.tripId == first.tripId }
+            ?.let { matchLiveRide(it, first) }
     }
 
     val o = outcome
@@ -164,6 +168,7 @@ fun ResultsScreen(
                         expanded = expanded == it2.id,
                         onToggle = { expanded = if (expanded == it2.id) null else it2.id },
                         onOpenStop = onOpenStop,
+                        onNavigate = { onNavigate(it2) },
                     )
                 }
             }
@@ -264,6 +269,7 @@ private fun ItineraryCard(
     expanded: Boolean,
     onToggle: () -> Unit,
     onOpenStop: (Int) -> Unit,
+    onNavigate: () -> Unit,
 ) {
     KdCard(highlighted = isBest, onClick = onToggle) {
         Row(verticalAlignment = Alignment.Top) {
@@ -325,6 +331,23 @@ private fun ItineraryCard(
             when (leg) {
                 is WalkLeg -> LegRowWalk(leg)
                 is RideLeg -> LegRowRide(world, leg, expanded, onOpenStop)
+            }
+        }
+
+        // prowadzenie: mapa za pozycją GPS, instrukcje po drodze i wysiadka
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Spacer(Modifier.weight(1f))
+            TextButton(onClick = onNavigate) {
+                Icon(
+                    Icons.Filled.Navigation,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(t("Prowadź", "Navigate"), style = MaterialTheme.typography.labelLarge)
             }
         }
     }

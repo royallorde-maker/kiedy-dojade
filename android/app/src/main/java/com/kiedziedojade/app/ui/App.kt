@@ -52,6 +52,7 @@ import com.kiedziedojade.app.core.Api
 import com.kiedziedojade.app.core.DataRepo
 import com.kiedziedojade.app.core.I18n
 import com.kiedziedojade.app.core.I18n.t
+import com.kiedziedojade.app.core.Itinerary
 import com.kiedziedojade.app.core.Locator
 import com.kiedziedojade.app.core.PlaceRef
 import com.kiedziedojade.app.core.Prefs
@@ -108,6 +109,8 @@ fun KdApp(
     var boardStop by remember { mutableIntStateOf(prefs.boardStop) }
     var dismissedAlert by remember { mutableStateOf<Int?>(null) }
     var showSplash by remember { mutableStateOf(true) }
+    /** prowadzenie po wybranym połączeniu (pełnoekranowe, jak nawigacja) */
+    var nav by remember { mutableStateOf<Itinerary?>(null) }
 
     val requestLocation = rememberLocationRequester()
 
@@ -320,6 +323,7 @@ fun KdApp(
                                         dark = mapDark,
                                         onBack = { stack.removeAt(stack.lastIndex) },
                                         onOpenStop = { idx -> stack += Route.Stop(idx) },
+                                        onNavigate = { nav = it },
                                     )
 
                                     is Route.Stop -> StopScreen(
@@ -421,6 +425,17 @@ fun KdApp(
                         picker = null
                     },
                     onDismiss = { picker = null },
+                )
+            }
+
+            // pełnoekranowe prowadzenie po wybranym połączeniu
+            val navIt = nav
+            if (navIt != null && w != null) {
+                NavScreen(
+                    world = w,
+                    itinerary = navIt,
+                    dark = mapDark,
+                    onClose = { nav = null },
                 )
             }
         }

@@ -224,6 +224,43 @@ fun ChangesScreen(prefs: Prefs) {
 
         item {
             InfoCard(
+                title = "1.3.0",
+                lines = listOf(
+                    t(
+                        "Autobus na żywo na mapie: znacznik pokazuje bieżącą pozycję pojazdu i płynnie jedzie po trasie.",
+                        "Live bus on the map: the marker shows the vehicle's current position and moves smoothly along the route.",
+                    ),
+                    t(
+                        "ETA i przystanki na żywo: opóźnienie, godzinę przyjazdu i liczbę przystanków do wysiadki liczymy z kursu, a nie z rozkładu.",
+                        "Live ETA and stops: delay, arrival time and the number of stops left come from the actual run, not the timetable.",
+                    ),
+                    t(
+                        "Gdy autobus podjedzie na Twój przystanek, poczujesz wibrację i zobaczysz „Wsiądź do linii”.",
+                        "When the bus reaches your stop, you feel a vibration and see “Board line”.",
+                    ),
+                    t(
+                        "Prowadzenie po połączeniu: dotknij „Prowadź” w karcie wyniku, a mapa pojedzie za Twoją pozycją GPS.",
+                        "Turn-by-turn guidance: tap “Navigate” on a result card and the map follows your GPS position.",
+                    ),
+                    t(
+                        "Instrukcja na żywo: ile metrów do przystanku, o której odjeżdża autobus i za ile przystanków wysiąść.",
+                        "Live instructions: how far to the stop, when the bus leaves and in how many stops to get off.",
+                    ),
+                    t(
+                        "Wibracja i hasło „Wysiądź teraz”, gdy dojeżdżasz do swojego przystanku, oraz ekran, który nie gaśnie po drodze.",
+                        "A vibration and a “Get off now” prompt at your stop, and a screen that stays awake on the way.",
+                    ),
+                    t(
+                        "Przycisk „Google Maps” przekazuje marsz do przystanku lub do celu nawigacji Google.",
+                        "A “Google Maps” button hands the walk to the stop or destination over to Google navigation.",
+                    ),
+                ),
+                index = 2,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.2.0",
                 lines = listOf(
                     t(

@@ -20,6 +20,11 @@ repozytorium: dzieli z nią dane rozkładowe i styl.
 - **Trasa połączenia na mapie** — każda propozycja w wynikach pokazuje swoją
   trasę: marsz przerywaną kreską, przejazdy w kolorach linii, kropki
   przystanków oraz start i meta podróży (miniatura OSM).
+- **Prowadzenie po połączeniu** — pełnoekranowa mapa jedzie za pozycją GPS,
+  instrukcje prowadzą do przystanku i przez przesiadki, a autobus jest śledzony
+  na żywo: pozycja, ETA i liczba przystanków do wysiadki. Wibracja ostrzega
+  przed przyjazdem autobusu i momentem wysiadki; marsz rysowany jest po ulicach
+  (OSRM), a przycisk „Google Maps” przekazuje nawigację dalej.
 - **Rozkłady offline** — dane wbudowane w APK (assets) i odświeżane z GitHuba
   (atomowa podmiana katalogu; brak sieci = dalej działa).
 - **8 motywów**, PL/EN, aktualizacje w aplikacji (OTA jak w bs-companion).
@@ -36,12 +41,17 @@ android/app/src/main/java/com/kiedziedojade/app/
 │   ├── Planner.kt           # planer połączeń (port planner.ts)
 │   ├── MapData.kt           # linie, trasy i przystanki dla mapy
 │   ├── RoutePath.kt         # nogi połączenia → odcinki trasy na mapie
+│   ├── Foot.kt              # geometria marszu po ulicach (OSRM foot)
+│   ├── Live.kt              # dopasowanie kursu na żywo, różnice minut
+│   ├── Nav.kt               # kroki prowadzenia, postęp GPS, wysiadka
 │   ├── DataJson.kt          # parsery public/data/*.json
 │   ├── DataRepo.kt          # assets + atomowe odświeżanie z GitHuba
 │   ├── Api.kt               # odjazdy na żywo (WAF wymaga User-Agenta przeglądarki)
 │   ├── Prefs.kt             # motyw, język, ulubione, ostatnie zapytanie
-│   └── Loc.kt               # jednorazowa lokalizacja (LocationManager)
+│   └── Loc.kt               # lokalizacja jednorazowa i strumień GPS (LocationManager)
 ├── ui/                      # ekrany Compose (Szukaj, Tablica, Mapa, Zmiany, Ustawienia)
+│   ├── NavScreen.kt         # pełnoekranowe prowadzenie i dane autobusu na żywo
+│   └── Gmaps.kt             # przekazanie nawigacji do Google Maps
 └── update/Update.kt         # OTA: version.json → DownloadManager → instalator
 ```
 

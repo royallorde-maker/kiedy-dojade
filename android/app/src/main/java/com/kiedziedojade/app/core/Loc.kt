@@ -1,6 +1,7 @@
 package com.kiedziedojade.app.core
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
@@ -10,6 +11,10 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Looper
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
@@ -26,6 +31,7 @@ class Locator(private val context: Context) {
     private fun manager(): LocationManager =
         context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
+    @SuppressLint("MissingPermission")
     private fun lastKnown(): Location? {
         val lm = manager()
         val providers = listOf(
@@ -88,4 +94,54 @@ class Locator(private val context: Context) {
             }
             if (!registered) cont.resume(null)
         }
+
+    /**
+     * Ciągły strumień pozycji do prowadzenia (nawigacji). Pierwszą ramką jest
+     * ostatnia znana pozycja, żeby mapa nie startowała pusta; potem aktualizacje
+     * co ~1 s / 2 m. Strumień żyje tak długo, jak jego odbiorca — anulowanie
+     * wyrejestrowuje nasłuch.
+     */
+    @SuppressLint("MissingPermission")
+    fun stream(): Flow<Fix> = callbackFlow {
+        if (!hasPermission()) {
+            close()
+            awaitClose { }
+            return@callbackFlow
+        }
+        lastKnown()?.let { trySend(it.toFix()) }
+
+        val lm = manager()
+        val listener = object : LocationListener {
+            override fun onLocationChanged(location: Location) {
+                trySend(location.toFix())
+            }
+
+            @Deprecated("Required for API < 30")
+            override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+            override fun onProviderEnabled(provider: String) {}
+            override fun onProviderDisabled(provider: String) {}
+        }
+
+        val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+            .filter { p -> runCatching { lm.isProviderEnabled(p) }.getOrDefault(false) }
+        var registered = false
+        for (p in providers) {
+            val ok = runCatching {
+                lm.requestLocationUpdates(p, 1_000L, 2f, listener, Looper.getMainLooper())
+            }.isSuccess
+            if (ok) registered = true
+        }
+        if (!registered) {
+            close()
+            awaitClose { }
+            return@callbackFlow
+        }
+        awaitClose { runCatching { lm.removeUpdates(listener) } }
+    }.conflate()
+
+    private fun Location.toFix(): Fix = Fix(
+        lat = latitude,
+        lng = longitude,
+        bearing = if (hasBearing()) bearing else null,
+    )
 }

@@ -59,6 +59,26 @@ fun parseTime(s: String): Int {
     return h * 60 + m
 }
 
+/** "HH:MM" -> minutes since midnight, or null when the text is not a clock. */
+fun parseTimeOrNull(s: String?): Int? {
+    if (s.isNullOrBlank()) return null
+    val parts = s.split(':')
+    if (parts.size < 2) return null
+    val h = parts[0].toIntOrNull() ?: return null
+    val m = parts[1].toIntOrNull() ?: return null
+    if (h !in 0..47 || m !in 0..59) return null
+    return h * 60 + m
+}
+
+/**
+ * Minutes from [now] to [clock] (both minutes since midnight), wrapping at
+ * midnight. A clock far in the past means "now" rather than a huge countdown.
+ */
+fun minutesUntil(clock: Int, now: Int): Int {
+    val d = ((clock - now) % 1440 + 1440) % 1440
+    return if (d > 720) 0 else d
+}
+
 /** Minutes since midnight in Szczecinek, no matter the device timezone. */
 fun nowMinutes(): Int {
     val t = LocalTime.now(WARSAW)
