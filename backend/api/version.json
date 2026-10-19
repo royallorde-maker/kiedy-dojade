@@ -1,8 +1,8 @@
 {
-  "versionCode": 3,
-  "versionName": "1.2.0",
+  "versionCode": 4,
+  "versionName": "1.3.0",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "Nowość: trasa każdego połączenia na mapie — marsz przerywaną kreską, przesiadki i linie w kolorach, prosto w liście wyników. Poprawki: lżejsze karty wyników (godziny i jedna linijka faktów zamiast rzędu pigułek), czytelniejszy nagłówek i spokojniejsze wiersze przystanków.",
+  "changelog": "android: live navigation with bus tracking and ETAs",
   "force": false,
-  "publishedAt": "2026-10-19T07:42:56Z"
+  "publishedAt": "2026-10-19T10:52:42Z"
 }
