@@ -15,8 +15,8 @@ android {
         applicationId = "com.kiedziedojade.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.4.1"
+        versionCode = 7
+        versionName = "1.4.2"
 
         // JEDNO źródło adresów sieciowych — reszta kodu czyta BuildConfig.
         // raw.githubusercontent: dane są świeże od razu po commicie harvestera.

@@ -52,6 +52,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import com.kiedziedojade.app.core.DriveRoute
 import com.kiedziedojade.app.core.Locator
 import com.kiedziedojade.app.core.MapIndex
 import com.kiedziedojade.app.core.MapStyle
@@ -235,7 +236,8 @@ fun MapScreen(
             map.invalidate()
         }
 
-        // trasa wybranej linii (polilinia po przystankach najdłuższego kursu)
+        // trasa wybranej linii (najdłuższy kurs); najpierw linia po przystankach,
+        // potem geometria po ulicach z OSRM, gdy router odpowie
         LaunchedEffect(line, dark, mapReady) {
             if (!mapReady) return@LaunchedEffect
             val map = holder.map ?: return@LaunchedEffect
@@ -244,17 +246,29 @@ fun MapScreen(
             val l = line ?: return@LaunchedEffect
             val pts = index.route[l].orEmpty()
             if (pts.size < 2) return@LaunchedEffect
-            val geo = pts.map { GeoPoint(it.lat, it.lng) }
+            val straight = pts.map { GeoPoint(it.lat, it.lng) }
             val poly = Polyline(map).apply {
-                setPoints(geo)
+                setPoints(straight)
                 outlinePaint.color = lineColor(l).toArgb()
                 outlinePaint.strokeWidth = with(density) { 6.dp.toPx() }
                 outlinePaint.isAntiAlias = true
             }
             holder.lineOverlay = poly
             map.overlays.add(0, poly) // pod znacznikami — kropki zostają czytelne
-            map.zoomToBoundingBox(BoundingBox.fromGeoPoints(geo), true, with(density) { 56.dp.roundToPx() })
+            map.zoomToBoundingBox(
+                BoundingBox.fromGeoPoints(straight),
+                true,
+                with(density) { 56.dp.roundToPx() },
+            )
             map.invalidate()
+
+            val routed = DriveRoute.path(pts.map { it.lat to it.lng })
+                ?.map { GeoPoint(it.first, it.second) }
+                ?: return@LaunchedEffect
+            if (holder.lineOverlay === poly && line == l) {
+                poly.setPoints(routed)
+                map.invalidate()
+            }
         }
 
         // pozycja użytkownika

@@ -54,7 +54,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.kiedziedojade.app.core.Api
 import com.kiedziedojade.app.core.Fix
-import com.kiedziedojade.app.core.FootRoute
+import com.kiedziedojade.app.core.RoutedPaths
 import com.kiedziedojade.app.core.I18n
 import com.kiedziedojade.app.core.I18n.t
 import com.kiedziedojade.app.core.Itinerary
@@ -70,6 +70,7 @@ import com.kiedziedojade.app.core.fmtTime
 import com.kiedziedojade.app.core.haversine
 import com.kiedziedojade.app.core.headingDeg
 import com.kiedziedojade.app.core.itinerarySegments
+import com.kiedziedojade.app.core.routedPaths
 import com.kiedziedojade.app.core.matchLiveRide
 import com.kiedziedojade.app.core.minuteDiff
 import com.kiedziedojade.app.core.minutesUntil
@@ -178,22 +179,11 @@ fun NavScreen(
     val step = steps.getOrNull(state.stepIndex)
     val destName = remember(itinerary) { navDestination(itinerary) }
 
-    // trasa po ulicach dla nóg pieszych (OSRM); prosta kreska, gdy się nie uda
-    var walkPaths by remember(itinerary) {
-        mutableStateOf<Map<Int, List<Pair<Double, Double>>>>(emptyMap())
-    }
+    // trasa po ulicach dla marszu i przejazdów (OSRM); linia po przystankach,
+    // gdy router nie odpowie
+    var paths by remember(itinerary) { mutableStateOf(RoutedPaths()) }
     LaunchedEffect(itinerary) {
-        itinerary.legs.forEachIndexed { i, leg ->
-            if (leg is WalkLeg) {
-                val a = leg.fromPt
-                val b = leg.toPt
-                if (a != null && b != null) {
-                    FootRoute.path(a, b)?.let { pts ->
-                        if (pts.size >= 2) walkPaths = walkPaths + (i to pts)
-                    }
-                }
-            }
-        }
+        paths = routedPaths(itinerary)
     }
 
     // najbliższy przejazd — także ten, do którego dopiero idziemy
@@ -419,7 +409,7 @@ fun NavScreen(
 
     Box(Modifier.fillMaxSize()) {
         RouteNavMap(
-            segs = remember(itinerary, walkPaths) { itinerarySegments(itinerary, walkPaths) },
+            segs = remember(itinerary, paths) { itinerarySegments(itinerary, paths.walk, paths.ride) },
             dots = routeDots(itinerary),
             fix = fix?.let { it.lat to it.lng },
             heading = heading,

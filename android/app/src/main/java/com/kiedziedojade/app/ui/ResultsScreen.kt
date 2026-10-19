@@ -55,7 +55,9 @@ import com.kiedziedojade.app.core.fmtDate
 import com.kiedziedojade.app.core.fmtDuration
 import com.kiedziedojade.app.core.fmtMeters
 import com.kiedziedojade.app.core.fmtTime
+import com.kiedziedojade.app.core.RoutedPaths
 import com.kiedziedojade.app.core.itinerarySegments
+import com.kiedziedojade.app.core.routedPaths
 import com.kiedziedojade.app.core.matchLiveRide
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -241,6 +243,11 @@ private fun ItineraryCard(
     onOpenStop: (Int) -> Unit,
     onNavigate: () -> Unit,
 ) {
+    var paths by remember(it) { mutableStateOf<RoutedPaths?>(null) }
+    LaunchedEffect(expanded, it) {
+        if (expanded && paths == null) paths = routedPaths(it)
+    }
+
     KdCard(highlighted = isBest, onClick = onToggle) {
         Row(verticalAlignment = Alignment.Top) {
             Row(
@@ -304,7 +311,9 @@ private fun ItineraryCard(
 
         // mapa trasy dopiero po rozwinięciu — lista wyników zostaje lekka
         if (expanded) {
-            val segs = remember(it) { itinerarySegments(it) }
+            val segs = remember(it, paths) {
+                itinerarySegments(it, paths?.walk.orEmpty(), paths?.ride.orEmpty())
+            }
             if (segs.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
                 RouteMiniMap(

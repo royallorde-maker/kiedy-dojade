@@ -231,6 +231,23 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.2",
+                lines = listOf(
+                    t(
+                        "Trasa autobusu na mapie prowadzi teraz po ulicach, a nie prosto przez budynki — w prowadzeniu, po wybraniu linii na mapie i w miniaturach wyników.",
+                        "The bus route on the map now follows streets instead of cutting through buildings — in navigation, on the line map and in result thumbnails.",
+                    ),
+                    t(
+                        "Geometria przejazdów pochodzi z routera OSRM i jest cache'owana; bez internetu zostaje dotychczasowa linia po przystankach.",
+                        "Ride geometry comes from the OSRM router and is cached; offline it falls back to the stop-to-stop line.",
+                    ),
+                ),
+                index = 1,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.1",
                 lines = listOf(
                     t(

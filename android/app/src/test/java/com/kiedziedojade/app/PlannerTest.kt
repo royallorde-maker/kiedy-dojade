@@ -148,6 +148,17 @@ class PlannerTest {
         for (k in 1 until segs.size) {
             assertEquals(segs[k - 1].pts.last(), segs[k].pts.first())
         }
+
+        // geometria z routera zastępuje linię po samych przystankach
+        val rideIndex = best.firstRideLeg
+        val routedRide = listOf(
+            best.firstRide!!.boardStop.lat to best.firstRide!!.boardStop.lng,
+            53.71 to 16.69,
+            best.firstRide!!.alightStop.lat to best.firstRide!!.alightStop.lng,
+        )
+        val routedSeg = itinerarySegments(best, ridePaths = mapOf(rideIndex to routedRide))
+            .first { it.leg == rideIndex }
+        assertEquals(routedRide, routedSeg.pts)
     }
 
     @Test

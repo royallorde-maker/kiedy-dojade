@@ -28,8 +28,8 @@ repozytorium: dzieli z nią dane rozkładowe i styl.
   na żywo: pozycja, ETA i liczba przystanków do wysiadki. Mapę można przesuwać
   i przybliżać gestami lub przyciskami, a zoom sam przybliża się przed
   zakrętami. Wibracja ostrzega przed przyjazdem autobusu i momentem wysiadki;
-  marsz rysowany jest po ulicach (OSRM), a przycisk „Google Maps” przekazuje
-  nawigację dalej.
+  marsz i przejazdy rysowane są po ulicach (OSRM foot/car), a przycisk
+  „Google Maps” przekazuje nawigację dalej.
 - **Oszczędne odświeżanie** — GPS i odpytywanie autobusu pauzują, gdy aplikacja
   jest w tle; interwał rośnie w trasie i maleje przy przystanku lub blisko
   pojazdu. Zegar tablicy i „za ile minut” aktualizują się same.
@@ -52,6 +52,7 @@ android/app/src/main/java/com/kiedziedojade/app/
 │   ├── MapData.kt           # linie, trasy i przystanki dla mapy
 │   ├── RoutePath.kt         # nogi połączenia → odcinki trasy na mapie
 │   ├── Foot.kt              # geometria marszu po ulicach (OSRM foot)
+│   ├── DriveRoute.kt        # geometria przejazdów autobusem (OSRM car)
 │   ├── Live.kt              # dopasowanie kursu na żywo, różnice minut
 │   ├── Nav.kt               # kroki prowadzenia, postęp GPS, wysiadka
 │   ├── Camera.kt            # wykrywanie zakrętów i auto-zoom prowadzenia
