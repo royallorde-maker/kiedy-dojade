@@ -22,6 +22,8 @@ wyszukiwarki połączeń kolejowych.
 - **Planowanie połączeń** — najszybszy przyjazd z maks. 2 przesiadkami,
   z dojściem pieszo (prędkość ~4,7 km/h, współczynnik objazdu 1,25).
 - **Opcja „tylko pieszo”**, gdy spacer jest szybszy od autobusu.
+- **Mapa przystanków i tras** (OpenStreetMap, bez klucza API) — filtr linii,
+  pozycja GPS, karta przystanku pod ręką.
 - **Na żywo** — opóźnienia, odwołania, odjazdy z przystanku (publiczne API
   KiedyPrzyjedzie.pl), odświeżane co 30 s.
 - **Rozkłady offline** — dane wbudowane w aplikację i odświeżane z GitHuba;

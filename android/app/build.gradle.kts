@@ -15,8 +15,8 @@ android {
         applicationId = "com.kiedziedojade.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
 
         // JEDNO źródło adresów sieciowych — reszta kodu czyta BuildConfig.
         // raw.githubusercontent: dane są świeże od razu po commicie harvestera.
@@ -108,6 +108,9 @@ dependencies {
     implementation("androidx.compose.animation:animation")
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.material:material-icons-extended")
+
+    // Mapa: kafelki OpenStreetMap bez klucza API (własny UA w MapScreen.kt).
+    implementation("org.osmdroid:osmdroid-android:6.1.20")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

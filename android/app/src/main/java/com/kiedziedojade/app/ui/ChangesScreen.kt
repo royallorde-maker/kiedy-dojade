@@ -224,14 +224,51 @@ fun ChangesScreen(prefs: Prefs) {
 
         item {
             InfoCard(
-                title = "1.0.0",
+                title = "1.1.0",
                 lines = listOf(
-                    "Pierwsze wydanie: planer połączeń KM Szczecinek.",
-                    "Najbliższy przystanek z Twojej lokalizacji i plan podróży z przesiadkami.",
-                    "Tablica odjazdów na żywo (opóźnienia, odwołania) i rozkłady offline.",
-                    "Wybór spośród 8 motywów, polski i angielski, aktualizacje w aplikacji.",
+                    t(
+                        "Mapa przystanków i tras (OpenStreetMap) — filtr linii, pozycja GPS, karta przystanku.",
+                        "Stop and route map (OpenStreetMap) — line filter, GPS position, stop card.",
+                    ),
+                    t(
+                        "„Tablica” i „Zaplanuj” prosto z mapy, jednym dotknięciem.",
+                        "“Board” and “Plan” straight from the map, with one tap.",
+                    ),
+                    t(
+                        "Poprawione kolory ekranu startowego w ciemnych motywach (czarny tekst → jasny).",
+                        "Fixed splash screen colors in dark themes (black text → light).",
+                    ),
+                    t(
+                        "Drobne poprawki interfejsu: ikony, etykiety, spójność motywów.",
+                        "Small interface fixes: icons, labels, theme consistency.",
+                    ),
                 ),
                 index = 2,
+            )
+        }
+
+        item {
+            InfoCard(
+                title = "1.0.0",
+                lines = listOf(
+                    t(
+                        "Pierwsze wydanie: planer połączeń KM Szczecinek.",
+                        "First release: a trip planner for Szczecinek city buses.",
+                    ),
+                    t(
+                        "Najbliższy przystanek z Twojej lokalizacji i plan podróży z przesiadkami.",
+                        "Nearest stop from your location and a journey plan with transfers.",
+                    ),
+                    t(
+                        "Tablica odjazdów na żywo (opóźnienia, odwołania) i rozkłady offline.",
+                        "Live departure board (delays, cancellations) and offline schedules.",
+                    ),
+                    t(
+                        "Wybór spośród 8 motywów, polski i angielski, aktualizacje w aplikacji.",
+                        "8 themes to choose from, Polish and English, in-app updates.",
+                    ),
+                ),
+                index = 3,
             )
         }
 
@@ -248,7 +285,7 @@ fun ChangesScreen(prefs: Prefs) {
                         "Schedule data refreshes every morning without an app update.",
                     ),
                 ),
-                index = 3,
+                index = 4,
             )
         }
     }

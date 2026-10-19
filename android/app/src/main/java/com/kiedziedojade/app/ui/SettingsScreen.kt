@@ -15,7 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.CircularProgressIndicator
@@ -299,7 +299,7 @@ private fun LinkRow(label: String, onClick: () -> Unit) {
             Text(label, modifier = Modifier.weight(1f))
         }
         Icon(
-            Icons.Filled.OpenInNew,
+            Icons.AutoMirrored.Filled.OpenInNew,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(16.dp),

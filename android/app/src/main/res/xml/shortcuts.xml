@@ -22,4 +22,15 @@
             android:targetPackage="com.kiedziedojade.app"
             android:targetClass="com.kiedziedojade.app.MainActivity" />
     </shortcut>
+    <shortcut
+        android:shortcutId="map"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_map"
+        android:shortcutShortLabel="@string/shortcut_map"
+        android:shortcutLongLabel="@string/shortcut_map_long">
+        <intent
+            android:action="com.kiedziedojade.app.action.OPEN_MAP"
+            android:targetPackage="com.kiedziedojade.app"
+            android:targetClass="com.kiedziedojade.app.MainActivity" />
+    </shortcut>
 </shortcuts>

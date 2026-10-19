@@ -13,6 +13,10 @@ repozytorium: dzieli z nią dane rozkładowe i styl.
   „tylko pieszo”, gdy spacer jest szybszy.
 - **Tablica odjazdów na żywo** — publiczne API KiedyPrzyjedzie.pl (opóźnienia,
   odwołania), odświeżanie co 30 s + rozkład dnia offline.
+- **Mapa przystanków** (OpenStreetMap przez osmdroid — bez klucza API): filtr
+  linii rysuje trasę i zawęża przystanki, pozycja GPS, karta przystanku z
+  przejściem do tablicy/planowania. Kafelki w cache aplikacji, w ciemnych
+  motywach przyciemnione filtrem.
 - **Rozkłady offline** — dane wbudowane w APK (assets) i odświeżane z GitHuba
   (atomowa podmiana katalogu; brak sieci = dalej działa).
 - **8 motywów**, PL/EN, aktualizacje w aplikacji (OTA jak w bs-companion).
@@ -27,12 +31,13 @@ android/app/src/main/java/com/kiedziedojade/app/
 │   ├── Geo.kt               # haversine, czasy, strefa Europe/Warsaw
 │   ├── Search.kt            # wyszukiwarka przystanków/ulic/punktów (port search.ts)
 │   ├── Planner.kt           # planer połączeń (port planner.ts)
+│   ├── MapData.kt           # linie, trasy i przystanki dla mapy
 │   ├── DataJson.kt          # parsery public/data/*.json
 │   ├── DataRepo.kt          # assets + atomowe odświeżanie z GitHuba
 │   ├── Api.kt               # odjazdy na żywo (WAF wymaga User-Agenta przeglądarki)
 │   ├── Prefs.kt             # motyw, język, ulubione, ostatnie zapytanie
 │   └── Loc.kt               # jednorazowa lokalizacja (LocationManager)
-├── ui/                      # ekrany Compose (Szukaj, Tablica, Zmiany, Ustawienia)
+├── ui/                      # ekrany Compose (Szukaj, Tablica, Mapa, Zmiany, Ustawienia)
 └── update/Update.kt         # OTA: version.json → DownloadManager → instalator
 ```
 
@@ -74,3 +79,6 @@ Wymagania: JDK 17, Android SDK (platform 35, build-tools 34.0.0), Gradle 8.7.
 - **Kalendarz:** harmonogram dni (robocze / wakacje / sobota / niedziele) pochodzi
   z `calendar.json`; poza horyzontem danych planer schodzi na wzorzec wg dnia
   tygodnia i UI to zgłasza („rozkład wg dnia tygodnia”).
+- **Mapa:** osmdroid + kafelki OpenStreetMap (własny User-Agent = nazwa pakietu,
+  zgodnie z polityką OSM). Cache kafelków w `filesDir` — bez uprawnień do pamięci.
+  Mapa potrzebuje internetu; rozkłady i planer działają dalej offline.

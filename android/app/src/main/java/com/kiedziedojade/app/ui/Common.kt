@@ -21,7 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DirectionsBus
-import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -253,7 +253,7 @@ fun InfoCard(title: String, lines: List<String>, index: Int = 0) {
 fun WalkRow(text: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Icon(
-            Icons.Filled.DirectionsWalk, contentDescription = null,
+            Icons.AutoMirrored.Filled.DirectionsWalk, contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(15.dp),
         )

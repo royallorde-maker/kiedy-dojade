@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kiedziedojade.app.core.Api
+import com.kiedziedojade.app.core.I18n
 import com.kiedziedojade.app.core.I18n.t
 import com.kiedziedojade.app.core.PlaceRef
 import com.kiedziedojade.app.core.SearchItem
@@ -187,7 +188,7 @@ fun SearchScreen(
                                 onClick = onClearDate,
                             )
                             TimeChip(
-                                label = date?.let { fmtDate(it, t("", "en").isEmpty()) } ?: t("Inny dzień", "Another day"),
+                                label = date?.let { fmtDate(it, I18n.pl) } ?: t("Inny dzień", "Another day"),
                                 icon = Icons.Filled.CalendarMonth,
                                 selected = date != null,
                                 onClick = onPickDate,

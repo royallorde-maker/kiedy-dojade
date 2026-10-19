@@ -7,21 +7,29 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsBus
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,9 +43,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kiedziedojade.app.core.Api
 import com.kiedziedojade.app.core.DataRepo
 import com.kiedziedojade.app.core.I18n
@@ -100,6 +110,14 @@ fun KdApp(
     var showSplash by remember { mutableStateOf(true) }
 
     val requestLocation = rememberLocationRequester()
+
+    // czy motyw jest ciemny (decyduje m.in. o filtrze kafelków mapy)
+    val systemDark = isSystemInDarkTheme()
+    val mapDark = when (appTheme) {
+        AppTheme.SYSTEM -> systemDark
+        AppTheme.MLEKO -> false
+        else -> true
+    }
 
     fun setFrom(ref: PlaceRef?) {
         from = ref
@@ -198,12 +216,18 @@ fun KdApp(
                         NavigationBarItem(
                             selected = tab == 2,
                             onClick = { tab = 2 },
-                            icon = { Icon(Icons.Filled.NewReleases, contentDescription = null) },
-                            label = { Text(t("Zmiany", "Changes")) },
+                            icon = { Icon(Icons.Filled.Map, contentDescription = null) },
+                            label = { Text(t("Mapa", "Map")) },
                         )
                         NavigationBarItem(
                             selected = tab == 3,
                             onClick = { tab = 3 },
+                            icon = { Icon(Icons.Filled.NewReleases, contentDescription = null) },
+                            label = { Text(t("Zmiany", "Changes")) },
+                        )
+                        NavigationBarItem(
+                            selected = tab == 4,
+                            onClick = { tab = 4 },
                             icon = { Icon(Icons.Filled.Tune, contentDescription = null) },
                             label = { Text(t("Ustawienia", "Settings")) },
                         )
@@ -317,9 +341,26 @@ fun KdApp(
                                 onPickStop = { picker = PickerTarget.BOARD },
                             )
 
-                            2 -> ChangesScreen(prefs = prefs)
+                            2 -> MapScreen(
+                                world = w,
+                                dark = mapDark,
+                                requester = requestLocation,
+                                onOpenBoard = { idx ->
+                                    boardStop = idx
+                                    prefs.boardStop = idx
+                                    tab = 1
+                                },
+                                onPlanTo = { idx ->
+                                    setTo(PlaceRef.StopRef(w.stops[idx].name, idx))
+                                    tab = 0
+                                    stack.clear()
+                                    stack += Route.Plan
+                                },
+                            )
 
-                            3 -> SettingsScreen(
+                            3 -> ChangesScreen(prefs = prefs)
+
+                            4 -> SettingsScreen(
                                 world = w,
                                 prefs = prefs,
                                 appTheme = appTheme,
@@ -413,24 +454,47 @@ fun LoadingBlock(text: String) {
 
 @Composable
 fun SplashScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                Icons.Filled.DirectionsBus,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(56.dp),
-            )
-            androidx.compose.foundation.layout.Spacer(Modifier.size(14.dp))
+    // Surface ustawia właściwy kolor treści w KAŻDYM motywie — wcześniej tytuł
+    // był czarny na ciemnym tle (brak Surface = domyślny czarny contentColor).
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(84.dp)
+                    .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(26.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.DirectionsBus,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(44.dp),
+                )
+            }
+            androidx.compose.foundation.layout.Spacer(Modifier.size(18.dp))
             Text(
                 "KiedyDojadę",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
             )
             Text(
                 "SZCZECINEK",
                 style = MaterialTheme.typography.labelMedium,
+                letterSpacing = 2.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            androidx.compose.foundation.layout.Spacer(Modifier.size(26.dp))
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .size(width = 132.dp, height = 4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
             )
         }
     }

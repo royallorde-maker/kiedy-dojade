@@ -18,7 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsBus
-import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Icon
@@ -222,7 +222,7 @@ private fun WalkOnlyCard(
 ) {
     KdCard(highlighted = highlighted) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            LegDot(Icons.Filled.DirectionsWalk, MaterialTheme.colorScheme.tertiary)
+            LegDot(Icons.AutoMirrored.Filled.DirectionsWalk, MaterialTheme.colorScheme.tertiary)
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -359,7 +359,7 @@ private fun LegRowWalk(leg: WalkLeg) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(vertical = 4.dp),
     ) {
-        LegDot(Icons.Filled.DirectionsWalk, MaterialTheme.colorScheme.tertiary)
+        LegDot(Icons.AutoMirrored.Filled.DirectionsWalk, MaterialTheme.colorScheme.tertiary)
         Spacer(Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(

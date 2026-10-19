@@ -4,4 +4,6 @@
     <string name="shortcut_search_long">Zaplanuj jazdę autobusem</string>
     <string name="shortcut_board">Tablica odjazdów</string>
     <string name="shortcut_board_long">Otwórz tablicę odjazdów</string>
+    <string name="shortcut_map">Mapa przystanków</string>
+    <string name="shortcut_map_long">Zobacz przystanki i trasy na mapie</string>
 </resources>

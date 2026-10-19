@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Skrót: mapa przystanków — pinezka na siatce ulic. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M15,3l-6,2L3,3v16l6,-2l6,2l6,-2L21,3L15,5zM9,15.5L5,17V6l4,-1.3V15.5zM15,17.3l-4,-1.3V4.7l4,1.3V17.3zM19,16l-2,0.7V5.7L19,5V16z" />
+</vector>

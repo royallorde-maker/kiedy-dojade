@@ -81,11 +81,13 @@ class MainActivity : ComponentActivity() {
     private fun tabFromIntent(intent: Intent?): Int? = when (intent?.action) {
         ACTION_OPEN_SEARCH -> 0
         ACTION_OPEN_BOARD -> 1
+        ACTION_OPEN_MAP -> 2
         else -> null
     }
 
     companion object {
         const val ACTION_OPEN_SEARCH = "com.kiedziedojade.app.action.OPEN_SEARCH"
         const val ACTION_OPEN_BOARD = "com.kiedziedojade.app.action.OPEN_BOARD"
+        const val ACTION_OPEN_MAP = "com.kiedziedojade.app.action.OPEN_MAP"
     }
 }
