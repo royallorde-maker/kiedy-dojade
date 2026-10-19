@@ -51,6 +51,7 @@ import com.kiedziedojade.app.core.fmtDate
 import com.kiedziedojade.app.core.fmtDuration
 import com.kiedziedojade.app.core.fmtMeters
 import com.kiedziedojade.app.core.fmtTime
+import com.kiedziedojade.app.core.itinerarySegments
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -58,6 +59,7 @@ import kotlinx.coroutines.withContext
 fun ResultsScreen(
     world: World,
     query: JourneyQuery,
+    dark: Boolean,
     onBack: () -> Unit,
     onOpenStop: (Int) -> Unit,
 ) {
@@ -92,8 +94,8 @@ fun ResultsScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
             Column(modifier = Modifier.padding(horizontal = 4.dp)) {
@@ -102,21 +104,12 @@ fun ResultsScreen(
                     subtitle = query.from.name + "  →  " + query.to.name +
                         (query.date?.let { "  ·  " + fmtDate(it, I18n.pl) } ?: ""),
                     onBack = onBack,
+                    below = if (o != null) {
+                        { PatternLine(o.patternType, o.exactDay) }
+                    } else {
+                        null
+                    },
                 )
-                o?.let { oc ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(start = 4.dp, top = 2.dp)) {
-                        StatusChip(
-                            text = patternLabel(oc.patternType),
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        if (!oc.exactDay) {
-                            StatusChip(
-                                text = t("rozkład wg dnia tygodnia", "schedule by weekday"),
-                                color = MaterialTheme.colorScheme.tertiary,
-                            )
-                        }
-                    }
-                }
             }
         }
 
@@ -165,6 +158,7 @@ fun ResultsScreen(
                     ItineraryCard(
                         world = world,
                         it = it2,
+                        dark = dark,
                         isBest = it2.tag == Tag.BEST.value,
                         live = if (it2 === best) live else null,
                         expanded = expanded == it2.id,
@@ -185,22 +179,23 @@ fun ResultsScreen(
                                         Icons.Filled.Schedule,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp),
                                     )
                                     Spacer(Modifier.width(10.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            t("Najbliższe odjazdy", "Upcoming departures"),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Medium,
-                                        )
-                                        Text(
-                                            first.boardStop.name,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
-                                    }
+                                    Text(
+                                        t("Najbliższe odjazdy", "Upcoming departures"),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                    Text(
+                                        "  ·  " + first.boardStop.name,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Spacer(Modifier.width(8.dp))
                                     Text("→", color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
@@ -263,6 +258,7 @@ private fun WalkOnlyCard(
 private fun ItineraryCard(
     world: World,
     it: Itinerary,
+    dark: Boolean,
     isBest: Boolean,
     live: Api.LiveRow?,
     expanded: Boolean,
@@ -270,29 +266,25 @@ private fun ItineraryCard(
     onOpenStop: (Int) -> Unit,
 ) {
     KdCard(highlighted = isBest, onClick = onToggle) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        fmtTime(it.leaveAt),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        "  →  ",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 3.dp),
-                    )
-                    Text(
-                        fmtTime(it.arriveAt),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
+        Row(verticalAlignment = Alignment.Top) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.Bottom,
+            ) {
                 Text(
-                    fmtDuration(it.arriveAt - it.leaveAt),
-                    style = MaterialTheme.typography.bodySmall,
+                    fmtTime(it.leaveAt),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    "  →  ",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 3.dp),
+                )
+                Text(
+                    fmtTime(it.arriveAt),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
                 )
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -310,40 +302,25 @@ private fun ItineraryCard(
                         MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                live?.let { row -> DelayChip(row.delayMin, row.estimated, row.canceled) }
             }
+        }
+
+        Spacer(Modifier.height(2.dp))
+        Text(
+            metaLine(it),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
+        // trasa połączenia na mapie (kafelki OSM) — marsz kreską, przejazdy kolorem linii
+        val segs = remember(it) { itinerarySegments(it) }
+        if (segs.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            RouteMiniMap(segs = segs, dots = routeDots(it), dark = dark, height = 122.dp)
         }
 
         Spacer(Modifier.height(6.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            StatusChip(
-                text = if (it.transfers == 0) {
-                    t("bez przesiadek", "no changes")
-                } else {
-                    "${it.transfers} " + I18n.transfers(it.transfers)
-                },
-                color = MaterialTheme.colorScheme.secondary,
-            )
-            if (it.walkMeters > 0) {
-                StatusChip(
-                    text = t("pieszo ", "walk ") + fmtMeters(it.walkMeters),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            live?.let { row ->
-                if (row.canceled) {
-                    StatusChip(t("odwołany", "canceled"), MaterialTheme.colorScheme.error)
-                } else if (row.delayMin != null && row.delayMin != 0) {
-                    StatusChip(
-                        text = if (row.delayMin > 0) "+${row.delayMin} min" else "${row.delayMin} min",
-                        color = if (row.delayMin > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
-                    )
-                } else if (row.estimated) {
-                    StatusChip(t("na żywo", "live"), MaterialTheme.colorScheme.primary)
-                }
-            }
-        }
-
-        Spacer(Modifier.height(10.dp))
         it.legs.forEach { leg ->
             when (leg) {
                 is WalkLeg -> LegRowWalk(leg)
@@ -353,17 +330,46 @@ private fun ItineraryCard(
     }
 }
 
+/** Jedna cicha linijka faktów (czas, przesiadki, marsz) zamiast rzędu pigułek. */
+private fun metaLine(it: Itinerary): String {
+    val parts = ArrayList<String>(3)
+    parts += fmtDuration(it.arriveAt - it.leaveAt)
+    parts += if (it.transfers == 0) {
+        t("bez przesiadek", "no changes")
+    } else {
+        "${it.transfers} " + I18n.transfers(it.transfers)
+    }
+    if (it.walkMeters > 0) parts += t("pieszo ", "walk ") + fmtMeters(it.walkMeters)
+    return parts.joinToString("  ·  ")
+}
+
+/** Typ dnia rozkładu pod nagłówkiem — spokojniejsza niż rząd pigułek. */
+@Composable
+private fun PatternLine(type: String, exactDay: Boolean) {
+    val scheme = MaterialTheme.colorScheme
+    val text = buildString {
+        append(patternLabel(type))
+        if (!exactDay) append("  ·  " + t("rozkład wg dnia tygodnia", "schedule by weekday"))
+    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        color = if (exactDay) scheme.onSurfaceVariant else scheme.tertiary,
+        modifier = Modifier.padding(top = 2.dp),
+    )
+}
+
 @Composable
 private fun LegRowWalk(leg: WalkLeg) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(vertical = 4.dp),
+        modifier = Modifier.padding(vertical = 2.dp),
     ) {
         LegDot(Icons.AutoMirrored.Filled.DirectionsWalk, MaterialTheme.colorScheme.tertiary)
         Spacer(Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                t("Pieszo ", "Walk ") + fmtMeters(leg.meters) + " · " + fmtDuration(leg.minutes),
+                t("Pieszo ", "Walk ") + fmtMeters(leg.meters) + "  ·  " + fmtDuration(leg.minutes),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
             )
@@ -375,11 +381,6 @@ private fun LegRowWalk(leg: WalkLeg) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        Text(
-            fmtTime(leg.depMin) + "–" + fmtTime(leg.arrMin),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 
@@ -390,7 +391,7 @@ private fun LegRowRide(
     expanded: Boolean,
     onOpenStop: (Int) -> Unit,
 ) {
-    Column(modifier = Modifier.padding(vertical = 6.dp)) {
+    Column(modifier = Modifier.padding(vertical = 4.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             LineChip(leg.line)
             Spacer(Modifier.width(10.dp))

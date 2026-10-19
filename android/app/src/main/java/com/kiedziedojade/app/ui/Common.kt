@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kiedziedojade.app.core.I18n.t
 import kotlinx.coroutines.delay
 
 /** Wejście „karta po karcie” — jak w reszcie apki. */
@@ -149,12 +150,12 @@ fun StatusChip(
 fun DelayChip(delayMin: Int?, estimated: Boolean, canceled: Boolean) {
     when {
         canceled -> StatusChip(
-            text = "odwołany",
+            text = t("odwołany", "canceled"),
             color = MaterialTheme.colorScheme.error,
         )
         delayMin != null && delayMin > 0 -> StatusChip("+$delayMin min", MaterialTheme.colorScheme.error)
         delayMin != null && delayMin < 0 -> StatusChip("$delayMin min", MaterialTheme.colorScheme.tertiary)
-        estimated -> StatusChip("na żywo", MaterialTheme.colorScheme.primary)
+        estimated -> StatusChip(t("na żywo", "live"), MaterialTheme.colorScheme.primary)
     }
 }
 
@@ -186,6 +187,7 @@ fun ScreenHeader(
     title: String,
     subtitle: String? = null,
     onBack: (() -> Unit)? = null,
+    below: @Composable (() -> Unit)? = null,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         if (onBack != null) {
@@ -207,6 +209,7 @@ fun ScreenHeader(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            below?.invoke()
         }
     }
 }

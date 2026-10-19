@@ -317,6 +317,7 @@ fun KdApp(
                                     is Route.Results -> ResultsScreen(
                                         world = w,
                                         query = route.query,
+                                        dark = mapDark,
                                         onBack = { stack.removeAt(stack.lastIndex) },
                                         onOpenStop = { idx -> stack += Route.Stop(idx) },
                                     )

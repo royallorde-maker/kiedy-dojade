@@ -348,6 +348,9 @@ object Planner {
                 fromName = origin.name, toName = boardStop.name,
                 meters = accessLabel.access.meters, minutes = accessMinutes,
                 depMin = leaveAt, arrMin = firstRideDep,
+                // marsz zaczyna się w punkcie najbliższym przystankowi (ulica/sklep/GPS)
+                fromPt = closestPointOf(origin, boardStop.lat, boardStop.lng).first,
+                toPt = boardStop.lat to boardStop.lng,
             )
         }
 
@@ -375,6 +378,8 @@ object Planner {
                 fromName = lastStop.name, toName = dest.name,
                 meters = e.first, minutes = e.second,
                 depMin = lastConn.arr, arrMin = arriveAt,
+                fromPt = lastStop.lat to lastStop.lng,
+                toPt = e.third, // najbliższy punkt celu (ulica/GPS)
             )
         }
 

@@ -24,6 +24,8 @@ wyszukiwarki połączeń kolejowych.
 - **Opcja „tylko pieszo”**, gdy spacer jest szybszy od autobusu.
 - **Mapa przystanków i tras** (OpenStreetMap, bez klucza API) — filtr linii,
   pozycja GPS, karta przystanku pod ręką.
+- **Trasa połączenia na mapie** — marsz, przesiadki i linie w kolorach,
+  rysowane wprost w liście wyników planera.
 - **Na żywo** — opóźnienia, odwołania, odjazdy z przystanku (publiczne API
   KiedyPrzyjedzie.pl), odświeżane co 30 s.
 - **Rozkłady offline** — dane wbudowane w aplikację i odświeżane z GitHuba;

@@ -17,6 +17,9 @@ repozytorium: dzieli z nią dane rozkładowe i styl.
   linii rysuje trasę i zawęża przystanki, pozycja GPS, karta przystanku z
   przejściem do tablicy/planowania. Kafelki w cache aplikacji, w ciemnych
   motywach przyciemnione filtrem.
+- **Trasa połączenia na mapie** — każda propozycja w wynikach pokazuje swoją
+  trasę: marsz przerywaną kreską, przejazdy w kolorach linii, kropki
+  przystanków oraz start i meta podróży (miniatura OSM).
 - **Rozkłady offline** — dane wbudowane w APK (assets) i odświeżane z GitHuba
   (atomowa podmiana katalogu; brak sieci = dalej działa).
 - **8 motywów**, PL/EN, aktualizacje w aplikacji (OTA jak w bs-companion).
@@ -32,6 +35,7 @@ android/app/src/main/java/com/kiedziedojade/app/
 │   ├── Search.kt            # wyszukiwarka przystanków/ulic/punktów (port search.ts)
 │   ├── Planner.kt           # planer połączeń (port planner.ts)
 │   ├── MapData.kt           # linie, trasy i przystanki dla mapy
+│   ├── RoutePath.kt         # nogi połączenia → odcinki trasy na mapie
 │   ├── DataJson.kt          # parsery public/data/*.json
 │   ├── DataRepo.kt          # assets + atomowe odświeżanie z GitHuba
 │   ├── Api.kt               # odjazdy na żywo (WAF wymaga User-Agenta przeglądarki)

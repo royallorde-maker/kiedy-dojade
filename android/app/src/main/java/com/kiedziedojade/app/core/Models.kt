@@ -108,6 +108,10 @@ data class WalkLeg(
     val minutes: Int,
     override val depMin: Int,
     override val arrMin: Int,
+    /** początek odcinka (do mapy trasy); null = brak współrzędnych */
+    val fromPt: Pair<Double, Double>? = null,
+    /** koniec odcinka (do mapy trasy) */
+    val toPt: Pair<Double, Double>? = null,
 ) : Leg
 
 data class RideStop(val stop: Stop, val min: Int)

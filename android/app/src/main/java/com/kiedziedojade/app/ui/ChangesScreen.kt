@@ -224,6 +224,31 @@ fun ChangesScreen(prefs: Prefs) {
 
         item {
             InfoCard(
+                title = "1.2.0",
+                lines = listOf(
+                    t(
+                        "Trasa każdego połączenia na mapie — marsz, przesiadki i linie w kolorach, prosto w liście wyników.",
+                        "Every connection shows its route on a map — walk, changes and lines in colour, right in the results.",
+                    ),
+                    t(
+                        "Kropka startu i mety podróży, przystanki pośrednie jak w opisie trasy.",
+                        "Start and finish dots, intermediate stops just like in the route description.",
+                    ),
+                    t(
+                        "Przesuwanie palcem po mapce przewija wyniki, więc nic nie blokuje listy.",
+                        "Dragging across the mini map scrolls the results, so nothing blocks the list.",
+                    ),
+                    t(
+                        "Lżejsze karty wyników: godziny, jedna linijka faktów (czas, przesiadki, marsz) i spokojniejsze wiersze przystanków.",
+                        "Lighter result cards: times, one line of facts (time, changes, walk) and calmer stop rows.",
+                    ),
+                ),
+                index = 2,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.1.0",
                 lines = listOf(
                     t(

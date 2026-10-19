@@ -9,6 +9,7 @@ import com.kiedziedojade.app.core.World
 import com.kiedziedojade.app.core.buildIndex
 import com.kiedziedojade.app.core.fmtTime
 import com.kiedziedojade.app.core.haversine
+import com.kiedziedojade.app.core.itinerarySegments
 import com.kiedziedojade.app.core.norm
 import com.kiedziedojade.app.core.searchPlaces
 import com.kiedziedojade.app.core.walkMinutes
@@ -111,6 +112,42 @@ class PlannerTest {
         assertTrue(outcome.itineraries.isNotEmpty())
         val firstLeg = outcome.itineraries.first().legs.first()
         assertTrue("walk to a stop starts the trip", firstLeg is com.kiedziedojade.app.core.WalkLeg)
+    }
+
+    @Test
+    fun `walk legs carry points and segments cover the ride`() {
+        val stop = world.stops[stopIndex("Dworzec PKP")]
+        val gps = PlaceRef.Gps("GPS", stop.lat + 0.0012, stop.lng + 0.0012)
+        val outcome = Planner.plan(
+            world,
+            PlanInput(
+                origin = gps,
+                dest = PlaceRef.StopRef("Szpital", stopIndex("Szpital")),
+                date = workdayDate(),
+                departMin = 12 * 60,
+            ),
+        )
+        assertTrue(outcome.itineraries.isNotEmpty())
+        val best = outcome.itineraries.first()
+
+        val walk = best.legs.first() as com.kiedziedojade.app.core.WalkLeg
+        assertNotNull("walk needs a start point", walk.fromPt)
+        assertNotNull("walk needs an end point", walk.toPt)
+        assertEquals(stop.lat + 0.0012, walk.fromPt!!.first, 1e-6)
+        // marsz kończy się na przystanku, z którego odjeżdża autobus
+        assertEquals(best.firstRide!!.boardStop.lat, walk.toPt!!.first, 1e-9)
+
+        val segs = itinerarySegments(best)
+        assertTrue("segments expected", segs.isNotEmpty())
+        assertTrue("walk is an open dashed line", segs.first().walk && segs.first().pts.size >= 2)
+        assertTrue(
+            "ride segments are solid and coloured by line",
+            segs.any { !it.walk && it.line == best.firstRide!!.line && it.pts.size >= 2 },
+        )
+        // trasa jest ciągła: koniec odcinka = początek następnego
+        for (k in 1 until segs.size) {
+            assertEquals(segs[k - 1].pts.last(), segs[k].pts.first())
+        }
     }
 
     @Test

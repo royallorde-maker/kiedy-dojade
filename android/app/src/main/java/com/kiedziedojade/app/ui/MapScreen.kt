@@ -1,11 +1,5 @@
 package com.kiedziedojade.app.ui
 
-import android.graphics.Canvas
-import android.graphics.ColorFilter
-import android.graphics.ColorMatrix
-import android.graphics.ColorMatrixColorFilter
-import android.graphics.PixelFormat
-import android.graphics.drawable.Drawable
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,14 +56,12 @@ import com.kiedziedojade.app.core.I18n.t
 import com.kiedziedojade.app.core.mapIndex
 import com.kiedziedojade.app.core.walkMinutes
 import com.kiedziedojade.app.update.rememberIsOnline
-import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
-import java.io.File
 
 /** Trzyma obiekty osmdroid między rekompozycjami (mapa żyje dłużej niż jeden frame). */
 private class MapHolder {
@@ -77,44 +69,6 @@ private class MapHolder {
     val stopMarkers = mutableListOf<Marker>()
     var userMarker: Marker? = null
     var lineOverlay: Polyline? = null
-}
-
-/**
- * Kropka przystanku — własny Drawable, bo GradientDrawable nie ma
- * rozmiaru intrinsic, a Marker go wymaga.
- */
-private class DotDrawable(
-    private val fill: Int,
-    private val ring: Int,
-    private val ringPx: Int,
-    private val sizePx: Int,
-) : Drawable() {
-    private val fillPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-        style = android.graphics.Paint.Style.FILL
-    }
-    private val ringPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-        style = android.graphics.Paint.Style.STROKE
-    }
-
-    override fun draw(canvas: Canvas) {
-        val cx = bounds.exactCenterX()
-        val cy = bounds.exactCenterY()
-        val r = bounds.width() / 2f
-        if (ringPx > 0) {
-            ringPaint.color = ring
-            ringPaint.strokeWidth = ringPx.toFloat()
-            canvas.drawCircle(cx, cy, r - ringPx / 2f, ringPaint)
-        }
-        fillPaint.color = fill
-        canvas.drawCircle(cx, cy, (r - ringPx).coerceAtLeast(0f), fillPaint)
-    }
-
-    override fun setAlpha(alpha: Int) {}
-    override fun setColorFilter(colorFilter: ColorFilter?) {}
-    @Deprecated("Deprecated in Java")
-    override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
-    override fun getIntrinsicWidth(): Int = sizePx
-    override fun getIntrinsicHeight(): Int = sizePx
 }
 
 /**
@@ -143,11 +97,7 @@ fun MapScreen(
 
     // osmdroid: cache w plikach aplikacji (bez uprawnień do pamięci) + własny UA.
     remember(context) {
-        Configuration.getInstance().apply {
-            userAgentValue = context.packageName
-            osmdroidBasePath = File(context.filesDir, "osmdroid")
-            osmdroidTileCache = File(osmdroidBasePath, "tiles")
-        }
+        initOsmdroid(context)
         true
     }
 
@@ -159,18 +109,7 @@ fun MapScreen(
     }
 
     // nocny filtr kafelków — mapa pasuje do ciemnych motywów
-    val nightFilter = remember {
-        ColorMatrixColorFilter(
-            ColorMatrix(
-                floatArrayOf(
-                    -0.92f, 0f, 0f, 0f, 235f,
-                    0f, -0.92f, 0f, 0f, 235f,
-                    0f, 0f, -0.92f, 0f, 235f,
-                    0f, 0f, 0f, 1f, 0f,
-                ),
-            ),
-        )
-    }
+    val nightFilter = remember { osmNightFilter() }
 
     val fill = scheme.primary.toArgb()
     val fillSelected = scheme.tertiary.toArgb()
