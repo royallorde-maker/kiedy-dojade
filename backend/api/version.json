@@ -1,8 +1,8 @@
 {
-  "versionCode": 2,
-  "versionName": "1.1.0",
+  "versionCode": 3,
+  "versionName": "1.2.0",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "Nowość: mapa przystanków i tras (OpenStreetMap) — filtr linii, pozycja GPS i karta przystanku z tablicą oraz planowaniem. Poprawki: czytelne kolory ekranu startowego w ciemnych motywach, pasek postępu i drobne szlify interfejsu.",
+  "changelog": "android: trasa połączenia na mapie + lżejsze karty wyników",
   "force": false,
-  "publishedAt": "2026-10-19T02:04:58Z"
+  "publishedAt": "2026-10-19T07:42:56Z"
 }
