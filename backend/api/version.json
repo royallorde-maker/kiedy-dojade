@@ -1,8 +1,8 @@
 {
-  "versionCode": 5,
-  "versionName": "1.4.0",
+  "versionCode": 6,
+  "versionName": "1.4.1",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.0 — lżejszy interfejs i żywsza mapa",
+  "changelog": "release: android 1.4.1 — czytelniejszy styl mapy i wybór kafelków",
   "force": false,
-  "publishedAt": "2026-10-19T20:17:22Z"
+  "publishedAt": "2026-10-19T22:14:25Z"
 }
