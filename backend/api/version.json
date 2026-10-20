@@ -1,8 +1,8 @@
 {
-  "versionCode": 10,
-  "versionName": "1.4.5",
+  "versionCode": 11,
+  "versionName": "1.4.6",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.5 — płynny znacznik, stabilny kompas i dowolny cel na mapie",
+  "changelog": "release: android 1.4.6 — znikająca przebyta trasa i ulubione trasy",
   "force": false,
-  "publishedAt": "2026-10-20T12:20:37Z"
+  "publishedAt": "2026-10-20T14:54:46Z"
 }
