@@ -1,8 +1,8 @@
 {
-  "versionCode": 7,
-  "versionName": "1.4.2",
+  "versionCode": 8,
+  "versionName": "1.4.3",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.2 — trasy autobusów po ulicach (OSRM)",
+  "changelog": "release: android 1.4.3 — godzina zamiast daty i poprawki niezawodności",
   "force": false,
-  "publishedAt": "2026-10-19T23:07:38Z"
+  "publishedAt": "2026-10-20T00:17:46Z"
 }
