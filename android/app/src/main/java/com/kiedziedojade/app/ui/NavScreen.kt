@@ -332,8 +332,11 @@ fun NavScreen(
     val missed = rideStep != null && busPassedBoard && !onBus && fix != null && !busNear
     val waiting = rideStep != null && !onBus && !missed && (
         if (liveVisible) !busPassedBoard || busNear
-        else nowMin < rideStep.departMin + shownDelay
+        else nowMin <= rideStep.departMin + shownDelay
         )
+    // bez potwierdzenia z GPS/API nie wolno twierdzić, że pasażer jest w autobusie
+    val departedUnknown = rideStep != null && !onBus && !missed && !waiting &&
+        ((liveVisible && busPassedBoard) || (!liveVisible && nowMin >= rideStep.departMin + 1))
 
     val getOffNow = rideStep != null && !waiting && !missed &&
         (state.getOffNow || (liveStopsLeft != null && liveStopsLeft == 0))
@@ -398,6 +401,7 @@ fun NavScreen(
         ),
         waiting = waiting,
         missed = missed,
+        departedUnknown = departedUnknown,
         boardClock = boardClock,
         alightClock = alightClock,
         primary = scheme.primary,
@@ -589,6 +593,7 @@ private fun navInstruction(
     live: LiveInfo?,
     waiting: Boolean,
     missed: Boolean,
+    departedUnknown: Boolean,
     boardClock: Int?,
     alightClock: Int?,
     primary: Color,
@@ -686,6 +691,16 @@ private fun navInstruction(
                         if (live?.atBoard == true) tertiary else primary,
                     )
                 }
+
+                departedUnknown -> NavInstruction(
+                    bus,
+                    t("Autobus niepotwierdzony", "Bus not confirmed"),
+                    t(
+                        "Kurs mógł odjechać — sprawdź tablicę i następny odjazd",
+                        "The trip may have left — check the board and the next departure",
+                    ),
+                    error,
+                )
 
                 stopsLeft == null -> NavInstruction(
                     bus,

@@ -125,8 +125,13 @@ object Planner {
         val trips = world.trips[pattern].orEmpty()
         val built = connectionsFor(pattern, trips)
 
-        // walking-only option (crow-flies is enough for the estimate)
-        val straight = haversine(origin.lat, origin.lng, dest.lat, dest.lng)
+        // walking-only option — measure between the nearest points of streets/POIs,
+        // not between the centroids of their bounding polylines
+        val straight = run {
+            val (originPoint, _) = closestPointOf(origin, dest.lat, dest.lng)
+            val (destPoint, _) = closestPointOf(dest, originPoint.first, originPoint.second)
+            haversine(originPoint.first, originPoint.second, destPoint.first, destPoint.second)
+        }
         val walkOnly = if (straight <= 3000) {
             WalkOnly(
                 minutes = walkMinutes(straight),

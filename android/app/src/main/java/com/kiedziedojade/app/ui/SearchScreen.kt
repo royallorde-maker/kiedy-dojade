@@ -20,7 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DirectionsBus
@@ -43,31 +42,32 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kiedziedojade.app.core.Api
-import com.kiedziedojade.app.core.I18n
 import com.kiedziedojade.app.core.I18n.t
 import com.kiedziedojade.app.core.PlaceRef
 import com.kiedziedojade.app.core.SearchItem
+import com.kiedziedojade.app.core.WARSAW
 import com.kiedziedojade.app.core.World
 import com.kiedziedojade.app.core.buildIndex
 import com.kiedziedojade.app.core.firstStopItem
-import com.kiedziedojade.app.core.fmtDate
-import com.kiedziedojade.app.core.todayStr
+import com.kiedziedojade.app.core.fmtTime
+import com.kiedziedojade.app.core.resolveDeparture
 import com.kiedziedojade.app.update.rememberIsOnline
+import java.time.ZonedDateTime
 
 @Composable
 fun SearchScreen(
     world: World,
     from: PlaceRef?,
     to: PlaceRef?,
-    date: String?,
+    departMin: Int?,
     announcements: List<Api.Announcement>,
     onDismissAnnouncement: (Int) -> Unit,
     onPickFrom: () -> Unit,
     onPickTo: () -> Unit,
     onSwap: () -> Unit,
     onUseGps: () -> Unit,
-    onPickDate: () -> Unit,
-    onClearDate: () -> Unit,
+    onPickTime: () -> Unit,
+    onUseNow: () -> Unit,
     onFind: () -> Unit,
     onQuickDestination: (SearchItem) -> Unit,
 ) {
@@ -184,14 +184,30 @@ fun SearchScreen(
                             TimeChip(
                                 label = t("Teraz", "Now"),
                                 icon = Icons.Filled.Schedule,
-                                selected = date == null,
-                                onClick = onClearDate,
+                                selected = departMin == null,
+                                onClick = onUseNow,
                             )
                             TimeChip(
-                                label = date?.let { fmtDate(it, I18n.pl) } ?: t("Inny dzień", "Another day"),
-                                icon = Icons.Filled.CalendarMonth,
-                                selected = date != null,
-                                onClick = onPickDate,
+                                label = departMin?.let { fmtTime(it) } ?: t("Godzina", "Time"),
+                                icon = hourGlass,
+                                selected = departMin != null,
+                                onClick = onPickTime,
+                            )
+                        }
+                        if (departMin != null) {
+                            val dep = resolveDeparture(
+                                ZonedDateTime.now(WARSAW),
+                                departMin,
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                t("Wyjazd ", "Leave ") +
+                                    relativeDay(dep.serviceDate).lowercase() +
+                                    t(" o ", " at ") +
+                                    fmtTime(dep.departMin),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 56.dp),
                             )
                         }
                         Spacer(Modifier.height(8.dp))

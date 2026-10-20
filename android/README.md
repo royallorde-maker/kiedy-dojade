@@ -11,6 +11,9 @@ repozytorium: dzieli z nią dane rozkładowe i styl.
 - **Planer połączeń** (port `src/planner.ts`): skanowanie połączeń, maks.
   2 przesiadki, dojścia pieszo (900 m, 4,7 km/h, współczynnik 1,25), opcja
   „tylko pieszo”, gdy spacer jest szybszy.
+- **Godzina zamiast daty** — wybierasz „Teraz” albo konkretną godzinę. Godzina,
+  która już minęła, oznacza najbliższe wystąpienie (jutro); właściwy dzień
+  rozkładu dobiera się sam, a wyniki mówią wprost „Dziś” lub „Jutro”.
 - **Tablica odjazdów na żywo** — publiczne API KiedyPrzyjedzie.pl (opóźnienia,
   odwołania), odświeżanie co 30 s + rozkład dnia offline.
 - **Mapa przystanków** (OpenStreetMap przez osmdroid — bez klucza API):
@@ -47,6 +50,7 @@ android/app/src/main/java/com/kiedziedojade/app/
 ├── core/                    # cała logika (bez Androida poza Context/Prefs)
 │   ├── Models.kt            # typy danych (port types.ts)
 │   ├── Geo.kt               # haversine, czasy, strefa Europe/Warsaw
+│   ├── TravelTime.kt        # godzina odjazdu → dzień rozkładu (dziś/jutro)
 │   ├── Search.kt            # wyszukiwarka przystanków/ulic/punktów (port search.ts)
 │   ├── Planner.kt           # planer połączeń (port planner.ts)
 │   ├── MapData.kt           # linie, trasy i przystanki dla mapy
@@ -63,6 +67,7 @@ android/app/src/main/java/com/kiedziedojade/app/
 │   ├── Prefs.kt             # motyw, język, ulubione, ostatnie zapytanie
 │   └── Loc.kt               # lokalizacja jednorazowa i strumień GPS (LocationManager)
 ├── ui/                      # ekrany Compose (Szukaj, Tablica, Mapa, Ustawienia)
+│   ├── TimePick.kt          # wybór godziny odjazdu (bez kalendarza)
 │   ├── NavScreen.kt         # pełnoekranowe prowadzenie i dane autobusu na żywo
 │   └── Gmaps.kt             # przekazanie nawigacji do Google Maps
 └── update/Update.kt         # OTA: version.json → DownloadManager → instalator
@@ -101,6 +106,12 @@ Wymagania: JDK 17, Android SDK (platform 35, build-tools 34.0.0), Gradle 8.7.
 
 - **Strefa czasu:** wszystkie obliczenia „teraz” i dat używają `Europe/Warsaw`,
   niezależnie od strefy telefonu (jak w wersji web).
+- **Dzień rozkładu:** użytkownik wybiera tylko godzinę; `TravelTime.kt` zamienia
+  ją na dzisiejszy lub jutrzejszy dzień, bo kalendarz nadal rozróżnia święta
+  i dni wolne od szkoły. Data jest szczegółem wewnętrznym, nie polem w formularzu.
+- **Zapisane przystanki:** ulubione, ostatnie miejsca i tablica trzymają stabilne
+  `stop.id`; po odświeżeniu danych indeksy mogą się zmienić, więc identyfikator
+  ma pierwszeństwo przed zapisanym indeksem.
 - **WAF API miasta:** żądania bez nagłówka `User-Agent` przeglądarki dostają 404 —
   `Net.UA` w `DataRepo.kt`.
 - **Kalendarz:** harmonogram dni (robocze / wakacje / sobota / niedziele) pochodzi

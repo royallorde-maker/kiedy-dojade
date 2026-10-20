@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -119,6 +120,8 @@ fun PickerScreen(
         )
 
         val q = query.trim()
+        val favs = prefs.favorites
+        val recents = prefs.recents
         LazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
@@ -135,8 +138,6 @@ fun PickerScreen(
                 }
             }
             if (q.length < 2) {
-                val favs = prefs.favorites
-                val recents = prefs.recents
                 if (favs.isNotEmpty()) {
                     item { SectionTitle(t("Ulubione", "Favourites")) }
                     items(favs, key = { "f" + it.key() }) { p ->
@@ -145,7 +146,7 @@ fun PickerScreen(
                 }
                 if (recents.isNotEmpty()) {
                     item { SectionTitle(t("Ostatnio używane", "Recently used")) }
-                    items(recents.filter { r -> favs.none { it.key() == r.key() } }, key = { "r" + it.key() }) { p ->
+                    items(recents.filter { r -> favs.none { it.samePlace(r) } }, key = { "r" + it.key() }) { p ->
                         SavedRow(world, prefs, p, current, onPick)
                     }
                 }
@@ -197,7 +198,9 @@ private fun SavedRow(
         else -> Icons.Filled.MyLocation
     }
     val sub = when (place.kind) {
-        "stop" -> world.stops.getOrNull(place.index ?: -1)?.let {
+        "stop" -> (place.toRef(world) as? PlaceRef.StopRef)?.let { ref ->
+            world.stops.getOrNull(ref.index)
+        }?.let {
             t("Przystanek ", "Stop ") + it.code + if (it.onDemand) " · NŻ" else ""
         }
         "poi" -> poiKindLabel(place.pkind ?: "")
@@ -207,8 +210,8 @@ private fun SavedRow(
         icon = icon,
         name = place.name,
         sub = sub,
-        selected = place.toRef() == current,
-        onClick = { place.toRef()?.let(onPick) },
+        selected = place.toRef(world) == current,
+        onClick = { place.toRef(world)?.let(onPick) },
     )
 }
 
@@ -224,7 +227,7 @@ private fun ResultRow(world: World, prefs: Prefs, item: SearchItem, onPick: (Pla
         "street" -> t("ulica", "street")
         else -> poiKindLabel(item.pkind ?: "")
     }
-    val saved = SavedPlace.from(item.ref)
+    val saved = SavedPlace.from(item.ref, world)
     PlaceRow(
         icon = icon,
         name = item.name,
@@ -244,7 +247,7 @@ private fun ResultRow(world: World, prefs: Prefs, item: SearchItem, onPick: (Pla
             }
         } else null,
         onClick = {
-            val savedPlace = SavedPlace.from(item.ref)
+            val savedPlace = SavedPlace.from(item.ref, world)
             if (savedPlace != null) prefs.pushRecent(savedPlace)
             onPick(item.ref)
         },
@@ -330,7 +333,7 @@ fun poiKindLabel(kind: String): String = when (kind) {
 /** Ikona ulubionych w wierszu przystanku (używana na ekranie przystanku). */
 @Composable
 fun FavoriteStar(prefs: Prefs, place: SavedPlace) {
-    val isFav = prefs.isFavorite(place)
+    val isFav = remember(prefs.favoritesVersion, place) { prefs.isFavorite(place) }
     IconButton(onClick = { prefs.toggleFavorite(place) }) {
         Icon(
             if (isFav) Icons.Filled.Star else Icons.Filled.StarBorder,
@@ -346,7 +349,9 @@ fun TimeChip(label: String, icon: ImageVector?, selected: Boolean, onClick: () -
     Surface(
         shape = RoundedCornerShape(50),
         color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
-        modifier = Modifier.clickable(onClick = onClick),
+        modifier = Modifier
+            .heightIn(min = 48.dp)
+            .clickable(onClick = onClick),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

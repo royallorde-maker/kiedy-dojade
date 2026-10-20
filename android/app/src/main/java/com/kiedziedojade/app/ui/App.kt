@@ -67,14 +67,14 @@ import kotlinx.coroutines.launch
 sealed interface Route {
     data object Plan : Route
     data class Results(val query: JourneyQuery) : Route
-    data class Stop(val index: Int, val fromBoard: Boolean = false) : Route
+    data class Stop(val index: Int, val serviceDate: String? = null) : Route
 }
 
 data class JourneyQuery(
     val from: PlaceRef,
     val to: PlaceRef,
-    /** null = dziś */
-    val date: String?,
+    /** YYYY-MM-DD; wewnętrzny dzień rozkładu, nigdy nie wybierany przez użytkownika */
+    val serviceDate: String,
     val departMin: Int,
 )
 
@@ -105,8 +105,9 @@ fun KdApp(
 
     var from by remember { mutableStateOf(prefs.lastFrom?.toRef()) }
     var to by remember { mutableStateOf(prefs.lastTo?.toRef()) }
-    var date by remember { mutableStateOf<String?>(null) }
-    var showDatePicker by remember { mutableStateOf(false) }
+    /** -1 = teraz; inaczej minuty od północy wybrane przez użytkownika */
+    var departMin by rememberSaveable { mutableIntStateOf(-1) }
+    var showTimePicker by remember { mutableStateOf(false) }
     var boardStop by remember { mutableIntStateOf(prefs.boardStop) }
     var mapStyle by remember { mutableStateOf(MapStyle.from(prefs.mapStyle)) }
     var dismissedAlert by remember { mutableStateOf<Int?>(null) }
@@ -126,12 +127,26 @@ fun KdApp(
 
     fun setFrom(ref: PlaceRef?) {
         from = ref
-        prefs.lastFrom = ref?.let { SavedPlace.from(it) }
+        prefs.lastFrom = ref?.let { SavedPlace.from(it, world) }
     }
 
     fun setTo(ref: PlaceRef?) {
         to = ref
-        prefs.lastTo = ref?.let { SavedPlace.from(it) }
+        prefs.lastTo = ref?.let { SavedPlace.from(it, world) }
+    }
+
+    /** Data nie jest wybierana: godzina, która minęła, oznacza jutro. */
+    fun queryFor(f: PlaceRef, d: PlaceRef): JourneyQuery {
+        val dep = com.kiedziedojade.app.core.resolveDeparture(
+            java.time.ZonedDateTime.now(com.kiedziedojade.app.core.WARSAW),
+            departMin.takeIf { it >= 0 },
+        )
+        return JourneyQuery(
+            from = f,
+            to = d,
+            serviceDate = dep.serviceDate,
+            departMin = dep.departMin,
+        )
     }
 
     fun setMapStyle(style: MapStyle) {
@@ -145,6 +160,7 @@ fun KdApp(
         if (idx != null && w != null && idx in w.stops.indices) {
             boardStop = idx
             prefs.boardStop = idx
+            prefs.boardStopId = w.stops[idx].id
             tab = 1
             stack.clear()
             stack += Route.Plan
@@ -155,7 +171,11 @@ fun KdApp(
 
     LaunchedEffect(Unit) {
         try {
-            world = repo.world()
+            val w = repo.world()
+            // old saves only have an index; attach the stable id while the
+            // dataset they were saved against is still loaded
+            prefs.migrateStopIds(w)
+            if (world == null) world = w
         } catch (e: Exception) {
             worldError = e.message ?: "błąd danych"
         }
@@ -165,14 +185,23 @@ fun KdApp(
     }
 
     // Po aktualizacji danych indeksy przystanków mogą się przesunąć.
-    // Nie pozwólmy, żeby nieaktualny zapis wywrócił planer.
+    // Stabilny identyfikator wygrywa z zapisanym indeksem.
     LaunchedEffect(world) {
         val w = world ?: return@LaunchedEffect
-        fun valid(ref: PlaceRef?): PlaceRef? =
-            if (ref is PlaceRef.StopRef && ref.index !in w.stops.indices) null else ref
-        from = valid(from)
-        to = valid(to)
-        if (boardStop !in w.stops.indices) boardStop = -1
+        prefs.lastFrom?.let { from = it.toRef(w) }
+        prefs.lastTo?.let { to = it.toRef(w) }
+
+        val savedBoard = prefs.boardStopId?.let { id ->
+            w.stops.indexOfFirst { it.id == id }.takeIf { it >= 0 }
+        }
+        boardStop = when {
+            prefs.boardStopId != null -> savedBoard ?: -1
+            boardStop in w.stops.indices -> {
+                prefs.boardStopId = w.stops[boardStop].id
+                boardStop
+            }
+            else -> -1
+        }
     }
 
     // ciche odświeżenie danych rozkładowych przy starcie
@@ -280,7 +309,7 @@ fun KdApp(
                                         world = w,
                                         from = from,
                                         to = to,
-                                        date = date,
+                                        departMin = departMin.takeIf { it >= 0 },
                                         announcements = announcements.filter { it.id != dismissedAlert },
                                         onDismissAnnouncement = { id -> dismissedAlert = id },
                                         onPickFrom = { picker = PickerTarget.FROM },
@@ -303,38 +332,24 @@ fun KdApp(
                                                 }
                                             }
                                         },
-                                        onPickDate = { showDatePicker = true },
-                                        onClearDate = { date = null },
+                                        onPickTime = { showTimePicker = true },
+                                        onUseNow = { departMin = -1 },
                                         onFind = {
                                             val f = from
                                             val d = to
                                             when {
                                                 f == null -> picker = PickerTarget.FROM
                                                 d == null -> picker = PickerTarget.TO
-                                                else -> stack += Route.Results(
-                                                    JourneyQuery(
-                                                        from = f,
-                                                        to = d,
-                                                        date = date,
-                                                        departMin = com.kiedziedojade.app.core.nowMinutes(),
-                                                    ),
-                                                )
+                                                else -> stack += Route.Results(queryFor(f, d))
                                             }
                                         },
                                         onQuickDestination = { item ->
                                             val ref = item.ref
-                                            SavedPlace.from(ref)?.let { prefs.pushRecent(it) }
+                                            SavedPlace.from(ref, w)?.let { prefs.pushRecent(it) }
                                             setTo(ref)
                                             val f = from
                                             if (f != null) {
-                                                stack += Route.Results(
-                                                    JourneyQuery(
-                                                        from = f,
-                                                        to = ref,
-                                                        date = date,
-                                                        departMin = com.kiedziedojade.app.core.nowMinutes(),
-                                                    ),
-                                                )
+                                                stack += Route.Results(queryFor(f, ref))
                                             } else {
                                                 picker = PickerTarget.FROM
                                             }
@@ -347,13 +362,16 @@ fun KdApp(
                                         dark = mapDark,
                                         mapStyle = mapStyle,
                                         onBack = { stack.removeAt(stack.lastIndex) },
-                                        onOpenStop = { idx -> stack += Route.Stop(idx) },
+                                        onOpenStop = { idx ->
+                                            stack += Route.Stop(idx, serviceDate = route.query.serviceDate)
+                                        },
                                         onNavigate = { nav = it },
                                     )
 
                                     is Route.Stop -> StopScreen(
                                         world = w,
                                         stopIndex = route.index,
+                                        serviceDate = route.serviceDate,
                                         embedded = false,
                                         prefs = prefs,
                                         onBack = { stack.removeAt(stack.lastIndex) },
@@ -379,6 +397,7 @@ fun KdApp(
                                 onOpenBoard = { idx ->
                                     boardStop = idx
                                     prefs.boardStop = idx
+                                    prefs.boardStopId = w.stops[idx].id
                                     tab = 1
                                 },
                                 onPlanTo = { idx ->
@@ -480,13 +499,13 @@ fun KdApp(
         }
     }
 
-    if (showDatePicker) {
-        DatePickDialog(
-            initial = date,
-            onDismiss = { showDatePicker = false },
-            onPick = { iso ->
-                date = if (iso == com.kiedziedojade.app.core.todayStr()) null else iso
-                showDatePicker = false
+    if (showTimePicker) {
+        TimePickDialog(
+            initial = departMin.takeIf { it >= 0 },
+            onDismiss = { showTimePicker = false },
+            onPick = { minute ->
+                departMin = minute
+                showTimePicker = false
             },
         )
     }

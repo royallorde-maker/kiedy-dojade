@@ -231,6 +231,35 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.3",
+                lines = listOf(
+                    t(
+                        "Nie wybierasz już dnia. Podajesz godzinę odjazdu — jeśli już minęła, aplikacja pokaże najbliższy kurs jutro, a nagłówek zawsze mówi, czy plan dotyczy dziś czy jutra.",
+                        "No more day picker. Choose a departure time — if it has already passed, the app shows tomorrow's next trip, and the header always says whether the plan is for today or tomorrow.",
+                    ),
+                    t(
+                        "Plan na jutro nie udaje dnia bieżącego: dane na żywo i prowadzenie są dostępne w dniu podróży, a rozkład przystanku pokazuje właściwy dzień.",
+                        "Tomorrow's plan no longer pretends to be today: live data and navigation are available on the travel day, and the stop timetable shows the correct day.",
+                    ),
+                    t(
+                        "Autobus na żywo jest dopasowany także po kierunku linii — kurs jadący w przeciwną stronę nie podmienia już Twojego odjazdu.",
+                        "Live buses are matched by line direction too, so a trip going the opposite way no longer replaces your departure.",
+                    ),
+                    t(
+                        "Ulubione i ostatnie przystanki przeżywają aktualizację danych dzięki stabilnym identyfikatorom, a gwiazdka odświeża się od razu.",
+                        "Favourite and recent stops survive data refreshes thanks to stable identifiers, and the star updates immediately.",
+                    ),
+                    t(
+                        "Prowadzenie nie twierdzi już, że jesteś w autobusie, gdy brak potwierdzenia z GPS lub API — zamiast tego prosi o sprawdzenie tablicy.",
+                        "Navigation no longer claims you are on the bus without GPS or live confirmation — it asks you to check the board instead.",
+                    ),
+                ),
+                index = 1,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.2",
                 lines = listOf(
                     t(

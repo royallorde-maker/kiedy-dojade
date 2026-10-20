@@ -151,11 +151,12 @@ class LiveTest {
         line: String,
         schedMin: Int?,
         depMin: Int? = schedMin,
+        direction: String? = "DWORCOWA",
     ) = Api.LiveRow(
         tripId = tripId,
         tripExecutionId = "x",
         line = line,
-        direction = "DWORCOWA",
+        direction = direction,
         departureSec = depMin?.times(60),
         scheduledSec = schedMin?.times(60),
         delayMin = 0,
@@ -181,5 +182,28 @@ class LiveTest {
     @Test
     fun `live row does not match a different departure`() {
         assertNull(matchLiveRide(listOf(row(null, "7", 630)), ride()))
+    }
+
+    @Test
+    fun `live row prefers the matching direction over the opposite one`() {
+        val rows = listOf(
+            row(null, "7", 600, direction = "OSIEDLE"),
+            row(null, "7", 601, direction = "dworcowa"),
+        )
+        assertEquals(601, matchLiveRide(rows, ride())?.schedMin)
+    }
+
+    @Test
+    fun `live row ignores an opposite direction when no row matches`() {
+        assertNull(matchLiveRide(listOf(row(null, "7", 600, direction = "OSIEDLE")), ride()))
+    }
+
+    @Test
+    fun `live row falls back when the API leaves direction empty`() {
+        val rows = listOf(
+            row(null, "7", 600, direction = null),
+            row(null, "7", 601, direction = "OSIEDLE"),
+        )
+        assertEquals(600, matchLiveRide(rows, ride())?.schedMin)
     }
 }

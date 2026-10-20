@@ -51,7 +51,6 @@ import com.kiedziedojade.app.core.RideLeg
 import com.kiedziedojade.app.core.Tag
 import com.kiedziedojade.app.core.WalkLeg
 import com.kiedziedojade.app.core.World
-import com.kiedziedojade.app.core.fmtDate
 import com.kiedziedojade.app.core.fmtDuration
 import com.kiedziedojade.app.core.fmtMeters
 import com.kiedziedojade.app.core.fmtTime
@@ -59,6 +58,7 @@ import com.kiedziedojade.app.core.RoutedPaths
 import com.kiedziedojade.app.core.itinerarySegments
 import com.kiedziedojade.app.core.routedPaths
 import com.kiedziedojade.app.core.matchLiveRide
+import com.kiedziedojade.app.core.todayStr
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -74,6 +74,7 @@ fun ResultsScreen(
 ) {
     var outcome by remember(query) { mutableStateOf<PlanOutcome?>(null) }
     var expanded by remember(query) { mutableStateOf<String?>(null) }
+    val isToday = query.serviceDate == todayStr()
 
     LaunchedEffect(query) {
         outcome = withContext(Dispatchers.Default) {
@@ -82,16 +83,20 @@ fun ResultsScreen(
                 PlanInput(
                     origin = query.from,
                     dest = query.to,
-                    date = query.date,
+                    date = query.serviceDate,
                     departMin = query.departMin,
                 ),
             )
         }
     }
 
-    // live delays for the first vehicle of the best option
+    // live delays for the first vehicle of the best option — only for today
     var live by remember(query) { mutableStateOf<Api.LiveRow?>(null) }
-    LaunchedEffect(outcome) {
+    LaunchedEffect(outcome, isToday) {
+        if (!isToday) {
+            live = null
+            return@LaunchedEffect
+        }
         val o = outcome ?: return@LaunchedEffect
         val first = o.itineraries.firstOrNull()?.firstRide ?: return@LaunchedEffect
         val stop = world.stops[first.boardStop.i]
@@ -110,14 +115,30 @@ fun ResultsScreen(
             Column(modifier = Modifier.padding(horizontal = 4.dp)) {
                 ScreenHeader(
                     title = t("Połączenia", "Connections"),
-                    subtitle = query.from.name + "  →  " + query.to.name +
-                        (query.date?.let { "  ·  " + fmtDate(it, I18n.pl) } ?: ""),
+                    subtitle = query.from.name + "  →  " + query.to.name + "  ·  " +
+                        relativeDay(query.serviceDate) + " " + fmtTime(query.departMin),
                     onBack = onBack,
                     below = if (o != null) {
                         { PatternLine(o.patternType, o.exactDay) }
                     } else {
                         null
                     },
+                )
+            }
+        }
+
+        if (!isToday) {
+            item {
+                Text(
+                    t("To plan na ", "This is the plan for ") +
+                        relativeDay(query.serviceDate).lowercase() + ". " +
+                        t(
+                            "Dane na żywo i prowadzenie będą dostępne w dniu podróży.",
+                            "Live data and navigation are available on the travel day.",
+                        ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                 )
             }
         }
@@ -154,8 +175,8 @@ fun ResultsScreen(
                             )
                         } else {
                             t(
-                                "Nic nie jedzie w tę stronę o tej porze. Spróbuj innej godziny albo dnia.",
-                                "Nothing heads that way at this time. Try another hour or day.",
+                                "Nic nie jedzie w tę stronę o tej porze. Spróbuj innej godziny.",
+                                "Nothing heads that way at this time. Try another hour.",
                             )
                         },
                     )
@@ -174,6 +195,7 @@ fun ResultsScreen(
                         expanded = expanded == it2.id,
                         onToggle = { expanded = if (expanded == it2.id) null else it2.id },
                         onOpenStop = onOpenStop,
+                        canNavigate = isToday,
                         onNavigate = { onNavigate(it2) },
                     )
                 }
@@ -241,6 +263,7 @@ private fun ItineraryCard(
     expanded: Boolean,
     onToggle: () -> Unit,
     onOpenStop: (Int) -> Unit,
+    canNavigate: Boolean,
     onNavigate: () -> Unit,
 ) {
     var paths by remember(it) { mutableStateOf<RoutedPaths?>(null) }
@@ -335,19 +358,21 @@ private fun ItineraryCard(
         }
 
         // prowadzenie: mapa za pozycją GPS, instrukcje po drodze i wysiadka
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Spacer(Modifier.weight(1f))
-            TextButton(onClick = onNavigate) {
-                Icon(
-                    Icons.Filled.Navigation,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(t("Prowadź", "Navigate"), style = MaterialTheme.typography.labelLarge)
+        if (canNavigate) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = onNavigate) {
+                    Icon(
+                        Icons.Filled.Navigation,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(t("Prowadź", "Navigate"), style = MaterialTheme.typography.labelLarge)
+                }
             }
         }
     }

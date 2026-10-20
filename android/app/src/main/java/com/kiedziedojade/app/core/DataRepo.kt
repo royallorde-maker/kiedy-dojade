@@ -76,7 +76,13 @@ class DataRepo(private val context: Context) {
                 val files = LinkedHashMap<String, String>()
                 files["stops.json"] = Net.getText("${BuildConfig.DATA_URL}/stops.json")
                 files["calendar.json"] = Net.getText("${BuildConfig.DATA_URL}/calendar.json")
-                val places = runCatching { Net.getText("${BuildConfig.DATA_URL}/places.json") }.getOrNull()
+                // Places are optional. If their request fails, keep the copy we
+                // already have instead of shipping a dataset without shops/POIs.
+                val previousPlaces = File(dir(), "places.json")
+                    .takeIf { it.isFile }
+                    ?.let { runCatching { it.readText() }.getOrNull() }
+                val places = runCatching { Net.getText("${BuildConfig.DATA_URL}/places.json") }
+                    .getOrNull() ?: previousPlaces
                 if (places != null) files["places.json"] = places
                 for (pid in remoteMeta.patterns.keys) {
                     files["trips-$pid.json"] = Net.getText("${BuildConfig.DATA_URL}/trips-$pid.json")

@@ -9,7 +9,18 @@ fun matchLiveRide(rows: List<Api.LiveRow>, ride: RideLeg): Api.LiveRow? {
     rows.firstOrNull { it.tripId == ride.tripId }?.let { return it }
     val sameLine = rows.filter { it.line?.equals(ride.line, ignoreCase = true) == true }
     if (sameLine.isEmpty()) return null
-    val best = sameLine.minByOrNull { row ->
+    // ta sama linia w przeciwnym kierunku nie może zostać podpięta pod kurs
+    val sameDirection = sameLine.filter {
+        it.direction?.equals(ride.dir, ignoreCase = true) == true
+    }
+    val candidates = if (sameDirection.isNotEmpty()) {
+        sameDirection
+    } else {
+        // starsze odpowiedzi API nie zawsze mają kierunek — wtedy zostaje czas
+        sameLine.filter { it.direction.isNullOrBlank() }
+    }
+    if (candidates.isEmpty()) return null
+    val best = candidates.minByOrNull { row ->
         val m = row.schedMin ?: row.depMin ?: return@minByOrNull 9999
         kotlin.math.abs(minuteDiff(m, ride.depMin))
     } ?: return null

@@ -28,6 +28,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -51,6 +52,7 @@ import com.kiedziedojade.app.core.Stop
 import com.kiedziedojade.app.core.Trip
 import com.kiedziedojade.app.core.World
 import com.kiedziedojade.app.core.fmtTime
+import com.kiedziedojade.app.core.minutesUntil
 import com.kiedziedojade.app.core.nowMinutes
 import com.kiedziedojade.app.core.todayStr
 import kotlinx.coroutines.delay
@@ -65,6 +67,8 @@ fun StopScreen(
     prefs: Prefs,
     onBack: (() -> Unit)?,
     onPickStop: () -> Unit,
+    /** YYYY-MM-DD for a timetable opened from a future plan; null = today */
+    serviceDate: String? = null,
 ) {
     if (stopIndex < 0 || world.stops.getOrNull(stopIndex) == null) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -91,14 +95,20 @@ fun StopScreen(
     }
 
     val stop = world.stops[stopIndex]
+    val date = serviceDate ?: todayStr()
+    val isToday = date == todayStr()
     val lifecycleOwner = LocalLifecycleOwner.current
-    var board by remember(stopIndex) { mutableStateOf<List<Api.LiveRow>?>(null) }
-    var boardLoaded by remember(stopIndex) { mutableStateOf(false) }
-    var boardError by remember(stopIndex) { mutableStateOf(false) }
-    var expandedTrip by remember(stopIndex) { mutableStateOf<Long?>(null) }
-    var now by remember(stopIndex) { mutableStateOf(nowMinutes()) }
+    var board by remember(stopIndex, date) { mutableStateOf<List<Api.LiveRow>?>(null) }
+    var boardLoaded by remember(stopIndex, date) { mutableStateOf(false) }
+    var boardError by remember(stopIndex, date) { mutableStateOf(false) }
+    var expandedTrip by remember(stopIndex, date) { mutableStateOf<Long?>(null) }
+    var now by remember(stopIndex, date) { mutableIntStateOf(nowMinutes()) }
 
-    LaunchedEffect(stopIndex, lifecycleOwner) {
+    LaunchedEffect(stopIndex, lifecycleOwner, isToday) {
+        if (!isToday) {
+            boardLoaded = true
+            return@LaunchedEffect
+        }
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             while (true) {
                 try {
@@ -113,7 +123,8 @@ fun StopScreen(
         }
     }
 
-    LaunchedEffect(stopIndex, lifecycleOwner) {
+    LaunchedEffect(stopIndex, lifecycleOwner, isToday) {
+        if (!isToday) return@LaunchedEffect
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             while (true) {
                 now = nowMinutes()
@@ -122,15 +133,14 @@ fun StopScreen(
         }
     }
 
-    val today = todayStr()
-    val pattern = remember(world, today) { Planner.resolvePattern(world, today) }
+    val pattern = remember(world, date) { Planner.resolvePattern(world, date) }
     val timetable = remember(world, stopIndex, pattern.first) {
         world.trips[pattern.first].orEmpty().mapNotNull { tr ->
             val idx = tr.times.indexOfFirst { it.first == stopIndex }
             if (idx < 0) null else TimetableRow(tr, tr.times[idx].second, idx)
         }.sortedBy { it.depMin }
     }
-    val saved = SavedPlace("stop", stop.name, index = stopIndex)
+    val saved = SavedPlace("stop", stop.name, index = stopIndex, stopId = stop.id)
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -144,7 +154,8 @@ fun StopScreen(
                         title = stop.name,
                         subtitle = t("Przystanek ", "Stop ") + stop.code +
                             (if (stop.station) " · " + t("dworzec", "station") else "") +
-                            (if (stop.onlyDisembarking) " · " + t("tylko wysiadanie", "drop-off only") else ""),
+                            (if (stop.onlyDisembarking) " · " + t("tylko wysiadanie", "drop-off only") else "") +
+                            (if (!isToday) " · " + relativeDay(date) else ""),
                         onBack = onBack,
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -164,60 +175,62 @@ fun StopScreen(
             }
         }
 
-        item { SectionTitle(t("Odjazdy na żywo", "Live departures")) }
+        if (isToday) {
+            item { SectionTitle(t("Odjazdy na żywo", "Live departures")) }
 
-        item {
-            Appear(1) {
-                KdCard {
-                    val rows = board.orEmpty()
-                        .filter { it.depMin != null }
-                        .sortedBy { it.depMin }
-                        .take(14)
-                    when {
-                        !boardLoaded -> Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp,
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Text(
-                                t("Ładowanie odjazdów…", "Loading departures…"),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+            item {
+                Appear(1) {
+                    KdCard {
+                        val rows = board.orEmpty()
+                            .filter { it.depMin != null }
+                            .sortedBy { it.depMin }
+                            .take(14)
+                        when {
+                            !boardLoaded -> Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    t("Ładowanie odjazdów…", "Loading departures…"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
 
-                        boardError && rows.isEmpty() -> Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Filled.WifiOff,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Text(
+                            boardError && rows.isEmpty() -> Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Filled.WifiOff,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                Text(
+                                    t(
+                                        "Brak łączności — odjazdy na żywo niedostępne. Rozkład poniżej działa offline.",
+                                        "No connection — live departures unavailable. The timetable below works offline.",
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+
+                            rows.isEmpty() -> Text(
                                 t(
-                                    "Brak łączności — odjazdy na żywo niedostępne. Rozkład poniżej działa offline.",
-                                    "No connection — live departures unavailable. The timetable below works offline.",
+                                    "Teraz nie ma zaplanowanych odjazdów — zajrzyj do rozkładu.",
+                                    "Nothing scheduled right now — check the timetable.",
                                 ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                        }
 
-                        rows.isEmpty() -> Text(
-                            t(
-                                "Teraz nie ma zaplanowanych odjazdów — zajrzyj do rozkładu.",
-                                "Nothing scheduled right now — check the timetable.",
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-
-                        else -> Column {
-                            rows.forEachIndexed { i, row ->
-                                if (i > 0) Spacer(Modifier.height(6.dp))
-                                LiveRow(row, now)
+                            else -> Column {
+                                rows.forEachIndexed { i, row ->
+                                    if (i > 0) Spacer(Modifier.height(6.dp))
+                                    LiveRow(row, now)
+                                }
                             }
                         }
                     }
@@ -227,7 +240,13 @@ fun StopScreen(
 
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                SectionTitle(t("Rozkład na dziś", "Today's timetable"))
+                SectionTitle(
+                    if (isToday) {
+                        t("Rozkład na dziś", "Today's timetable")
+                    } else {
+                        t("Rozkład · ", "Timetable · ") + relativeDay(date)
+                    },
+                )
                 Spacer(Modifier.width(8.dp))
                 StatusChip(
                     text = patternLabel(pattern.third),
@@ -246,7 +265,14 @@ fun StopScreen(
         if (timetable.isEmpty()) {
             item {
                 Text(
-                    t("Ten przystanek nie ma kursów w dzisiejszym rozkładzie.", "No trips at this stop today."),
+                    if (isToday) {
+                        t("Ten przystanek nie ma kursów w dzisiejszym rozkładzie.", "No trips at this stop today.")
+                    } else {
+                        t(
+                            "Ten przystanek nie ma kursów w rozkładzie na ten dzień.",
+                            "No trips at this stop on that day.",
+                        )
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 4.dp),
@@ -259,7 +285,7 @@ fun StopScreen(
                 TimetableCard(
                     world = world,
                     row = row,
-                    now = now,
+                    now = if (isToday) now else -1,
                     expanded = expandedTrip == row.trip.id,
                     onToggle = {
                         expandedTrip = if (expandedTrip == row.trip.id) null else row.trip.id
@@ -273,8 +299,7 @@ fun StopScreen(
 @Composable
 private fun LiveRow(row: Api.LiveRow, now: Int) {
     val canceled = row.canceled
-    var inMin = if (row.depMin != null) row.depMin!! - now else null
-    if (inMin != null && inMin < 0) inMin = 0
+    val inMin = row.depMin?.let { minutesUntil(it, now) }
     Row(verticalAlignment = Alignment.CenterVertically) {
         LineChip(row.line ?: "?")
         Spacer(Modifier.width(10.dp))

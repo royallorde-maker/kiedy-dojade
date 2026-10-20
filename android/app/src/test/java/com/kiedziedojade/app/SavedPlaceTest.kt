@@ -1,0 +1,62 @@
+package com.kiedziedojade.app
+
+import com.kiedziedojade.app.core.CalendarData
+import com.kiedziedojade.app.core.Meta
+import com.kiedziedojade.app.core.PlaceRef
+import com.kiedziedojade.app.core.PlacesData
+import com.kiedziedojade.app.core.SavedPlace
+import com.kiedziedojade.app.core.Stop
+import com.kiedziedojade.app.core.World
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/** Saved stops follow a stable id when the dataset reorders stops. */
+class SavedPlaceTest {
+
+    private fun stop(i: Int, id: String, name: String) = Stop(
+        i = i, id = id, code = 100 + i, name = name,
+        lat = 53.70 + i * 0.001, lng = 16.68 + i * 0.001,
+        onDemand = false, station = false, onlyDisembarking = false,
+    )
+
+    private val world = World(
+        stops = listOf(stop(0, "a", "A"), stop(1, "b", "B")),
+        meta = Meta(
+            generatedAt = "", source = "", city = "", timezone = "Europe/Warsaw",
+            horizonFrom = "", horizonTo = "", patterns = emptyMap(),
+            stopsCount = 2, tripsCount = 0,
+        ),
+        calendar = CalendarData("", emptyMap()),
+        places = PlacesData(emptyList(), emptyList()),
+        trips = emptyMap(),
+    )
+
+    @Test
+    fun `saved stop resolves by id after reordering`() {
+        val saved = SavedPlace("stop", "B", index = 0, stopId = "b")
+        val ref = saved.toRef(world) as PlaceRef.StopRef
+        assertEquals(1, ref.index)
+        assertEquals("B", ref.name)
+    }
+
+    @Test
+    fun `missing id does not fall back to a stale index`() {
+        val saved = SavedPlace("stop", "B", index = 0, stopId = "gone")
+        assertNull(saved.toRef(world))
+    }
+
+    @Test
+    fun `an old save with an out of range index is discarded`() {
+        assertNull(SavedPlace("stop", "B", index = 9).toRef(world))
+    }
+
+    @Test
+    fun `old saves get an id and still match new saves`() {
+        val old = SavedPlace("stop", "B", index = 1)
+        val migrated = old.withStopId(world)
+        assertEquals("b", migrated.stopId)
+        assertTrue(migrated.samePlace(SavedPlace("stop", "B", index = 0, stopId = "b")))
+    }
+}

@@ -43,8 +43,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kiedziedojade.app.core.I18n
 import com.kiedziedojade.app.core.I18n.t
+import com.kiedziedojade.app.core.fmtDate
+import com.kiedziedojade.app.core.isoToDate
+import com.kiedziedojade.app.core.todayStr
 import kotlinx.coroutines.delay
+import java.time.LocalDate
 
 /** Wejście „karta po karcie” — jak w reszcie apki. */
 @Composable
@@ -80,6 +85,18 @@ fun KdCard(
         },
     ) {
         Column(modifier = Modifier.padding(16.dp)) { content() }
+    }
+}
+
+/** "Dziś" / "Jutro" / a short date for anything further away. */
+fun relativeDay(iso: String, today: String = todayStr()): String {
+    val day = runCatching { isoToDate(iso) }.getOrNull() ?: return iso
+    val base = runCatching { isoToDate(today) }.getOrNull() ?: LocalDate.now()
+    return when (day) {
+        base -> t("Dziś", "Today")
+        base.plusDays(1) -> t("Jutro", "Tomorrow")
+        base.minusDays(1) -> t("Wczoraj", "Yesterday")
+        else -> fmtDate(iso, I18n.pl)
     }
 }
 
