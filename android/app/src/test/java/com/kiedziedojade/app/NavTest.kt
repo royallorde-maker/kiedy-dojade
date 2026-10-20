@@ -7,12 +7,17 @@ import com.kiedziedojade.app.core.RideLeg
 import com.kiedziedojade.app.core.RideStop
 import com.kiedziedojade.app.core.Stop
 import com.kiedziedojade.app.core.WalkLeg
+import com.kiedziedojade.app.core.courseHeading
 import com.kiedziedojade.app.core.headingDeg
+import com.kiedziedojade.app.core.headingDelta
+import com.kiedziedojade.app.core.markerHeading
 import com.kiedziedojade.app.core.navDestination
 import com.kiedziedojade.app.core.navDistance
 import com.kiedziedojade.app.core.navState
 import com.kiedziedojade.app.core.navSteps
+import com.kiedziedojade.app.core.normalizeHeading
 import com.kiedziedojade.app.core.rideStopsLeft
+import com.kiedziedojade.app.core.screenCompassHeading
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -110,6 +115,55 @@ class NavTest {
     @Test
     fun `heading needs some movement`() {
         assertNull(headingDeg(53.70 to 16.69, 53.70 to 16.69001))
+    }
+
+    @Test
+    fun `gps course is used while moving`() {
+        val moving = Fix(
+            lat = 53.70, lng = 16.69,
+            bearing = 90f, bearingAccuracy = 8f,
+            speed = 4.5f, timeMs = 2_000L,
+        )
+        assertEquals(90f, courseHeading(moving, null)!!, 0.01f)
+    }
+
+    @Test
+    fun `stationary gps does not produce a random course`() {
+        val still = Fix(
+            lat = 53.70, lng = 16.69,
+            bearing = 90f, speed = 0.1f, timeMs = 2_000L,
+        )
+        assertNull(courseHeading(still, Fix(53.70, 16.69, timeMs = 1_000L)))
+    }
+
+    @Test
+    fun `course can fall back to displacement without gps bearing`() {
+        val previous = Fix(53.70, 16.69, speed = 1.4f, timeMs = 1_000L)
+        val next = Fix(53.70, 16.70, speed = 1.4f, timeMs = 2_000L)
+        val h = courseHeading(next, previous)!!
+        assertTrue("h=$h", h in 80f..100f)
+    }
+
+    @Test
+    fun `marker uses compass at rest and keeps the last course as fallback`() {
+        assertEquals(270f, markerHeading(null, 270f, 90f)!!, 0.01f)
+        assertEquals(45f, markerHeading(45f, 270f, 90f)!!, 0.01f)
+        assertEquals(90f, markerHeading(null, null, 90f)!!, 0.01f)
+        assertNull(markerHeading(null, null, null))
+    }
+
+    @Test
+    fun `heading smoothing takes the shortest way around north`() {
+        assertEquals(20f, headingDelta(350f, 10f), 0.01f)
+        assertEquals(-20f, headingDelta(10f, 350f), 0.01f)
+        assertEquals(350f, normalizeHeading(-10f), 0.01f)
+    }
+
+    @Test
+    fun `compass heading follows screen rotation`() {
+        assertEquals(0f, screenCompassHeading(270f, 1), 0.01f)
+        assertEquals(0f, screenCompassHeading(90f, 3), 0.01f)
+        assertEquals(180f, screenCompassHeading(180f, 0), 0.01f)
     }
 
     @Test

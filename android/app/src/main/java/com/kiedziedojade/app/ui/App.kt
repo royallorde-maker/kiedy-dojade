@@ -113,6 +113,7 @@ fun KdApp(
     var showChanges by rememberSaveable { mutableStateOf(false) }
     val stack = remember { mutableStateListOf<Route>(Route.Plan) }
     var picker by remember { mutableStateOf<PickerTarget?>(null) }
+    var mapPicker by remember { mutableStateOf<PickerTarget?>(null) }
 
     var from by remember { mutableStateOf(prefs.lastFrom?.toRef()) }
     var to by remember { mutableStateOf(prefs.lastTo?.toRef()) }
@@ -295,11 +296,16 @@ fun KdApp(
     }
 
     BackHandler(
-        enabled = picker != null ||
+        enabled = mapPicker != null ||
+            picker != null ||
             (tab == 0 && stack.size > 1) ||
             (tab == 3 && showChanges),
     ) {
         when {
+            mapPicker != null -> {
+                picker = mapPicker
+                mapPicker = null
+            }
             picker != null -> picker = null
             tab == 0 && stack.size > 1 -> stack.removeAt(stack.lastIndex)
             tab == 3 && showChanges -> showChanges = false
@@ -537,6 +543,14 @@ fun KdApp(
                             }
                         }
                     },
+                    onPickOnMap = if (target == PickerTarget.BOARD) {
+                        null
+                    } else {
+                        {
+                            mapPicker = target
+                            picker = null
+                        }
+                    },
                     onPick = { ref ->
                         when (target) {
                             PickerTarget.FROM -> setFrom(ref)
@@ -546,6 +560,47 @@ fun KdApp(
                         picker = null
                     },
                     onDismiss = { picker = null },
+                )
+            }
+
+            // wybór dowolnego punktu na mapie jako startu / celu
+            val targetOnMap = mapPicker
+            if (targetOnMap != null && w != null) {
+                val currentRef = when (targetOnMap) {
+                    PickerTarget.FROM -> from
+                    PickerTarget.TO -> to
+                    else -> null
+                }
+                val start = refPoint(currentRef, w) ?: (53.70 to 16.69)
+                MapPickScreen(
+                    title = when (targetOnMap) {
+                        PickerTarget.FROM -> t("Wskaż start", "Pick the start")
+                        else -> t("Wskaż cel", "Pick the destination")
+                    },
+                    initial = start,
+                    dark = mapDark,
+                    mapStyle = mapStyle,
+                    onCancel = {
+                        picker = targetOnMap
+                        mapPicker = null
+                    },
+                    onPick = { lat, lng ->
+                        val ref = PlaceRef.Gps(
+                            t("Punkt na mapie", "Map point"),
+                            lat,
+                            lng,
+                            custom = true,
+                        )
+                        // zapamiętaj punkt, żeby był też na liście ostatnio używanych
+                        SavedPlace.from(ref, w)?.let { prefs.pushRecent(it) }
+                        when (targetOnMap) {
+                            PickerTarget.FROM -> setFrom(ref)
+                            PickerTarget.TO -> setTo(ref)
+                            else -> setBoard(ref)
+                        }
+                        mapPicker = null
+                        picker = null
+                    },
                 )
             }
 
@@ -654,6 +709,15 @@ fun stopForRef(world: World?, ref: PlaceRef): Int? {
                 .firstOrNull()?.first?.i
         }
     }
+}
+
+/** Best map point for a place: stop coordinates, POI point, or the middle of a street. */
+fun refPoint(ref: PlaceRef?, world: World?): Pair<Double, Double>? = when (ref) {
+    null -> null
+    is PlaceRef.Gps -> ref.lat to ref.lng
+    is PlaceRef.PoiRef -> ref.lat to ref.lng
+    is PlaceRef.StopRef -> world?.stops?.getOrNull(ref.index)?.let { it.lat to it.lng }
+    is PlaceRef.StreetRef -> ref.pts.getOrNull(ref.pts.size / 2)
 }
 
 /** Prosi o zgodę na lokalizację i zwraca jednorazowy fix (albo null). */

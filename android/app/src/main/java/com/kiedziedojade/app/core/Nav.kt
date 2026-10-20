@@ -15,6 +15,8 @@ data class Fix(
     val lng: Double,
     /** kierunek ruchu w stopniach (0 = północ) albo null, gdy nieznany */
     val bearing: Float? = null,
+    /** dokładność kierunku w stopniach (null = system jej nie podał) */
+    val bearingAccuracy: Float? = null,
     /** dokładność w metrach (null = system jej nie podał) */
     val accuracy: Float? = null,
     /** prędkość w m/s (null = system jej nie podał) */
@@ -195,3 +197,71 @@ fun headingDeg(from: Pair<Double, Double>, to: Pair<Double, Double>): Float? {
     val x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLng)
     return (((Math.toDegrees(atan2(y, x)) + 360.0) % 360.0)).toFloat()
 }
+
+/** Normalizuje kierunek do zakresu 0..360. */
+fun normalizeHeading(deg: Float): Float {
+    val wrapped = deg % 360f
+    return if (wrapped < 0f) wrapped + 360f else wrapped
+}
+
+/**
+ * Najkrótsza różnica kątów od [from] do [to] w zakresie -180..180.
+ * Używana przy wygładzaniu strzałki, żeby nie kręciła się przez 359°.
+ */
+fun headingDelta(from: Float, to: Float): Float {
+    val d = (to - from) % 360f
+    return when {
+        d > 180f -> d - 360f
+        d <= -180f -> d + 360f
+        else -> d
+    }
+}
+
+/**
+ * Kierunek jazdy z GPS: bearing urządzenia, gdy naprawdę się poruszamy,
+ * a bez niego różnica dwóch pozycji. W miejscu zwraca null, żeby szum GPS
+ * nie obracał znacznika — wtedy ekran używa kompasu.
+ */
+fun courseHeading(fix: Fix?, previous: Fix?): Float? {
+    val f = fix ?: return null
+    val speed = f.speed
+    if (speed != null && speed < 0.8f) return null
+
+    val p = previous
+    val meters = if (p == null) 0.0 else {
+        haversine(p.lat, p.lng, f.lat, f.lng)
+    }
+    // bearing jest wiarygodny dopiero w ruchu; przy braku prędkości
+    // wymagamy wyraźnego przemieszczenia między dwiema ramkami
+    val canUseBearing = (speed != null && speed >= 0.8f) ||
+        (speed == null && meters >= 8.0)
+    val b = f.bearing
+    val bAcc = f.bearingAccuracy
+    if (canUseBearing && b != null && (bAcc == null || bAcc <= 45f)) {
+        return normalizeHeading(b)
+    }
+
+    if (p == null || meters < 3.0) return null
+    if (speed == null && meters < 8.0) return null
+    val dt = f.timeMs - p.timeMs
+    if (dt > 60_000L) return null
+    return headingDeg(p.lat to p.lng, f.lat to f.lng)
+}
+
+/**
+ * Kierunek znacznika: w ruchu kurs GPS, w miejscu kompas telefonu, a gdy
+ * kompas chwilowo nie ma danych — ostatni znany kurs.
+ */
+fun markerHeading(course: Float?, compass: Float?, lastCourse: Float?): Float? = when {
+    course != null -> normalizeHeading(course)
+    compass != null -> normalizeHeading(compass)
+    lastCourse != null -> normalizeHeading(lastCourse)
+    else -> null
+}
+
+/**
+ * Kierunek góry ekranu z azymutu czujnika. [displayRotation] to stała
+ * Surface.ROTATION_*; w landscape trzeba obrócić azymut o 90/180/270°.
+ */
+fun screenCompassHeading(azimuthDeg: Float, displayRotation: Int): Float =
+    normalizeHeading(azimuthDeg + displayRotation.coerceIn(0, 3) * 90f)

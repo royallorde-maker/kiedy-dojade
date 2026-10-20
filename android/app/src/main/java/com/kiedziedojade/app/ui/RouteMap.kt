@@ -422,6 +422,13 @@ fun RouteNavMap(
         return
     }
 
+    // Znacznik jedzie płynnie między ramkami GPS, a strzałka obraca się po
+    // najkrótszej drodze. Kamera dostaje ten sam czas animacji, więc punkt
+    // pozostaje nieruchomy względem mapy zamiast skakać przy każdym odczycie.
+    val shownFix = rememberSmoothPosition(fix)
+    val shownHeading = rememberSmoothHeading(heading)
+    val shownBusHeading = rememberSmoothHeading(busHeading)
+
     // Środek trzymamy w Double: przy zoomie 18 float traci piksele.
     var camCX by remember { mutableStateOf(Merc.x(target.second)) }
     var camCY by remember { mutableStateOf(Merc.y(target.first)) }
@@ -452,7 +459,8 @@ fun RouteNavMap(
     val targetZoom = remember(baseZoom, corner) { autoNavZoom(baseZoom, corner) }
 
     // Kamera jedzie za pozycją; własna interpolacja w Double wygładza GPS
-    // bez utraty precyzji na dużych zoomach.
+    // bez utraty precyzji na dużych zoomach. Ten sam czas co znacznik,
+    // żeby znacznik nie uciekał od środka mapy w trakcie jazdy.
     LaunchedEffect(target, follow, targetZoom) {
         if (!follow) return@LaunchedEffect
         val sx = camCX
@@ -464,7 +472,7 @@ fun RouteNavMap(
         val start = withFrameNanos { it }
         while (true) {
             val frame = withFrameNanos { it }
-            val t = ((frame - start) / 700_000_000.0).coerceIn(0.0, 1.0)
+            val t = ((frame - start) / (LOCATION_ANIM_MS * 1_000_000.0)).coerceIn(0.0, 1.0)
             val e = t * t * (3.0 - 2.0 * t) // smoothstep
             camCX = sx + (ex - sx) * e
             camCY = sy + (ey - sy) * e
@@ -656,7 +664,7 @@ fun RouteNavMap(
                     val by = ((Merc.y(b.first) - centerY) * world + halfH).toFloat()
                     val edge = 30.dp.toPx()
                     if (bx in -edge..(size.width + edge) && by in -edge..(size.height + edge)) {
-                        drawBusMarker(Offset(bx, by), busHeading, busColor, ringColor)
+                        drawBusMarker(Offset(bx, by), shownBusHeading, busColor, ringColor)
                     } else {
                         val ex = bx.coerceIn(edge, size.width - edge)
                         val ey = by.coerceIn(edge, size.height - edge)
@@ -666,7 +674,7 @@ fun RouteNavMap(
                 }
 
                 // pozycja użytkownika: poświata, strzałka kierunku i kropka
-                fix?.let { f ->
+                shownFix?.let { f ->
                     val px = ((Merc.x(f.second) - centerX) * world + halfW).toFloat()
                     val py = ((Merc.y(f.first) - centerY) * world + halfH).toFloat()
                     val p = Offset(px, py)
@@ -675,8 +683,8 @@ fun RouteNavMap(
                         radius = 30.dp.toPx(),
                         center = p,
                     )
-                    if (heading != null) {
-                        rotate(degrees = heading, pivot = p) {
+                    if (shownHeading != null) {
+                        rotate(degrees = shownHeading, pivot = p) {
                             val arrow = Path()
                             arrow.moveTo(px, py - 34.dp.toPx())
                             arrow.lineTo(px - 13.dp.toPx(), py - 11.dp.toPx())

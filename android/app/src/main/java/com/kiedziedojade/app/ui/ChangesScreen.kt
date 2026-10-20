@@ -231,6 +231,27 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.5",
+                lines = listOf(
+                    t(
+                        "Znacznik pozycji nie skacze już po błędnych odczytach GPS: nieświeże i niemożliwe ramki są odrzucane, a znacznik płynnie przejeżdża między poprawnymi pozycjami.",
+                        "The position marker no longer jumps on bad GPS readings: stale and impossible fixes are dropped, and the marker glides smoothly between valid positions.",
+                    ),
+                    t(
+                        "Kierunek jest stabilny: w ruchu strzałka bierze kurs GPS, w miejscu — kompas telefonu, a gdy czujnik chwilowo zawiedzie, zostaje ostatni znany kierunek.",
+                        "Heading is stable: while moving the arrow follows the GPS course, when standing it follows the phone compass, and if the sensor drops out it keeps the last known direction.",
+                    ),
+                    t(
+                        "Nowy cel: „Wskaż na mapie” pozwala wybrać dowolny punkt jako start lub dokąd — nie tylko duże przystanki. Punkt zapisuje się w ostatnio używanych razem ze współrzędnymi.",
+                        "New destination: “Pick on map” lets you choose any point as start or destination — not just the big stops. The point is saved in recents together with its coordinates.",
+                    ),
+                ),
+                index = 1,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.4",
                 lines = listOf(
                     t(

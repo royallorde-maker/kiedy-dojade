@@ -214,7 +214,7 @@ fun SearchScreen(
                         TimeChip(
                             label = t("Moja lokalizacja", "My location"),
                             icon = Icons.Filled.MyLocation,
-                            selected = from is PlaceRef.Gps,
+                            selected = from is PlaceRef.Gps && !from.custom,
                             onClick = onUseGps,
                         )
                     }

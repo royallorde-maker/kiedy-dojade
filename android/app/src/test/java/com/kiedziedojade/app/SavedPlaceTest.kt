@@ -59,4 +59,22 @@ class SavedPlaceTest {
         assertEquals("b", migrated.stopId)
         assertTrue(migrated.samePlace(SavedPlace("stop", "B", index = 0, stopId = "b")))
     }
+
+    @Test
+    fun `a point picked on the map keeps its coordinates and kind`() {
+        val saved = SavedPlace.from(PlaceRef.Gps("Punkt na mapie", 53.71, 16.69, custom = true))
+        assertEquals("point", saved?.kind)
+        val ref = saved?.toRef(world) as PlaceRef.Gps
+        assertTrue(ref.custom)
+        assertEquals(53.71, ref.lat, 0.0)
+        assertEquals(16.69, ref.lng, 0.0)
+    }
+
+    @Test
+    fun `a phone location is still saved as gps`() {
+        val saved = SavedPlace.from(PlaceRef.Gps("Moja lokalizacja", 53.70, 16.68))
+        assertEquals("gps", saved?.kind)
+        val ref = saved?.toRef(world) as PlaceRef.Gps
+        assertTrue(!ref.custom)
+    }
 }

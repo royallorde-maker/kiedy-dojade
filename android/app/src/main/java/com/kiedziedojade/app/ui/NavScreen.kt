@@ -65,13 +65,15 @@ import com.kiedziedojade.app.core.RideLeg
 import com.kiedziedojade.app.core.WALK_DETOUR
 import com.kiedziedojade.app.core.WalkLeg
 import com.kiedziedojade.app.core.World
+import com.kiedziedojade.app.core.courseHeading
 import com.kiedziedojade.app.core.fmtMeters
 import com.kiedziedojade.app.core.fmtTime
 import com.kiedziedojade.app.core.haversine
 import com.kiedziedojade.app.core.headingDeg
 import com.kiedziedojade.app.core.itinerarySegments
-import com.kiedziedojade.app.core.routedPaths
+import com.kiedziedojade.app.core.markerHeading
 import com.kiedziedojade.app.core.matchLiveRide
+import com.kiedziedojade.app.core.routedPaths
 import com.kiedziedojade.app.core.minuteDiff
 import com.kiedziedojade.app.core.minutesUntil
 import com.kiedziedojade.app.core.navDestination
@@ -140,16 +142,16 @@ fun NavScreen(
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             locator.stream().collect { f ->
                 val last = fix
-                // ostatnia znana pozycja bywa stara — nie zaczynajmy od niej,
-                // jeśli telefon ma już świeższy odczyt za chwilę
-                if (last == null && f.timeMs > 0 &&
-                    System.currentTimeMillis() - f.timeMs > 60_000
+                // Ostatnia znana pozycja bywa stara — nie zaczynajmy od niej,
+                // jeśli telefon ma już świeższy odczyt za chwilę.
+                if (last == null && f.timeMs > 0L &&
+                    System.currentTimeMillis() - f.timeMs > 15_000L
                 ) {
                     return@collect
                 }
                 // GPS pod drzewami potrafi mieć 100 m błędu; taka ramka nie
-                // powinna przesuwać kamery ani zaliczać przystanku
-                if (last != null && f.accuracy != null && f.accuracy > 120f) return@collect
+                // powinna przesuwać kamery ani zaliczać przystanku.
+                if (f.accuracy != null && f.accuracy > 120f) return@collect
                 val moved = last == null ||
                     haversine(last.lat, last.lng, f.lat, f.lng) >= 0.8
                 if (moved) {
@@ -366,17 +368,16 @@ fun NavScreen(
         }
     }
 
-    // kierunek ruchu: bearing z GPS, a bez niego — z różnicy dwóch pozycji.
-    // W miejscu (postój, przystanek) nie obracamy strzałki przypadkowym szumem.
-    val heading: Float? = fix?.let { b ->
-        if (b.speed != null && b.speed < 0.7f) return@let null
-        val a = prev
-        if (a == null || (a.lat == b.lat && a.lng == b.lng)) {
-            b.bearing
-        } else {
-            headingDeg(a.lat to a.lng, b.lat to b.lng) ?: b.bearing
-        }
+    // Kierunek znacznika: w ruchu kurs GPS, w miejscu kompas telefonu.
+    // Gdy kompas chwilowo nie ma danych, zostaje ostatni znany kurs — dzięki
+    // temu strzałka nie znika przy prędkości poniżej progu.
+    val compassHeading = rememberCompassHeading()
+    var lastCourse by remember { mutableStateOf<Float?>(null) }
+    val course = remember(fix, prev) { courseHeading(fix, prev) }
+    LaunchedEffect(course) {
+        if (course != null) lastCourse = course
     }
+    val heading = markerHeading(course, compassHeading, lastCourse)
 
     val rideDelay = if (liveRide != null) shownDelay else 0
     val liveFinal = liveRide != null &&

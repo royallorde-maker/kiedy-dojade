@@ -37,6 +37,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -271,7 +272,9 @@ fun MapScreen(
             }
         }
 
-        // pozycja użytkownika
+        // Pozycja użytkownika. Marker jedzie płynnie do nowej ramki GPS bez
+        // rekomponowania całej mapy przy każdej klatce — animujemy wprost
+        // pozycję nakładki osmdroid.
         LaunchedEffect(userFix, mapReady) {
             if (!mapReady) return@LaunchedEffect
             val map = holder.map ?: return@LaunchedEffect
@@ -282,8 +285,33 @@ fun MapScreen(
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                 icon = DotDrawable(userFill, ring, ringPx, userPx)
                 title = t("Moja lokalizacja", "My location")
+                position = GeoPoint(fix.first, fix.second)
                 holder.userMarker = this
                 map.overlays.add(this)
+            }
+
+            val start = marker.position
+            val startLat = start?.latitude
+            val startLng = start?.longitude
+            if (startLat == null || startLng == null) {
+                marker.position = GeoPoint(fix.first, fix.second)
+            } else if (startLat != fix.first || startLng != fix.second) {
+                val startedAt = withFrameNanos { it }
+                var frameAt = startedAt
+                while (true) {
+                    val t = (
+                        (frameAt - startedAt) /
+                            (LOCATION_ANIM_MS * 1_000_000.0)
+                        ).coerceIn(0.0, 1.0)
+                    val e = t * t * (3.0 - 2.0 * t)
+                    marker.position = GeoPoint(
+                        startLat + (fix.first - startLat) * e,
+                        startLng + (fix.second - startLng) * e,
+                    )
+                    map.invalidate()
+                    if (t >= 1.0) break
+                    frameAt = withFrameNanos { it }
+                }
             }
             marker.position = GeoPoint(fix.first, fix.second)
             map.invalidate()

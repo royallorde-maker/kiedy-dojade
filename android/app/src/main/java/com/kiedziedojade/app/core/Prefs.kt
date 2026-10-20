@@ -10,7 +10,7 @@ import org.json.JSONObject
 
 /** A place the user can get back to (favourites / recents). */
 data class SavedPlace(
-    /** "stop" | "poi" | "gps" */
+    /** "stop" | "poi" | "gps" | "point" */
     val kind: String,
     val name: String,
     val index: Int? = null,
@@ -37,6 +37,9 @@ data class SavedPlace(
         } else null
 
         "gps" -> if (lat != null && lng != null) PlaceRef.Gps(name, lat, lng) else null
+        "point" -> if (lat != null && lng != null) {
+            PlaceRef.Gps(name, lat, lng, custom = true)
+        } else null
         else -> null
     }
 
@@ -70,7 +73,12 @@ data class SavedPlace(
             )
 
             is PlaceRef.PoiRef -> SavedPlace("poi", ref.name, lat = ref.lat, lng = ref.lng, pkind = ref.kind)
-            is PlaceRef.Gps -> SavedPlace("gps", ref.name, lat = ref.lat, lng = ref.lng)
+            is PlaceRef.Gps -> SavedPlace(
+                if (ref.custom) "point" else "gps",
+                ref.name,
+                lat = ref.lat,
+                lng = ref.lng,
+            )
             is PlaceRef.StreetRef -> null // ulice nie są zapisywane jako „ulubione”
         }
     }

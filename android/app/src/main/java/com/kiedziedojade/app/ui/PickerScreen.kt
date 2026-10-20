@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DirectionsBus
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
@@ -73,6 +74,7 @@ fun PickerScreen(
     current: PlaceRef?,
     allowGps: Boolean,
     onGps: () -> Unit,
+    onPickOnMap: (() -> Unit)? = null,
     onPick: (PlaceRef) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -132,8 +134,18 @@ fun PickerScreen(
                         icon = Icons.Filled.MyLocation,
                         name = t("Moja lokalizacja", "My location"),
                         sub = t("Użyj pozycji telefonu", "Use the phone's position"),
-                        selected = current is PlaceRef.Gps,
+                        selected = (current as? PlaceRef.Gps)?.custom == false,
                         onClick = onGps,
+                    )
+                }
+            }
+            if (onPickOnMap != null && q.isEmpty()) {
+                item {
+                    PlaceRow(
+                        icon = Icons.Filled.Map,
+                        name = t("Wskaż na mapie", "Pick on map"),
+                        sub = t("Dowolny punkt, nie tylko przystanek", "Any point, not just a stop"),
+                        onClick = onPickOnMap,
                     )
                 }
             }
@@ -195,6 +207,7 @@ private fun SavedRow(
     val icon = when (place.kind) {
         "stop" -> Icons.Filled.DirectionsBus
         "poi" -> Icons.Filled.Storefront
+        "point" -> Icons.Filled.Map
         else -> Icons.Filled.MyLocation
     }
     val sub = when (place.kind) {
@@ -204,6 +217,11 @@ private fun SavedRow(
             t("Przystanek ", "Stop ") + it.code + if (it.onDemand) " · NŻ" else ""
         }
         "poi" -> poiKindLabel(place.pkind ?: "")
+        "point" -> if (place.lat != null && place.lng != null) {
+            String.format(java.util.Locale.US, "%.5f, %.5f", place.lat, place.lng)
+        } else {
+            t("punkt na mapie", "map point")
+        }
         else -> t("Moja lokalizacja", "My location")
     }
     PlaceRow(

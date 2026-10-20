@@ -77,7 +77,13 @@ sealed interface PlaceRef {
     val name: String
 
     /** GPS / arbitrary coordinates */
-    data class Gps(override val name: String, val lat: Double, val lng: Double) : PlaceRef
+    data class Gps(
+        override val name: String,
+        val lat: Double,
+        val lng: Double,
+        /** true for a point picked on the map, false for the phone's position */
+        val custom: Boolean = false,
+    ) : PlaceRef
 
     /** a bus stop from the dataset */
     data class StopRef(override val name: String, val index: Int) : PlaceRef
