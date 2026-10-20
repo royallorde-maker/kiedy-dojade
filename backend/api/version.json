@@ -1,8 +1,8 @@
 {
-  "versionCode": 8,
-  "versionName": "1.4.3",
+  "versionCode": 9,
+  "versionName": "1.4.4",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.3 — godzina zamiast daty i poprawki niezawodności",
+  "changelog": "release: android 1.4.4 — śledzenie w tle i powiadomienie",
   "force": false,
-  "publishedAt": "2026-10-20T00:17:46Z"
+  "publishedAt": "2026-10-20T09:25:27Z"
 }
