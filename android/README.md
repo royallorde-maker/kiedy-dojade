@@ -33,14 +33,37 @@ repozytorium: dzieli z nią dane rozkładowe i styl.
   zakrętami. Wibracja ostrzega przed przyjazdem autobusu i momentem wysiadki;
   marsz i przejazdy rysowane są po ulicach (OSRM foot/car), a przycisk
   „Google Maps” przekazuje nawigację dalej.
-- **Oszczędne odświeżanie** — GPS i odpytywanie autobusu pauzują, gdy aplikacja
-  jest w tle; interwał rośnie w trasie i maleje przy przystanku lub blisko
+- **Śledzenie w tle** — po starcie prowadzenia działa foreground service ze
+  stałym powiadomieniem. W powiadomieniu widać linię, następny przystanek
+  i wysiadkę, a aplikacja sama wykrywa wsiadanie na podstawie GPS i kursu na
+  żywo. Po powrocie do aplikacji ekran prowadzenia wraca w tym samym miejscu.
+  „Ukryj” zostawia śledzenie, „Zakończ” je zatrzymuje i czyści zapis podróży.
+- **Oszczędne odświeżanie** — GPS i odpytywanie autobusu pauzują, gdy ekran
+  prowadzenia jest w tle, ale samo śledzenie działa dalej dzięki usłudze
+  i powiadomieniu. Interwał rośnie w trasie i maleje przy przystanku lub blisko
   pojazdu. Zegar tablicy i „za ile minut” aktualizują się same.
 - **Rozkłady offline** — dane wbudowane w APK (assets) i odświeżane z GitHuba
   (atomowa podmiana katalogu; brak sieci = dalej działa).
 - **8 motywów**, PL/EN, aktualizacje w aplikacji (OTA jak w bs-companion).
   Cztery zakładki: Szukaj, Tablica, Mapa i Ustawienia — aktualizacje oraz
   historia wersji są w Ustawieniach.
+
+## Śledzenie w tle i uprawnienia
+
+Prowadzenie jest prowadzone przez foreground service. Dzięki temu GPS i kurs
+na żywo działają po zminimalizowaniu aplikacji, a stałe powiadomienie pokazuje
+linię, następny przystanek i wysiadkę. Po powrocie ekran prowadzenia wraca;
+przycisk **Ukryj** zostawia śledzenie, a **Zakończ** zatrzymuje usługę i czyści
+zapis podróży.
+
+- Potrzebne jest uprawnienie do lokalizacji. Android 13+ prosi też o zgodę na
+  powiadomienia. Bez niej śledzenie nadal działa, ale stałe powiadomienie nie
+  jest widoczne.
+- Aplikacja nie prosi o `ACCESS_BACKGROUND_LOCATION`: usługa startuje, gdy
+  aplikacja jest widoczna, i może dalej korzystać z lokalizacji.
+- Aktywna podróż jest zapisywana w `SharedPreferences`; po zabiciu procesu
+  usługa wraca do tego samego kroku. Zapis starszy niż 18 godzin jest
+  porzucany, a usługa kończy się 3 godziny po planowanym przyjeździe.
 
 ## Struktura
 
@@ -64,8 +87,12 @@ android/app/src/main/java/com/kiedziedojade/app/
 │   ├── DataJson.kt          # parsery public/data/*.json
 │   ├── DataRepo.kt          # assets + atomowe odświeżanie z GitHuba
 │   ├── Api.kt               # odjazdy na żywo (WAF wymaga User-Agenta przeglądarki)
-│   ├── Prefs.kt             # motyw, język, ulubione, ostatnie zapytanie
+│   ├── ItineraryJson.kt     # zapis aktywnej podróży (JSON w SharedPreferences)
+│   ├── Tracking.kt          # faza podróży i wykrywanie wsiadania (GPS + live)
+│   ├── Prefs.kt             # motyw, język, ulubione, aktywna podróż
 │   └── Loc.kt               # lokalizacja jednorazowa i strumień GPS (LocationManager)
+├── tracking/
+│   └── RideTrackingService.kt # foreground service: GPS, live, powiadomienie
 ├── ui/                      # ekrany Compose (Szukaj, Tablica, Mapa, Ustawienia)
 │   ├── TimePick.kt          # wybór godziny odjazdu (bez kalendarza)
 │   ├── NavScreen.kt         # pełnoekranowe prowadzenie i dane autobusu na żywo

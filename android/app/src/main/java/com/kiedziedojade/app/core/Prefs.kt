@@ -1,5 +1,6 @@
 package com.kiedziedojade.app.core
 
+import android.annotation.SuppressLint
 import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -105,6 +106,55 @@ class Prefs(context: Context) {
     var boardStopId: String?
         get() = sp.getString("board_stop_id", null)
         set(v) = sp.edit().putString("board_stop_id", v).apply()
+
+    /**
+     * Trwa prowadzona podróż. Zapisujemy ją, żeby foreground service mógł
+     * działać po wyjściu z aplikacji, a po powrocie ekran prowadzenia wrócił
+     * dokładnie tam, gdzie był.
+     */
+    var activeItinerary: Itinerary?
+        get() {
+            val raw = sp.getString(KEY_ACTIVE_ITINERARY, null) ?: return null
+            val started = sp.getLong(KEY_ACTIVE_STARTED, 0L)
+            // porzucony zapis z poprzedniego dnia nie powinien otwierać starej podróży
+            if (started > 0 && System.currentTimeMillis() - started > ACTIVE_MAX_AGE_MS) {
+                stopRideTracking()
+                return null
+            }
+            val decoded = ItineraryJson.decode(raw)
+            if (decoded == null) stopRideTracking()
+            return decoded
+        }
+        set(v) {
+            if (v == null) {
+                stopRideTracking()
+            } else {
+                startRideTracking(v)
+            }
+        }
+
+    /** Zapis synchroniczny: service czyta go zaraz po starcie. */
+    @SuppressLint("ApplySharedPref")
+    fun startRideTracking(itinerary: Itinerary) {
+        sp.edit()
+            .putString(KEY_ACTIVE_ITINERARY, ItineraryJson.encode(itinerary))
+            .putLong(KEY_ACTIVE_STARTED, System.currentTimeMillis())
+            .putInt(KEY_ACTIVE_STEP, 0)
+            .commit()
+    }
+
+    /** Ostatni krok prowadzenia — po restarcie nie cofamy się do marszu na przystanek. */
+    var activeStepIndex: Int
+        get() = sp.getInt(KEY_ACTIVE_STEP, 0).coerceAtLeast(0)
+        set(v) = sp.edit().putInt(KEY_ACTIVE_STEP, v.coerceAtLeast(0)).apply()
+
+    fun stopRideTracking() {
+        sp.edit()
+            .remove(KEY_ACTIVE_ITINERARY)
+            .remove(KEY_ACTIVE_STARTED)
+            .remove(KEY_ACTIVE_STEP)
+            .apply()
+    }
 
     /** ostatnio używane „skąd” / „dokąd” — wracają po restarcie */
     var lastFrom: SavedPlace?
@@ -231,5 +281,12 @@ class Prefs(context: Context) {
         } catch (_: Exception) {
             emptyList()
         }
+    }
+
+    private companion object {
+        const val KEY_ACTIVE_ITINERARY = "active_itinerary"
+        const val KEY_ACTIVE_STARTED = "active_started"
+        const val KEY_ACTIVE_STEP = "active_step"
+        const val ACTIVE_MAX_AGE_MS = 18L * 60L * 60L * 1000L
     }
 }

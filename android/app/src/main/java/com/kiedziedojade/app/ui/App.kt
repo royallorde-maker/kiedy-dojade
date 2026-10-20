@@ -1,6 +1,8 @@
 package com.kiedziedojade.app.ui
 
 import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -31,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -47,6 +50,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.kiedziedojade.app.core.Api
 import com.kiedziedojade.app.core.DataRepo
 import com.kiedziedojade.app.core.I18n
@@ -59,6 +66,7 @@ import com.kiedziedojade.app.core.Prefs
 import com.kiedziedojade.app.core.SavedPlace
 import com.kiedziedojade.app.core.World
 import com.kiedziedojade.app.core.nearestStops
+import com.kiedziedojade.app.tracking.RideTrackingService
 import com.kiedziedojade.app.ui.theme.AppTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -88,9 +96,12 @@ fun KdApp(
     onThemeChange: (String) -> Unit,
     openTab: Int? = null,
     onOpenTabHandled: () -> Unit = {},
+    openTracking: Boolean = false,
+    onOpenTrackingHandled: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     var world by remember { mutableStateOf<World?>(null) }
     var worldError by remember { mutableStateOf<String?>(null) }
@@ -113,9 +124,62 @@ fun KdApp(
     var dismissedAlert by remember { mutableStateOf<Int?>(null) }
     var showSplash by remember { mutableStateOf(true) }
     /** prowadzenie po wybranym połączeniu (pełnoekranowe, jak nawigacja) */
-    var nav by remember { mutableStateOf<Itinerary?>(null) }
+    var nav by remember { mutableStateOf(prefs.activeItinerary) }
 
     val requestLocation = rememberLocationRequester()
+    val notificationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (!granted) {
+            Toast.makeText(
+                context,
+                I18n.t(
+                    "Śledzenie działa, ale bez powiadomienia. Włącz je w Ustawieniach, aby widzieć prowadzenie po wyjściu z aplikacji.",
+                    "Tracking works, but without a notification. Enable it in Settings to see your trip after leaving the app.",
+                ),
+                Toast.LENGTH_LONG,
+            ).show()
+        }
+    }
+
+    /**
+     * Start prowadzenia: zapis trasy i foreground service muszą powstać razem,
+     * żeby po wyjściu z aplikacji GPS i powiadomienie działały dalej.
+     */
+    fun startNavigation(itinerary: Itinerary) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        RideTrackingService.start(context, itinerary)
+        nav = itinerary
+    }
+
+    // Po powrocie do aplikacji wznów dokładnie tę podróż, która jest śledzona.
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val active = prefs.activeItinerary
+                nav = active
+                // proces mógł zostać zabity — upewnij się, że foreground service żyje
+                if (active != null) RideTrackingService.start(context, active)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // Dotknięcie powiadomienia otwiera prowadzenie, nawet gdy aktywność już żyje.
+    LaunchedEffect(openTracking) {
+        if (openTracking) {
+            prefs.activeItinerary?.let { nav = it }
+            onOpenTrackingHandled()
+        }
+    }
 
     // czy motyw jest ciemny (decyduje m.in. o filtrze kafelków mapy)
     val systemDark = isSystemInDarkTheme()
@@ -365,7 +429,7 @@ fun KdApp(
                                         onOpenStop = { idx ->
                                             stack += Route.Stop(idx, serviceDate = route.query.serviceDate)
                                         },
-                                        onNavigate = { nav = it },
+                                        onNavigate = { startNavigation(it) },
                                     )
 
                                     is Route.Stop -> StopScreen(
@@ -493,7 +557,12 @@ fun KdApp(
                     itinerary = navIt,
                     dark = mapDark,
                     mapStyle = mapStyle,
-                    onClose = { nav = null },
+                    initialStepIndex = prefs.activeStepIndex,
+                    onClose = {
+                        RideTrackingService.stop(context)
+                        nav = null
+                    },
+                    onHide = { nav = null },
                 )
             }
         }

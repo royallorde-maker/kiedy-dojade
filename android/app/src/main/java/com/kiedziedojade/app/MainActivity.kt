@@ -26,8 +26,10 @@ import com.kiedziedojade.app.update.isOnline
 
 class MainActivity : ComponentActivity() {
 
-    /** Skrót z launchera: 0 = Szukaj, 1 = Tablica. */
+    /** Skrót z launchera: 0 = Szukaj, 1 = Tablica, 2 = Mapa. */
     private val tabRequest = mutableStateOf<Int?>(null)
+    /** Powiadomienie śledzenia: pokaż ekran prowadzenia, także gdy aktywność już żyje. */
+    private val trackingRequest = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,6 +39,7 @@ class MainActivity : ComponentActivity() {
         val repo = DataRepo(this)
         I18n.lang = if (prefs.lang == "en") Lang.EN else Lang.PL
         tabRequest.value = tabFromIntent(intent)
+        trackingRequest.value = intent?.action == ACTION_OPEN_TRACKING
 
         setContent {
             var themeName by rememberSaveable { mutableStateOf(prefs.theme) }
@@ -68,6 +71,8 @@ class MainActivity : ComponentActivity() {
                     },
                     openTab = tabRequest.value,
                     onOpenTabHandled = { tabRequest.value = null },
+                    openTracking = trackingRequest.value,
+                    onOpenTrackingHandled = { trackingRequest.value = false },
                 )
             }
         }
@@ -75,7 +80,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         tabFromIntent(intent)?.let { tabRequest.value = it }
+        if (intent.action == ACTION_OPEN_TRACKING) trackingRequest.value = true
     }
 
     private fun tabFromIntent(intent: Intent?): Int? = when (intent?.action) {
@@ -89,5 +96,6 @@ class MainActivity : ComponentActivity() {
         const val ACTION_OPEN_SEARCH = "com.kiedziedojade.app.action.OPEN_SEARCH"
         const val ACTION_OPEN_BOARD = "com.kiedziedojade.app.action.OPEN_BOARD"
         const val ACTION_OPEN_MAP = "com.kiedziedojade.app.action.OPEN_MAP"
+        const val ACTION_OPEN_TRACKING = "com.kiedziedojade.app.action.OPEN_TRACKING"
     }
 }

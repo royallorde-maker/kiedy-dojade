@@ -28,6 +28,10 @@ wyszukiwarki połączeń kolejowych.
   rysowane wprost w liście wyników planera.
 - **Na żywo** — opóźnienia, odwołania, odjazdy z przystanku (publiczne API
   KiedyPrzyjedzie.pl), odświeżane co 30 s.
+- **Prowadzenie w tle** — po wybraniu połączenia GPS działa dalej po wyjściu
+  z aplikacji. Stałe powiadomienie pokazuje linię, następny przystanek
+  i wysiadkę, aplikacja sama wykrywa wsiadanie, a po powrocie wraca do
+  prowadzenia. „Ukryj” zostawia śledzenie, „Zakończ” je zatrzymuje.
 - **Rozkłady offline** — dane wbudowane w aplikację i odświeżane z GitHuba;
   bez internetu planer i rozkłady nadal działają.
 - **Motywy i języki** — 8 motywów, PL / EN, godziny zawsze w strefie Szczecinka.

@@ -231,6 +231,27 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.4",
+                lines = listOf(
+                    t(
+                        "Prowadzenie działa dalej po wyjściu z aplikacji. Foreground service utrzymuje GPS i dane na żywo, a stałe powiadomienie pokazuje linię, następny przystanek i wysiadkę.",
+                        "Navigation keeps running after you leave the app. A foreground service maintains GPS and live data, and an ongoing notification shows the line, next stop and get-off point.",
+                    ),
+                    t(
+                        "Aplikacja sama wykrywa wsiadanie na podstawie pozycji i kursu na żywo — bez potwierdzania. Po powrocie ekran prowadzenia wraca w tym samym miejscu; „Ukryj” zostawia śledzenie, a „Zakończ” je czyści.",
+                        "The app detects boarding on its own from your position and the live trip — no confirmation needed. When you return, navigation resumes where it left off; “Hide” keeps tracking, “Finish” clears it.",
+                    ),
+                    t(
+                        "Przy starcie prowadzenia Android 13+ poprosi o zgodę na powiadomienia. Bez niej śledzenie nadal działa, ale nie zobaczysz stałego powiadomienia.",
+                        "On Android 13+, starting navigation asks for notification permission. Without it tracking still works, but the ongoing notification is hidden.",
+                    ),
+                ),
+                index = 1,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.3",
                 lines = listOf(
                     t(

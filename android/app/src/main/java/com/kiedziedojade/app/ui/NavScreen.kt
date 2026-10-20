@@ -93,6 +93,8 @@ fun NavScreen(
     itinerary: Itinerary,
     dark: Boolean,
     onClose: () -> Unit,
+    onHide: () -> Unit = onClose,
+    initialStepIndex: Int = 0,
     mapStyle: MapStyle = MapStyle.STANDARD,
 ) {
     val context = LocalContext.current
@@ -112,7 +114,7 @@ fun NavScreen(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { canLocate = locator.hasPermission() }
 
-    BackHandler { onClose() }
+    BackHandler { onHide() }
 
     // ekran nie gaśnie, dopóki prowadzimy
     val view = LocalView.current
@@ -169,7 +171,9 @@ fun NavScreen(
     }
 
     val steps = remember(itinerary) { navSteps(itinerary) }
-    var stepIndex by remember(itinerary) { mutableIntStateOf(0) }
+    var stepIndex by remember(itinerary) {
+        mutableIntStateOf(initialStepIndex.coerceIn(0, steps.lastIndex.coerceAtLeast(0)))
+    }
     val state = remember(steps, fix, stepIndex) { navState(steps, fix, stepIndex) }
     // prowadzenie nie cofa się: gdy autobus odjedzie z przystanku, marsz do
     // niego nie wraca, mimo że GPS jest już od niego daleko
@@ -553,6 +557,9 @@ fun NavScreen(
                                 )
                             }
                         }
+                    }
+                    TextButton(onClick = onHide) {
+                        Text(t("Ukryj", "Hide"))
                     }
                     TextButton(onClick = onClose) {
                         Text(t("Zakończ", "Finish"))
