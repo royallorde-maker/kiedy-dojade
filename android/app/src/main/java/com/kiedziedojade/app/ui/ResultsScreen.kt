@@ -23,7 +23,10 @@ import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -71,6 +74,8 @@ fun ResultsScreen(
     onBack: () -> Unit,
     onOpenStop: (Int) -> Unit,
     onNavigate: (Itinerary) -> Unit,
+    isFavorite: Boolean = false,
+    onToggleFavorite: (() -> Unit)? = null,
 ) {
     var outcome by remember(query) { mutableStateOf<PlanOutcome?>(null) }
     var expanded by remember(query) { mutableStateOf<String?>(null) }
@@ -120,6 +125,27 @@ fun ResultsScreen(
                     onBack = onBack,
                     below = if (o != null) {
                         { PatternLine(o.patternType, o.exactDay) }
+                    } else {
+                        null
+                    },
+                    trailing = if (onToggleFavorite != null) {
+                        {
+                            IconButton(onClick = onToggleFavorite) {
+                                Icon(
+                                    if (isFavorite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                                    contentDescription = if (isFavorite) {
+                                        t("Usuń z ulubionych", "Remove from favourites")
+                                    } else {
+                                        t("Dodaj do ulubionych", "Add to favourites")
+                                    },
+                                    tint = if (isFavorite) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                )
+                            }
+                        }
                     } else {
                         null
                     },

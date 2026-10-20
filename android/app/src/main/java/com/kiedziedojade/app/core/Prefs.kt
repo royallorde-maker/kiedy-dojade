@@ -84,6 +84,9 @@ data class SavedPlace(
     }
 }
 
+/** Zapisane połączenie: skąd → dokąd. */
+data class SavedRoute(val from: SavedPlace, val to: SavedPlace)
+
 class Prefs(context: Context) {
 
     private val sp = context.getSharedPreferences("kd_settings", Context.MODE_PRIVATE)
@@ -193,10 +196,23 @@ class Prefs(context: Context) {
             recentsVersion++
         }
 
+    /** Ulubione trasy (skąd → dokąd) — niezależne od ulubionych miejsc. */
+    var favoriteRoutes: List<SavedRoute>
+        get() {
+            favoriteRoutesVersion // Compose observes the version, then reads storage
+            return decodeRoutes(sp.getString("favorite_routes", null))
+        }
+        set(v) {
+            sp.edit().putString("favorite_routes", encodeRoutes(v)).apply()
+            favoriteRoutesVersion++
+        }
+
     /** Liczniki zmian — pozwalają Compose odświeżyć gwiazdki i listy zapisanych miejsc. */
     var favoritesVersion by mutableIntStateOf(0)
         private set
     var recentsVersion by mutableIntStateOf(0)
+        private set
+    var favoriteRoutesVersion by mutableIntStateOf(0)
         private set
 
     fun isFavorite(p: SavedPlace): Boolean = favorites.any { it.samePlace(p) }
@@ -216,15 +232,41 @@ class Prefs(context: Context) {
         recents = (listOf(p) + cur).take(8)
     }
 
+    fun isFavoriteRoute(from: SavedPlace, to: SavedPlace): Boolean =
+        favoriteRoutes.any { it.from.samePlace(from) && it.to.samePlace(to) }
+
+    /** Dodaje albo usuwa trasę; zwraca true, gdy została dodana. */
+    fun toggleFavoriteRoute(from: SavedPlace, to: SavedPlace): Boolean {
+        val cur = favoriteRoutes
+        val has = cur.any { it.from.samePlace(from) && it.to.samePlace(to) }
+        favoriteRoutes = if (has) {
+            cur.filterNot { it.from.samePlace(from) && it.to.samePlace(to) }
+        } else {
+            (listOf(SavedRoute(from, to)) + cur).take(24)
+        }
+        return !has
+    }
+
+    fun removeFavoriteRoute(route: SavedRoute) {
+        favoriteRoutes = favoriteRoutes.filterNot {
+            it.from.samePlace(route.from) && it.to.samePlace(route.to)
+        }
+    }
+
     /** Add stable stop ids to old saves; safe to call after every data refresh. */
     fun migrateStopIds(world: World) {
         lastFrom = lastFrom?.withStopId(world)
         lastTo = lastTo?.withStopId(world)
         favorites = favorites.map { it.withStopId(world) }
         recents = recents.map { it.withStopId(world) }
+        if (favoriteRoutes.isNotEmpty()) {
+            favoriteRoutes = favoriteRoutes.map {
+                SavedRoute(it.from.withStopId(world), it.to.withStopId(world))
+            }
+        }
     }
 
-    private fun encodeOne(p: SavedPlace): String {
+    private fun placeJson(p: SavedPlace): JSONObject {
         val o = JSONObject()
         o.put("kind", p.kind)
         o.put("name", p.name)
@@ -233,22 +275,25 @@ class Prefs(context: Context) {
         p.lng?.let { o.put("lng", it) }
         p.pkind?.let { o.put("pkind", it) }
         p.stopId?.let { o.put("stop_id", it) }
-        return o.toString()
+        return o
     }
+
+    private fun placeFrom(o: JSONObject): SavedPlace = SavedPlace(
+        kind = o.optString("kind", ""),
+        name = o.optString("name", ""),
+        index = if (o.has("index")) o.optInt("index") else null,
+        lat = if (o.has("lat")) o.optDouble("lat") else null,
+        lng = if (o.has("lng")) o.optDouble("lng") else null,
+        pkind = if (o.has("pkind")) o.optString("pkind") else null,
+        stopId = if (o.has("stop_id")) o.optString("stop_id") else null,
+    )
+
+    private fun encodeOne(p: SavedPlace): String = placeJson(p).toString()
 
     private fun decodeOne(json: String?): SavedPlace? {
         if (json.isNullOrEmpty()) return null
         return try {
-            val o = JSONObject(json)
-            SavedPlace(
-                kind = o.optString("kind", ""),
-                name = o.optString("name", ""),
-                index = if (o.has("index")) o.optInt("index") else null,
-                lat = if (o.has("lat")) o.optDouble("lat") else null,
-                lng = if (o.has("lng")) o.optDouble("lng") else null,
-                pkind = if (o.has("pkind")) o.optString("pkind") else null,
-                stopId = if (o.has("stop_id")) o.optString("stop_id") else null,
-            )
+            placeFrom(JSONObject(json))
         } catch (_: Exception) {
             null
         }
@@ -256,17 +301,7 @@ class Prefs(context: Context) {
 
     private fun encode(list: List<SavedPlace>): String {
         val arr = JSONArray()
-        for (p in list) {
-            val o = JSONObject()
-            o.put("kind", p.kind)
-            o.put("name", p.name)
-            p.index?.let { o.put("index", it) }
-            p.lat?.let { o.put("lat", it) }
-            p.lng?.let { o.put("lng", it) }
-            p.pkind?.let { o.put("pkind", it) }
-            p.stopId?.let { o.put("stop_id", it) }
-            arr.put(o)
-        }
+        for (p in list) arr.put(placeJson(p))
         return arr.toString()
     }
 
@@ -275,16 +310,33 @@ class Prefs(context: Context) {
         return try {
             val arr = JSONArray(json)
             (0 until arr.length()).mapNotNull { i ->
+                arr.optJSONObject(i)?.let { placeFrom(it) }
+            }
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun encodeRoutes(list: List<SavedRoute>): String {
+        val arr = JSONArray()
+        for (r in list) {
+            val o = JSONObject()
+            o.put("from", placeJson(r.from))
+            o.put("to", placeJson(r.to))
+            arr.put(o)
+        }
+        return arr.toString()
+    }
+
+    private fun decodeRoutes(json: String?): List<SavedRoute> {
+        if (json.isNullOrEmpty()) return emptyList()
+        return try {
+            val arr = JSONArray(json)
+            (0 until arr.length()).mapNotNull { i ->
                 val o = arr.optJSONObject(i) ?: return@mapNotNull null
-                SavedPlace(
-                    kind = o.optString("kind", ""),
-                    name = o.optString("name", ""),
-                    index = if (o.has("index")) o.optInt("index") else null,
-                    lat = if (o.has("lat")) o.optDouble("lat") else null,
-                    lng = if (o.has("lng")) o.optDouble("lng") else null,
-                    pkind = if (o.has("pkind")) o.optString("pkind") else null,
-                    stopId = if (o.has("stop_id")) o.optString("stop_id") else null,
-                )
+                val from = o.optJSONObject("from")?.let { placeFrom(it) } ?: return@mapNotNull null
+                val to = o.optJSONObject("to")?.let { placeFrom(it) } ?: return@mapNotNull null
+                SavedRoute(from, to)
             }
         } catch (_: Exception) {
             emptyList()

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsBus
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
@@ -299,7 +300,7 @@ fun KdApp(
         enabled = mapPicker != null ||
             picker != null ||
             (tab == 0 && stack.size > 1) ||
-            (tab == 3 && showChanges),
+            (tab == 4 && showChanges),
     ) {
         when {
             mapPicker != null -> {
@@ -308,20 +309,20 @@ fun KdApp(
             }
             picker != null -> picker = null
             tab == 0 && stack.size > 1 -> stack.removeAt(stack.lastIndex)
-            tab == 3 && showChanges -> showChanges = false
+            tab == 4 && showChanges -> showChanges = false
         }
     }
 
-    // Dolny pasek ma teraz cztery zakładki — „Zmiany” są częścią Ustawień.
+    // Dolny pasek ma teraz pięć zakładek — „Zmiany” są częścią Ustawień.
     LaunchedEffect(tab) {
-        if (tab !in 0..3) tab = 0
-        if (tab != 3) showChanges = false
+        if (tab !in 0..4) tab = 0
+        if (tab != 4) showChanges = false
     }
 
     // skróty launchera (Szukaj / Tablica)
     LaunchedEffect(openTab) {
         if (openTab != null) {
-            tab = openTab.coerceIn(0, 3)
+            tab = openTab.coerceIn(0, 4)
             onOpenTabHandled()
         }
     }
@@ -354,6 +355,12 @@ fun KdApp(
                         NavigationBarItem(
                             selected = tab == 3,
                             onClick = { tab = 3 },
+                            icon = { Icon(Icons.Filled.Star, contentDescription = null) },
+                            label = { Text(t("Ulubione", "Favourites")) },
+                        )
+                        NavigationBarItem(
+                            selected = tab == 4,
+                            onClick = { tab = 4 },
                             icon = { Icon(Icons.Filled.Tune, contentDescription = null) },
                             label = { Text(t("Ustawienia", "Settings")) },
                         )
@@ -426,17 +433,39 @@ fun KdApp(
                                         },
                                     )
 
-                                    is Route.Results -> ResultsScreen(
-                                        world = w,
-                                        query = route.query,
-                                        dark = mapDark,
-                                        mapStyle = mapStyle,
-                                        onBack = { stack.removeAt(stack.lastIndex) },
-                                        onOpenStop = { idx ->
-                                            stack += Route.Stop(idx, serviceDate = route.query.serviceDate)
-                                        },
-                                        onNavigate = { startNavigation(it) },
-                                    )
+                                    is Route.Results -> {
+                                        val favFrom = SavedPlace.from(route.query.from, w)
+                                        val favTo = SavedPlace.from(route.query.to, w)
+                                        val favPair =
+                                            if (favFrom != null && favTo != null) favFrom to favTo else null
+                                        ResultsScreen(
+                                            world = w,
+                                            query = route.query,
+                                            dark = mapDark,
+                                            mapStyle = mapStyle,
+                                            onBack = { stack.removeAt(stack.lastIndex) },
+                                            onOpenStop = { idx ->
+                                                stack += Route.Stop(idx, serviceDate = route.query.serviceDate)
+                                            },
+                                            onNavigate = { startNavigation(it) },
+                                            isFavorite = favPair != null &&
+                                                prefs.isFavoriteRoute(favPair.first, favPair.second),
+                                            onToggleFavorite = favPair?.let { pair ->
+                                                {
+                                                    val added = prefs.toggleFavoriteRoute(pair.first, pair.second)
+                                                    Toast.makeText(
+                                                        context,
+                                                        if (added) {
+                                                            t("Dodano trasę do ulubionych", "Route added to favourites")
+                                                        } else {
+                                                            t("Usunięto trasę z ulubionych", "Route removed from favourites")
+                                                        },
+                                                        Toast.LENGTH_SHORT,
+                                                    ).show()
+                                                }
+                                            },
+                                        )
+                                    }
 
                                     is Route.Stop -> StopScreen(
                                         world = w,
@@ -478,7 +507,32 @@ fun KdApp(
                                 },
                             )
 
-                            3 -> {
+                            3 -> FavoritesScreen(
+                                prefs = prefs,
+                                onOpenRoute = { route ->
+                                    val f = route.from.toRef(w)
+                                    val d = route.to.toRef(w)
+                                    if (f != null && d != null) {
+                                        setFrom(f)
+                                        setTo(d)
+                                        stack.clear()
+                                        stack += Route.Plan
+                                        stack += Route.Results(queryFor(f, d))
+                                        tab = 0
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            t(
+                                                "Nie można odtworzyć trasy — dane przystanku się zmieniły",
+                                                "This route cannot be restored — stop data changed",
+                                            ),
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                    }
+                                },
+                            )
+
+                            4 -> {
                                 if (showChanges) {
                                     ChangesScreen(
                                         prefs = prefs,

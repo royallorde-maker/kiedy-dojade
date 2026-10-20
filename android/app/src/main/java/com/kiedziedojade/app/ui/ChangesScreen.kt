@@ -231,6 +231,23 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.6",
+                lines = listOf(
+                    t(
+                        "Przebyta część trasy znika z mapy prowadzenia: minione odcinki nie są już rysowane, a bieżący kończy się tuż za Tobą. Widzisz tylko drogę przed sobą, bez ogona za plecami.",
+                        "The traveled part of the route disappears from the navigation map: completed legs are no longer drawn and the current one ends just behind you. You only see the road ahead, with no tail behind you.",
+                    ),
+                    t(
+                        "Nowa zakładka „Ulubione”: gwiazdka w nagłówku wyników zapisuje trasę skąd → dokąd. Dotknij zapisanej trasy, aby od razu wyszukać połączenie, a kosz usuwa ją z listy. Działa też dla dowolnych punktów wskazanych na mapie.",
+                        "New “Favourites” tab: the star in the results header saves a from → to route. Tap a saved route to search it again, and the bin removes it. It also works for any custom point picked on the map.",
+                    ),
+                ),
+                index = 1,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.5",
                 lines = listOf(
                     t(

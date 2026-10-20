@@ -60,6 +60,9 @@ import com.kiedziedojade.app.core.WalkLeg
 import com.kiedziedojade.app.core.autoNavZoom
 import com.kiedziedojade.app.core.cornerAheadMeters
 import com.kiedziedojade.app.core.fitStatic
+import com.kiedziedojade.app.core.projectOnPath
+import com.kiedziedojade.app.core.traveledCut
+import com.kiedziedojade.app.core.trimTraveled
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -350,13 +353,13 @@ fun RouteMiniMap(
 
 /**
  * Mapa prowadzenia (tryb „za mną”): kafelki HOT wokół bieżącej pozycji, trasa
- * połączenia z wygaszoną przebytą częścią, kropki przystanków i znacznik
- * pozycji ze strzałką kierunku. Mapę można przesuwać i przybliżać gestami;
- * po chwili bez dotyku wraca do śledzenia pozycji. Zoom sam przybliża się
- * przed zakrętami, jak w nawigacji Google Maps.
+ * połączenia tylko przed nami (przebyta część znika), kropki przystanków
+ * i znacznik pozycji ze strzałką kierunku. Mapę można przesuwać i przybliżać
+ * gestami; po chwili bez dotyku wraca do śledzenia pozycji. Zoom sam przybliża
+ * się przed zakrętami, jak w nawigacji Google Maps.
  *
  * @param fix bieżąca pozycja albo null (wtedy widok pokazuje środek aktywnego odcinka)
- * @param activeLeg indeks nogi, na której jesteśmy — wcześniejsze są wygaszone
+ * @param activeLeg indeks nogi, na której jesteśmy — wcześniejsze znikają z mapy
  * @param bus pozycja autobusu na żywo (null, gdy nie znamy)
  * @param baseZoom spokojny zoom prostego odcinka (zakręty same go zwiększają)
  */
@@ -447,14 +450,36 @@ fun RouteNavMap(
         manualZoom = null
     }
 
-    val activePts = remember(segs, activeLeg) {
+    // Przebyta część trasy znika: z aktywnej nogi zostaje tylko odcinek przed
+    // nami, a minione nogi i ich kropki nie są już rysowane.
+    val activePath = remember(segs, activeLeg) {
         segs.filter { it.leg == activeLeg }.flatMap { it.pts }
     }
+    val traveled = remember(segs, activeLeg, fix) {
+        traveledCut(segs, fix, activeLeg)
+    }
+    val drawnSegs = remember(segs, activeLeg, traveled) {
+        trimTraveled(segs, activeLeg, traveled)
+    }
+    val drawnDots = remember(dots, activePath, activeLeg, traveled) {
+        dots.filter { dot ->
+            when {
+                dot.leg < activeLeg -> false
+                dot.leg > activeLeg -> true
+                traveled == null || traveled <= 0.0 -> true
+                else -> {
+                    val p = projectOnPath(activePath, dot.pt.first, dot.pt.second)
+                    p == null || p.along >= traveled
+                }
+            }
+        }
+    }
+
     val activeWalk = remember(segs, activeLeg) {
         segs.any { it.leg == activeLeg && it.walk }
     }
-    val corner = remember(activePts, fix, activeWalk) {
-        if (fix != null && activeWalk) cornerAheadMeters(activePts, fix) else null
+    val corner = remember(activePath, fix, activeWalk) {
+        if (fix != null && activeWalk) cornerAheadMeters(activePath, fix) else null
     }
     val targetZoom = remember(baseZoom, corner) { autoNavZoom(baseZoom, corner) }
 
@@ -607,12 +632,10 @@ fun RouteNavMap(
                 }
 
                 // najpierw przejazdy, na wierzchu marsz — jak na miniaturze
-                segs.sortedBy { it.walk }.forEach { seg ->
-                    val passed = seg.leg < activeLeg
+                drawnSegs.sortedBy { it.walk }.forEach { seg ->
                     drawPath(
                         path = pathOf(seg),
-                        color = (if (seg.walk) walkColor else lineColor(seg.line.orEmpty()))
-                            .copy(alpha = if (passed) 0.3f else 1f),
+                        color = if (seg.walk) walkColor else lineColor(seg.line.orEmpty()),
                         style = Stroke(
                             width = (if (seg.walk) 5.dp else 6.dp).toPx(),
                             cap = StrokeCap.Round,
@@ -628,21 +651,20 @@ fun RouteNavMap(
                     )
                 }
 
-                dots.forEach { dot ->
-                    val alpha = if (dot.leg < activeLeg) 0.3f else 1f
+                drawnDots.forEach { dot ->
                     val x = sxOf(dot.pt.second)
                     val y = syOf(dot.pt.first)
                     val r = dot.sizeDp.dp.toPx() / 2f
                     val ring = dot.ringDp.dp.toPx()
                     if (ring > 0f) {
                         drawCircle(
-                            color = ringColor.copy(alpha = alpha),
+                            color = ringColor,
                             radius = r,
                             center = Offset(x, y),
                         )
                     }
                     drawCircle(
-                        color = dot.color.copy(alpha = alpha),
+                        color = dot.color,
                         radius = (r - ring).coerceAtLeast(0.5f),
                         center = Offset(x, y),
                     )

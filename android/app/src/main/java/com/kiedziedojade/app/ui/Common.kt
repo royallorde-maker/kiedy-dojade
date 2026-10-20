@@ -205,6 +205,7 @@ fun ScreenHeader(
     subtitle: String? = null,
     onBack: (() -> Unit)? = null,
     below: @Composable (() -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         if (onBack != null) {
@@ -228,6 +229,7 @@ fun ScreenHeader(
             }
             below?.invoke()
         }
+        trailing?.invoke()
     }
 }
 
