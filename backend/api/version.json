@@ -1,8 +1,8 @@
 {
-  "versionCode": 9,
-  "versionName": "1.4.4",
+  "versionCode": 10,
+  "versionName": "1.4.5",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.4 — śledzenie w tle i powiadomienie",
+  "changelog": "release: android 1.4.5 — płynny znacznik, stabilny kompas i dowolny cel na mapie",
   "force": false,
-  "publishedAt": "2026-10-20T09:25:27Z"
+  "publishedAt": "2026-10-20T12:20:37Z"
 }
