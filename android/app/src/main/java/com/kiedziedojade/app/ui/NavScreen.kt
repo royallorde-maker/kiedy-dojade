@@ -58,6 +58,7 @@ import com.kiedziedojade.app.core.RoutedPaths
 import com.kiedziedojade.app.core.I18n
 import com.kiedziedojade.app.core.I18n.t
 import com.kiedziedojade.app.core.Itinerary
+import com.kiedziedojade.app.core.MAX_FIX_ACCURACY_M
 import com.kiedziedojade.app.core.Locator
 import com.kiedziedojade.app.core.MapStyle
 import com.kiedziedojade.app.core.NavStep
@@ -151,7 +152,7 @@ fun NavScreen(
                 }
                 // GPS pod drzewami potrafi mieć 100 m błędu; taka ramka nie
                 // powinna przesuwać kamery ani zaliczać przystanku.
-                if (f.accuracy != null && f.accuracy > 120f) return@collect
+                if (f.accuracy != null && f.accuracy > MAX_FIX_ACCURACY_M) return@collect
                 val moved = last == null ||
                     haversine(last.lat, last.lng, f.lat, f.lng) >= 0.8
                 if (moved) {
@@ -227,7 +228,7 @@ fun NavScreen(
             while (true) {
                 if (execId == null) {
                     val rows = runCatching {
-                        Api.stopBoard(world.stops[r.boardStop.i].id)
+                        Api.stopBoard(r.boardStop.id)
                     }.getOrDefault(emptyList())
                     val row = matchLiveRide(rows, r)
                     if (row != null) {
@@ -344,10 +345,19 @@ fun NavScreen(
     val departedUnknown = rideStep != null && !onBus && !missed && !waiting &&
         ((liveVisible && busPassedBoard) || (!liveVisible && nowMin >= rideStep.departMin + 1))
 
-    val getOffNow = rideStep != null && !waiting && !missed &&
-        (state.getOffNow || (liveStopsLeft != null && liveStopsLeft == 0))
+    // state.getOffNow obejmuje też pierwsze metry po wysiadce, kiedy
+    // bieżącym krokiem jest już marsz — nie gubmy wtedy „wysiądź teraz”.
+    val getOffNow = !waiting && !missed && !state.finished &&
+        (state.getOffNow || (rideStep != null && liveStopsLeft != null && liveStopsLeft == 0))
     val getOffSoon = rideStep != null && !waiting && !missed && !getOffNow &&
         (state.getOffSoon || (liveStopsLeft != null && liveStopsLeft == 1))
+    val getOffRide = rideStep ?: (steps.getOrNull(state.stepIndex - 1) as? NavStep.Ride)
+    val getOffClock = getOffRide?.let { r ->
+        if (rideStep != null) alightClock ?: (r.arriveMin + shownDelay)
+        // po wysiadce liveRide może już dotyczyć przesiadki — nie mieszaj
+        // jej opóźnienia z zegarem dopiero co opuszczonego kursu
+        else r.arriveMin + delayMin
+    }
 
     // wibracja: autobus przy przystanku, wysiadka i koniec podróży
     LaunchedEffect(boardAtStop, waiting) {
@@ -392,6 +402,8 @@ fun NavScreen(
         finished = state.finished,
         getOffNow = getOffNow,
         getOffSoon = getOffSoon,
+        getOffName = getOffRide?.alightName,
+        getOffClock = getOffClock,
         stopsLeft = liveStopsLeft ?: state.stopsLeft,
         distance = state.distanceToTarget,
         nowMin = nowMin,
@@ -592,6 +604,8 @@ private fun navInstruction(
     finished: Boolean,
     getOffNow: Boolean,
     getOffSoon: Boolean,
+    getOffName: String?,
+    getOffClock: Int?,
     stopsLeft: Int?,
     distance: Double?,
     nowMin: Int,
@@ -612,6 +626,16 @@ private fun navInstruction(
     val walk = Icons.AutoMirrored.Filled.DirectionsWalk
     if (finished) {
         return NavInstruction(Icons.Filled.Flag, t("Jesteś na miejscu", "You have arrived"), destName, tertiary)
+    }
+    // Po zaliczeniu przystanku bieżącym krokiem jest już marsz, ale stoimy
+    // jeszcze przy drzwiach — przez chwilę liczy się wysiadka, nie marsz.
+    if (getOffNow && getOffName != null) {
+        return NavInstruction(
+            bus,
+            t("Wysiądź teraz", "Get off now"),
+            getOffName + (getOffClock?.let { "  ·  " + fmtTime(it) } ?: ""),
+            error,
+        )
     }
     when (step) {
         is NavStep.Walk -> {
@@ -655,13 +679,6 @@ private fun navInstruction(
                     bus,
                     t("Autobus odjechał", "The bus has left"),
                     t("Sprawdź kolejne odjazdy na tablicy", "Check the next departures on the board"),
-                    error,
-                )
-
-                getOffNow -> NavInstruction(
-                    bus,
-                    t("Wysiądź teraz", "Get off now"),
-                    step.alightName + "  ·  " + fmtTime(arr),
                     error,
                 )
 

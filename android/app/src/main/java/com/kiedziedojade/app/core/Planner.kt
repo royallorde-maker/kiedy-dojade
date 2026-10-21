@@ -67,7 +67,13 @@ object Planner {
         is PlaceRef.Gps -> ResolvedPlace(ref.name, ref.lat, ref.lng)
         is PlaceRef.PoiRef -> ResolvedPlace(ref.name, ref.lat, ref.lng)
         is PlaceRef.StopRef -> {
-            val s = stops.getOrNull(ref.index) ?: stops.firstOrNull { it.name == ref.name }
+            // A stable id wins over an index saved against an older dataset.
+            val s = if (ref.stopId != null) {
+                stops.firstOrNull { it.id == ref.stopId }
+                    ?: stops.firstOrNull { it.name == ref.name }
+            } else {
+                stops.getOrNull(ref.index) ?: stops.firstOrNull { it.name == ref.name }
+            }
             if (s != null) {
                 ResolvedPlace(s.name, s.lat, s.lng)
             } else {

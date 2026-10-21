@@ -231,6 +231,27 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.7",
+                lines = listOf(
+                    t(
+                        "Prowadzenie nie kończy się przedwcześnie, gdy autobus mija cel późniejszego marszu. Przystanki są rozpoznawane po stabilnym identyfikatorze, więc po aktualizacji danych wyniki i tablice nie wskazują już złego przystanku.",
+                        "Navigation no longer ends early when the bus passes the destination of a later walk. Stops are recognised by a stable identifier, so after a data update results and boards no longer point at the wrong stop.",
+                    ),
+                    t(
+                        "Porzucona podróż wygasa trzy godziny po planowym przyjeździe — także po północy — więc GPS nie działa już przez resztę dnia. Jakość sygnału jest oceniana tak samo w prowadzeniu i w powiadomieniu.",
+                        "An abandoned trip expires three hours after its scheduled arrival, including across midnight, so GPS no longer runs for the rest of the day. Signal quality is judged the same way in navigation and in the notification.",
+                    ),
+                    t(
+                        "Obrót ekranu nie gubi wyników ani otwartego przystanku, „Zakończ” w powiadomieniu zamyka prowadzenie, a ulica wybrana jako skąd lub dokąd jest pamiętana po restarcie.",
+                        "Rotating the screen no longer loses results or an open stop, “Finish” in the notification closes navigation, and a street chosen as the start or destination survives a restart.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.6",
                 lines = listOf(
                     t(

@@ -6,6 +6,7 @@ import com.kiedziedojade.app.core.PlaceRef
 import com.kiedziedojade.app.core.PlacesData
 import com.kiedziedojade.app.core.SavedPlace
 import com.kiedziedojade.app.core.Stop
+import com.kiedziedojade.app.core.Street
 import com.kiedziedojade.app.core.World
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -68,6 +69,27 @@ class SavedPlaceTest {
         assertTrue(ref.custom)
         assertEquals(53.71, ref.lat, 0.0)
         assertEquals(16.69, ref.lng, 0.0)
+    }
+
+    @Test
+    fun `a street can be remembered as a last place but not favourited`() {
+        val street = PlaceRef.StreetRef("Rynek", listOf(53.70 to 16.69, 53.71 to 16.70))
+        assertNull(SavedPlace.from(street))
+        val saved = SavedPlace.forLast(street)!!
+        assertEquals("street", saved.kind)
+        val withStreet = world.copy(
+            places = PlacesData(listOf(Street(street.name, street.pts)), emptyList()),
+        )
+        val ref = saved.toRef(withStreet) as PlaceRef.StreetRef
+        assertEquals(street.name, ref.name)
+        assertEquals(street.pts, ref.pts)
+    }
+
+    @Test
+    fun `the same map point matches after switching the app language`() {
+        val pl = SavedPlace("point", "Punkt na mapie", lat = 53.71, lng = 16.69)
+        val en = SavedPlace("point", "Map point", lat = 53.71, lng = 16.69)
+        assertTrue(pl.samePlace(en))
     }
 
     @Test

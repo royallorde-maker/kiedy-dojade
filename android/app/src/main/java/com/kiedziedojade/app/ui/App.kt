@@ -1,6 +1,10 @@
 package com.kiedziedojade.app.ui
 
 import android.Manifest
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.Toast
@@ -42,8 +46,11 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -87,6 +94,15 @@ data class JourneyQuery(
     val departMin: Int,
 )
 
+/**
+ * Stos ekranów „Szukaj” przeżywa obrót i odtworzenie procesu. Wcześniej
+ * `remember` gubił wyniki i wracał do pustego planowania.
+ */
+private val StackSaver: Saver<SnapshotStateList<Route>, String> = Saver(
+    save = { RouteStateCodec.encode(it) },
+    restore = { RouteStateCodec.decode(it).toMutableStateList() },
+)
+
 enum class PickerTarget { FROM, TO, BOARD }
 
 @Composable
@@ -112,7 +128,9 @@ fun KdApp(
 
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var showChanges by rememberSaveable { mutableStateOf(false) }
-    val stack = remember { mutableStateListOf<Route>(Route.Plan) }
+    val stack = rememberSaveable(saver = StackSaver) {
+        mutableStateListOf<Route>(Route.Plan)
+    }
     var picker by remember { mutableStateOf<PickerTarget?>(null) }
     var mapPicker by remember { mutableStateOf<PickerTarget?>(null) }
 
@@ -175,6 +193,25 @@ fun KdApp(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // „Zakończ” w powiadomieniu zatrzymuje usługę poza ekranem aplikacji.
+    // Bez tego prowadzenie zostałoby na ekranie mimo braku aktywnej podróży.
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                if (intent?.action == RideTrackingService.ACTION_TRACKING_STOPPED) {
+                    nav = null
+                }
+            }
+        }
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            IntentFilter(RideTrackingService.ACTION_TRACKING_STOPPED),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+        onDispose { context.unregisterReceiver(receiver) }
+    }
+
     // Dotknięcie powiadomienia otwiera prowadzenie, nawet gdy aktywność już żyje.
     LaunchedEffect(openTracking) {
         if (openTracking) {
@@ -193,12 +230,12 @@ fun KdApp(
 
     fun setFrom(ref: PlaceRef?) {
         from = ref
-        prefs.lastFrom = ref?.let { SavedPlace.from(it, world) }
+        prefs.lastFrom = ref?.let { SavedPlace.forLast(it, world) }
     }
 
     fun setTo(ref: PlaceRef?) {
         to = ref
-        prefs.lastTo = ref?.let { SavedPlace.from(it, world) }
+        prefs.lastTo = ref?.let { SavedPlace.forLast(it, world) }
     }
 
     /** Data nie jest wybierana: godzina, która minęła, oznacza jutro. */
@@ -500,7 +537,7 @@ fun KdApp(
                                     tab = 1
                                 },
                                 onPlanTo = { idx ->
-                                    setTo(PlaceRef.StopRef(w.stops[idx].name, idx))
+                                    setTo(PlaceRef.StopRef(w.stops[idx].name, idx, w.stops[idx].id))
                                     tab = 0
                                     stack.clear()
                                     stack += Route.Plan
@@ -574,7 +611,7 @@ fun KdApp(
                         PickerTarget.FROM -> from
                         PickerTarget.TO -> to
                         else -> boardStop.takeIf { it in w.stops.indices }?.let {
-                            PlaceRef.StopRef(w.stops[it].name, it)
+                            PlaceRef.StopRef(w.stops[it].name, it, w.stops[it].id)
                         }
                     },
                     allowGps = target != PickerTarget.BOARD,
@@ -756,7 +793,12 @@ fun SplashScreen() {
 fun stopForRef(world: World?, ref: PlaceRef): Int? {
     if (world == null) return null
     return when (ref) {
-        is PlaceRef.StopRef -> ref.index.takeIf { it in world.stops.indices }
+        is PlaceRef.StopRef -> {
+            val byId = ref.stopId?.let { id ->
+                world.stops.indexOfFirst { it.id == id }.takeIf { it >= 0 }
+            }
+            byId ?: ref.index.takeIf { it in world.stops.indices }
+        }
         else -> {
             val resolved = com.kiedziedojade.app.core.Planner.resolvePlace(ref, world.stops)
             nearestStops(world, resolved.lat, resolved.lng, limit = 1, maxMeters = 2000.0)
@@ -770,7 +812,11 @@ fun refPoint(ref: PlaceRef?, world: World?): Pair<Double, Double>? = when (ref) 
     null -> null
     is PlaceRef.Gps -> ref.lat to ref.lng
     is PlaceRef.PoiRef -> ref.lat to ref.lng
-    is PlaceRef.StopRef -> world?.stops?.getOrNull(ref.index)?.let { it.lat to it.lng }
+    is PlaceRef.StopRef -> {
+        val stop = ref.stopId?.let { id -> world?.stops?.firstOrNull { it.id == id } }
+            ?: world?.stops?.getOrNull(ref.index)
+        stop?.let { it.lat to it.lng }
+    }
     is PlaceRef.StreetRef -> ref.pts.getOrNull(ref.pts.size / 2)
 }
 

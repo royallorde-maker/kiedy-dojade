@@ -77,11 +77,14 @@ fun ResultsScreen(
     isFavorite: Boolean = false,
     onToggleFavorite: (() -> Unit)? = null,
 ) {
-    var outcome by remember(query) { mutableStateOf<PlanOutcome?>(null) }
-    var expanded by remember(query) { mutableStateOf<String?>(null) }
+    // Po cichym odświeżeniu danych plan musi powstać od nowa: stare indeksy
+    // przystanków mogłyby wskazywać zupełnie inne miejsce.
+    val worldRev = world.meta.generatedAt
+    var outcome by remember(query, worldRev) { mutableStateOf<PlanOutcome?>(null) }
+    var expanded by remember(query, worldRev) { mutableStateOf<String?>(null) }
     val isToday = query.serviceDate == todayStr()
 
-    LaunchedEffect(query) {
+    LaunchedEffect(query, worldRev) {
         outcome = withContext(Dispatchers.Default) {
             Planner.plan(
                 world,
@@ -96,7 +99,7 @@ fun ResultsScreen(
     }
 
     // live delays for the first vehicle of the best option — only for today
-    var live by remember(query) { mutableStateOf<Api.LiveRow?>(null) }
+    var live by remember(query, worldRev) { mutableStateOf<Api.LiveRow?>(null) }
     LaunchedEffect(outcome, isToday) {
         if (!isToday) {
             live = null
@@ -104,8 +107,7 @@ fun ResultsScreen(
         }
         val o = outcome ?: return@LaunchedEffect
         val first = o.itineraries.firstOrNull()?.firstRide ?: return@LaunchedEffect
-        val stop = world.stops[first.boardStop.i]
-        live = runCatching { Api.stopBoard(stop.id) }.getOrNull()
+        live = runCatching { Api.stopBoard(first.boardStop.id) }.getOrNull()
             ?.let { matchLiveRide(it, first) }
     }
 

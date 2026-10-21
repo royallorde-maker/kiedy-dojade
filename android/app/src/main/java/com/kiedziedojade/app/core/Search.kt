@@ -31,7 +31,7 @@ fun buildIndex(world: World): List<SearchItem> {
             id = "stop:${s.i}", kind = "stop", pkind = null, name = s.name, code = s.code,
             onDemand = s.onDemand, lat = s.lat, lng = s.lng,
             norm = norm(s.name + " " + s.code),
-            ref = PlaceRef.StopRef(s.name, s.i),
+            ref = PlaceRef.StopRef(s.name, s.i, s.id),
         )
     }
     world.places.streets.forEachIndexed { idx, street ->

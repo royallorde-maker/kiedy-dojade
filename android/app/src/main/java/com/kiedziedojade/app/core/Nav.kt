@@ -1,5 +1,6 @@
 package com.kiedziedojade.app.core
 
+import java.time.Instant
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -87,8 +88,11 @@ fun navDestination(it: Itinerary): String = when (val last = it.legs.lastOrNull(
 /** Promień (m), w którym uznajemy krok za zrobiony. */
 const val NAV_ARRIVE_M = 45.0
 
-/** Promień (m) wokół przystanku wysiadki, od którego wołamy „wysiądź teraz”. */
-const val NAV_GET_OFF_M = 120.0
+/** GPS o gorszej dokładności nie może przesuwać prowadzenia ani zaliczać kroków. */
+const val MAX_FIX_ACCURACY_M = 120f
+
+/** Po tylu minutach od planowego przyjazdu porzucone śledzenie gasimy. */
+const val TRACKING_GRACE_MIN = 180
 
 /** Promień (m), od którego uprzedzamy „za chwilę Twoja wysiadka”. */
 const val NAV_SOON_M = 320.0
@@ -148,7 +152,10 @@ fun navState(steps: List<NavStep>, fix: Fix?, fromIndex: Int = 0): NavState {
         val here = navDistance(steps[index], fix)
         val next = navDistance(steps[index + 1], fix)
         val reached = (here != null && here <= NAV_ARRIVE_M) ||
-            (next != null && next <= NAV_ARRIVE_M)
+            // Nie przeskakuj jazdy tylko dlatego, że autobus mija cel
+            // późniejszego marszu. Na przystanku wysiadki i tak zaliczy ją
+            // odległość do samego przystanku.
+            (steps[index] !is NavStep.Ride && next != null && next <= NAV_ARRIVE_M)
         if (reached) index++ else break
     }
 
@@ -161,7 +168,7 @@ fun navState(steps: List<NavStep>, fix: Fix?, fromIndex: Int = 0): NavState {
     // przez pierwsze metry nadal warto wołać „wysiądź teraz”
     val leftRide = steps.getOrNull(index - 1) as? NavStep.Ride
     val justGotOff = leftRide != null && !arrived &&
-        navDistance(leftRide, fix)?.let { it <= NAV_GET_OFF_M } == true
+        navDistance(leftRide, fix)?.let { it <= NAV_ARRIVE_M } == true
 
     // jadąc, odległość do wysiadki ma sens dopiero z ostatnich metrów;
     // wcześniej liczy się liczba przystanków, nie kilometry
@@ -182,6 +189,27 @@ fun navState(steps: List<NavStep>, fix: Fix?, fromIndex: Int = 0): NavState {
         getOffSoon = getOffSoon,
         finished = last && arrived,
     )
+}
+
+/**
+ * Czy porzucone śledzenie powinno się już zakończyć?
+ *
+ * [arriveMin] to godzina zegarowa przyjazdu, więc bierzemy jej najbliższe
+ * wystąpienie po starcie. Dzięki temu podróż przez północ i późny przyjazd
+ * (np. 22:50, sprawdzany o 02:00) wygasają po trzech godzinach, a nie po
+ * osiemnastu.
+ */
+fun trackingExpired(
+    startedAtMs: Long,
+    arriveMin: Int,
+    nowMs: Long = System.currentTimeMillis(),
+): Boolean {
+    if (startedAtMs <= 0L) return false
+    val start = Instant.ofEpochMilli(startedAtMs).atZone(WARSAW)
+    val startMin = start.hour * 60 + start.minute
+    val minutesToArrival = ((arriveMin - startMin) % 1440 + 1440) % 1440
+    val deadline = startedAtMs + (minutesToArrival + TRACKING_GRACE_MIN) * 60_000L
+    return nowMs > deadline
 }
 
 /**

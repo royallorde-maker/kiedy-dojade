@@ -98,13 +98,13 @@ fun StopScreen(
     val date = serviceDate ?: todayStr()
     val isToday = date == todayStr()
     val lifecycleOwner = LocalLifecycleOwner.current
-    var board by remember(stopIndex, date) { mutableStateOf<List<Api.LiveRow>?>(null) }
-    var boardLoaded by remember(stopIndex, date) { mutableStateOf(false) }
-    var boardError by remember(stopIndex, date) { mutableStateOf(false) }
-    var expandedTrip by remember(stopIndex, date) { mutableStateOf<Long?>(null) }
-    var now by remember(stopIndex, date) { mutableIntStateOf(nowMinutes()) }
+    var board by remember(stop.id, date) { mutableStateOf<List<Api.LiveRow>?>(null) }
+    var boardLoaded by remember(stop.id, date) { mutableStateOf(false) }
+    var boardError by remember(stop.id, date) { mutableStateOf(false) }
+    var expandedTrip by remember(stop.id, date) { mutableStateOf<Long?>(null) }
+    var now by remember(stop.id, date) { mutableIntStateOf(nowMinutes()) }
 
-    LaunchedEffect(stopIndex, lifecycleOwner, isToday) {
+    LaunchedEffect(stop.id, lifecycleOwner, isToday) {
         if (!isToday) {
             boardLoaded = true
             return@LaunchedEffect

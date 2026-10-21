@@ -208,6 +208,7 @@ private fun SavedRow(
         "stop" -> Icons.Filled.DirectionsBus
         "poi" -> Icons.Filled.Storefront
         "point" -> Icons.Filled.Map
+        "street" -> Icons.Filled.Place
         else -> Icons.Filled.MyLocation
     }
     val sub = when (place.kind) {
@@ -222,6 +223,7 @@ private fun SavedRow(
         } else {
             t("punkt na mapie", "map point")
         }
+        "street" -> t("Ulica", "Street")
         else -> t("Moja lokalizacja", "My location")
     }
     PlaceRow(

@@ -85,8 +85,12 @@ sealed interface PlaceRef {
         val custom: Boolean = false,
     ) : PlaceRef
 
-    /** a bus stop from the dataset */
-    data class StopRef(override val name: String, val index: Int) : PlaceRef
+    /** a bus stop from the dataset; [stopId] survives dataset reordering */
+    data class StopRef(
+        override val name: String,
+        val index: Int,
+        val stopId: String? = null,
+    ) : PlaceRef
 
     /** a POI (shop, school, …) */
     data class PoiRef(

@@ -22,14 +22,16 @@ data class SavedPlace(
 ) {
     fun toRef(world: World? = null): PlaceRef? = when (kind) {
         "stop" -> {
-            val resolved = if (stopId != null) {
+            val resolved = if (stopId != null && world != null) {
                 // a known id must still exist; never silently fall back to a
                 // possibly outdated index from another dataset version
-                world?.stops?.indexOfFirst { it.id == stopId }?.takeIf { it >= 0 }
+                world.stops.indexOfFirst { it.id == stopId }.takeIf { it >= 0 }
             } else {
+                // before the dataset is loaded, the saved index is all we have;
+                // Planner will prefer the id once the world is available
                 index?.takeIf { world == null || it in world.stops.indices }
             }
-            resolved?.let { PlaceRef.StopRef(name, it) }
+            resolved?.let { PlaceRef.StopRef(name, it, stopId) }
         }
 
         "poi" -> if (lat != null && lng != null) {
@@ -40,6 +42,9 @@ data class SavedPlace(
         "point" -> if (lat != null && lng != null) {
             PlaceRef.Gps(name, lat, lng, custom = true)
         } else null
+        "street" -> world?.places?.streets?.firstOrNull { it.name == name }?.let {
+            PlaceRef.StreetRef(it.name, it.pts)
+        }
         else -> null
     }
 
@@ -58,6 +63,12 @@ data class SavedPlace(
             if (a != null && b != null) return a == b
             return index == other.index && name == other.name
         }
+        // Nazwa „Moja lokalizacja” / „Punkt na mapie” jest tłumaczona, więc
+        // nie może decydować o tożsamości zapisanego punktu.
+        if (kind == "gps" || kind == "point") {
+            return lat == other.lat && lng == other.lng
+        }
+        if (kind == "street") return name == other.name
         return name == other.name && lat == other.lat && lng == other.lng
     }
 
@@ -69,7 +80,7 @@ data class SavedPlace(
                 "stop",
                 ref.name,
                 index = ref.index,
-                stopId = world?.stops?.getOrNull(ref.index)?.id,
+                stopId = ref.stopId ?: world?.stops?.getOrNull(ref.index)?.id,
             )
 
             is PlaceRef.PoiRef -> SavedPlace("poi", ref.name, lat = ref.lat, lng = ref.lng, pkind = ref.kind)
@@ -80,6 +91,15 @@ data class SavedPlace(
                 lng = ref.lng,
             )
             is PlaceRef.StreetRef -> null // ulice nie są zapisywane jako „ulubione”
+        }
+
+        /**
+         * „Skąd”/„dokąd” mogą być ulicą, choć ulica nie może być ulubionym
+         * miejscem ani ulubioną trasą. Bez tego wybór ulicy ginął po restarcie.
+         */
+        fun forLast(ref: PlaceRef, world: World? = null): SavedPlace? = when (ref) {
+            is PlaceRef.StreetRef -> SavedPlace("street", ref.name)
+            else -> from(ref, world)
         }
     }
 }
@@ -153,6 +173,10 @@ class Prefs(context: Context) {
             .putInt(KEY_ACTIVE_STEP, 0)
             .commit()
     }
+
+    /** Moment rozpoczęcia prowadzenia (epoch ms) — do wygaszania porzuconej podróży. */
+    val activeStartedAt: Long
+        get() = sp.getLong(KEY_ACTIVE_STARTED, 0L)
 
     /** Ostatni krok prowadzenia — po restarcie nie cofamy się do marszu na przystanek. */
     var activeStepIndex: Int

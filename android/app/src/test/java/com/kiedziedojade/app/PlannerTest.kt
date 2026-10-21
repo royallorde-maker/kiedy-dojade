@@ -68,6 +68,17 @@ class PlannerTest {
     }
 
     @Test
+    fun `stop ref resolves by id when the index is stale`() {
+        val a = world.stops[0]
+        val b = world.stops[1]
+        val ref = PlaceRef.StopRef(b.name, a.i, b.id)
+        val resolved = Planner.resolvePlace(ref, world.stops)
+        assertEquals(b.name, resolved.name)
+        assertEquals(b.lat, resolved.lat, 0.0)
+        assertEquals(b.lng, resolved.lng, 0.0)
+    }
+
+    @Test
     fun `workday plan finds connections with bounded transfers`() {
         val from = stopIndex("Dworzec PKP")
         val to = stopIndex("Szpital")

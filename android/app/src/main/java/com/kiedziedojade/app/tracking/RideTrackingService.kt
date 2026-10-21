@@ -24,6 +24,7 @@ import com.kiedziedojade.app.core.Itinerary
 import com.kiedziedojade.app.core.ItineraryJson
 import com.kiedziedojade.app.core.Lang
 import com.kiedziedojade.app.core.Locator
+import com.kiedziedojade.app.core.MAX_FIX_ACCURACY_M
 import com.kiedziedojade.app.core.Prefs
 import com.kiedziedojade.app.core.RideLeg
 import com.kiedziedojade.app.core.TrackPhase
@@ -33,6 +34,7 @@ import com.kiedziedojade.app.core.fmtTime
 import com.kiedziedojade.app.core.haversine
 import com.kiedziedojade.app.core.matchLiveRide
 import com.kiedziedojade.app.core.nowMinutes
+import com.kiedziedojade.app.core.trackingExpired
 import com.kiedziedojade.app.core.trackingSnapshot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -153,7 +155,7 @@ class RideTrackingService : Service() {
             }
             locator.stream(minTimeMs = 4_000L, minDistanceM = 8f).collect { f ->
                 // zbyt niedokładna ramka nie powinna przesuwać prowadzenia
-                if (f.accuracy != null && f.accuracy > 150f) return@collect
+                if (f.accuracy != null && f.accuracy > MAX_FIX_ACCURACY_M) return@collect
                 if (f.timeMs > 0 && System.currentTimeMillis() - f.timeMs > 10 * 60_000L) {
                     return@collect
                 }
@@ -239,8 +241,9 @@ class RideTrackingService : Service() {
                 finishTracking(arrived = false)
                 return
             }
-            // porzucone śledzenie nie ma prawa trzymać GPS przez całą dobę
-            if (nowMin > trip.arriveAt + 180) {
+            // porzucone śledzenie nie ma prawa trzymać GPS przez całą dobę —
+            // deadline liczymy od startu, więc działa też po północy
+            if (trackingExpired(prefs.activeStartedAt, trip.arriveAt)) {
                 finishTracking(arrived = false)
                 return
             }
@@ -501,6 +504,11 @@ class RideTrackingService : Service() {
         scope.cancel()
         runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
         prefs.stopRideTracking()
+        // Zamknięcie z powiadomienia nie przechodzi przez ekran aplikacji;
+        // daj mu znać, że nie ma już czego prowadzić.
+        if (!arrived) {
+            sendBroadcast(Intent(ACTION_TRACKING_STOPPED).setPackage(packageName))
+        }
         if (arrived) {
             val notification = buildNotification(snap ?: computeSnapshot(), ongoing = false)
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -518,6 +526,8 @@ class RideTrackingService : Service() {
     companion object {
         const val ACTION_START = "com.kiedziedojade.app.action.START_TRACKING"
         const val ACTION_STOP = "com.kiedziedojade.app.action.STOP_TRACKING"
+        /** Wysłuchiwane przez UI: usługa przerwała prowadzenie (np. „Zakończ”). */
+        const val ACTION_TRACKING_STOPPED = "com.kiedziedojade.app.action.TRACKING_STOPPED"
         private const val EXTRA_ITINERARY = "com.kiedziedojade.app.extra.ITINERARY"
         private const val CHANNEL_ID = "ride_tracking"
         private const val NOTIFICATION_ID = 4101

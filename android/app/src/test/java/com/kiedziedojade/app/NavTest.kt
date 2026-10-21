@@ -7,6 +7,7 @@ import com.kiedziedojade.app.core.RideLeg
 import com.kiedziedojade.app.core.RideStop
 import com.kiedziedojade.app.core.Stop
 import com.kiedziedojade.app.core.WalkLeg
+import com.kiedziedojade.app.core.WARSAW
 import com.kiedziedojade.app.core.courseHeading
 import com.kiedziedojade.app.core.headingDeg
 import com.kiedziedojade.app.core.headingDelta
@@ -18,6 +19,7 @@ import com.kiedziedojade.app.core.navSteps
 import com.kiedziedojade.app.core.normalizeHeading
 import com.kiedziedojade.app.core.rideStopsLeft
 import com.kiedziedojade.app.core.screenCompassHeading
+import com.kiedziedojade.app.core.trackingExpired
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -102,9 +104,50 @@ class NavTest {
     @Test
     fun `walk to the destination finishes the trip`() {
         val dest = 53.6980 to 16.7050
-        val st = navState(listOf(ride(), walk(dest, meters = 300.0)), fix(dest))
+        val st = navState(
+            listOf(ride(), walk(dest, meters = 300.0)),
+            fix(dest),
+            fromIndex = 1,
+        )
         assertTrue(st.finished)
     }
+
+    @Test
+    fun `bus passing the final destination does not end the ride`() {
+        val dest = 53.7020 to 16.7040
+        val st = navState(listOf(ride(), walk(dest, meters = 300.0)), fix(dest))
+        assertEquals(0, st.stepIndex)
+        assertFalse(st.finished)
+        assertFalse(st.getOffNow)
+    }
+
+    @Test
+    fun `right after the alight stop the walk step still says get off now`() {
+        val dest = 53.6980 to 16.7050
+        val st = navState(listOf(ride(), walk(dest, meters = 300.0)), fix(alight))
+        assertEquals(1, st.stepIndex)
+        assertTrue(st.getOffNow)
+        assertFalse(st.finished)
+    }
+
+    @Test
+    fun `abandoned tracking expires three hours after a late arrival`() {
+        val started = warsaw(21, 0)
+        assertFalse(trackingExpired(started, 22 * 60 + 50, warsaw(1, 49, day = 22)))
+        assertTrue(trackingExpired(started, 22 * 60 + 50, warsaw(1, 51, day = 22)))
+    }
+
+    @Test
+    fun `abandoned tracking handles a trip crossing midnight`() {
+        val started = warsaw(23, 30)
+        assertFalse(trackingExpired(started, 30, warsaw(3, 29, day = 22)))
+        assertTrue(trackingExpired(started, 30, warsaw(3, 31, day = 22)))
+    }
+
+    private fun warsaw(hour: Int, minute: Int, day: Int = 21): Long =
+        java.time.ZonedDateTime.of(2026, 10, day, hour, minute, 0, 0, WARSAW)
+            .toInstant()
+            .toEpochMilli()
 
     @Test
     fun `heading from two positions points east`() {

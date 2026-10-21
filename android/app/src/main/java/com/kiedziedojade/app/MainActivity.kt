@@ -38,8 +38,12 @@ class MainActivity : ComponentActivity() {
         val prefs = Prefs(this)
         val repo = DataRepo(this)
         I18n.lang = if (prefs.lang == "en") Lang.EN else Lang.PL
-        tabRequest.value = tabFromIntent(intent)
-        trackingRequest.value = intent?.action == ACTION_OPEN_TRACKING
+        // Odtworzenie po obrocie nie może ponownie wykonać skrótu z launchera
+        // ani otworzyć prowadzenia, które użytkownik wcześniej ukrył.
+        if (savedInstanceState == null) {
+            tabRequest.value = tabFromIntent(intent)
+            trackingRequest.value = intent?.action == ACTION_OPEN_TRACKING
+        }
 
         setContent {
             var themeName by rememberSaveable { mutableStateOf(prefs.theme) }
