@@ -60,4 +60,29 @@ class MapDataTest {
         val some = index.stopLines.keys.first()
         assertTrue(index.stopLines.getValue(some).isNotEmpty())
     }
+
+    @Test
+    fun `live probes stay on the route and are limited`() {
+        assertTrue(index.probeStops(null).isEmpty())
+        index.lines.forEach { line ->
+            val route = index.route.getValue(line)
+            val probes = index.probeStops(line)
+            assertTrue("linia $line bez sond", probes.isNotEmpty())
+            assertTrue("linia $line ma za dużo sond", probes.size <= 6)
+            assertEquals("linia $line powtarza sondy", probes.size, probes.distinctBy { it.id }.size)
+            assertTrue(
+                "sonda poza trasą linii $line",
+                probes.all { probe -> route.any { it.id == probe.id } },
+            )
+        }
+    }
+
+    @Test
+    fun `live probes keep both ends of a long route`() {
+        val line = index.lines.first { index.route.getValue(it).size > 6 }
+        val route = index.route.getValue(line)
+        val probes = index.probeStops(line)
+        assertEquals(route.first().id, probes.first().id)
+        assertEquals(route.last().id, probes.last().id)
+    }
 }

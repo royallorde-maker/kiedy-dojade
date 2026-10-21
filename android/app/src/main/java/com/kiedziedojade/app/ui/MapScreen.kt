@@ -53,17 +53,21 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import com.kiedziedojade.app.core.Api
 import com.kiedziedojade.app.core.DriveRoute
+import com.kiedziedojade.app.core.I18n
+import com.kiedziedojade.app.core.I18n.t
 import com.kiedziedojade.app.core.Locator
 import com.kiedziedojade.app.core.MapIndex
 import com.kiedziedojade.app.core.MapStyle
 import com.kiedziedojade.app.core.World
 import com.kiedziedojade.app.core.fmtMeters
+import com.kiedziedojade.app.core.fmtTime
 import com.kiedziedojade.app.core.haversine
-import com.kiedziedojade.app.core.I18n.t
 import com.kiedziedojade.app.core.mapIndex
 import com.kiedziedojade.app.core.walkMinutes
 import com.kiedziedojade.app.update.rememberIsOnline
+import kotlinx.coroutines.delay
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
@@ -74,6 +78,7 @@ import org.osmdroid.views.overlay.Polyline
 private class MapHolder {
     var map: MapView? = null
     val stopMarkers = mutableListOf<Marker>()
+    val busMarkers = mutableListOf<Marker>()
     var userMarker: Marker? = null
     var lineOverlay: Polyline? = null
 }
@@ -101,10 +106,17 @@ fun MapScreen(
     val locator = remember { Locator(context) }
     var line by rememberSaveable { mutableStateOf<String?>(null) }
     var selected by rememberSaveable { mutableStateOf<Int?>(null) }
+    var selectedBusId by rememberSaveable { mutableStateOf<String?>(null) }
+    var buses by remember(line) { mutableStateOf<List<Api.LiveBus>>(emptyList()) }
+    var busesLoaded by remember(line) { mutableStateOf(false) }
+    var busesError by remember(line) { mutableStateOf(false) }
     var userFix by remember { mutableStateOf<Pair<Double, Double>?>(null) }
     var canLocate by remember { mutableStateOf(locator.hasPermission()) }
     var mapReady by remember { mutableStateOf(false) }
     val online = rememberIsOnline()
+    val stopIndexById = remember(world) {
+        world.stops.withIndex().associate { (i, stop) -> stop.id to i }
+    }
 
     // osmdroid: cache w plikach aplikacji (bez uprawnień do pamięci) + własny UA.
     remember(context) {
@@ -130,6 +142,9 @@ fun MapScreen(
     val dotSelected = with(density) { 19.dp.roundToPx() }
     val userPx = with(density) { 16.dp.roundToPx() }
     val userFill = scheme.tertiary.toArgb()
+    val selectedBusRing = scheme.tertiary.toArgb()
+    val busPx = with(density) { 32.dp.roundToPx() }
+    val busSelectedPx = with(density) { 40.dp.roundToPx() }
 
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
@@ -228,6 +243,7 @@ fun MapScreen(
                     relatedObject = idx
                     setOnMarkerClickListener { _, _ ->
                         selected = idx
+                        selectedBusId = null
                         true
                     }
                 }
@@ -317,6 +333,91 @@ fun MapScreen(
             map.invalidate()
         }
 
+        // Autobusy na żywo wybranej linii. API nie ma listy pojazdów, więc
+        // pytamy kilka przystanków wzdłuż trasy i pobieramy kursy, które już
+        // ruszyły. Odświeżanie zatrzymuje się, gdy ekran jest w tle.
+        LaunchedEffect(line, online, lifecycleOwner, index) {
+            val l = line
+            if (l == null) {
+                buses = emptyList()
+                busesLoaded = false
+                busesError = false
+                return@LaunchedEffect
+            }
+            buses = emptyList()
+            busesLoaded = false
+            busesError = false
+            if (!online) {
+                busesLoaded = true
+                return@LaunchedEffect
+            }
+            val probes = index.probeStops(l).map { it.id }
+            if (probes.isEmpty()) {
+                busesLoaded = true
+                return@LaunchedEffect
+            }
+            lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                while (true) {
+                    val result = runCatching { Api.liveBuses(l, probes) }.getOrNull()
+                    // chwilowy błąd sieci nie usuwa ostatnio znanych autobusów
+                    if (result != null) buses = result
+                    busesError = result == null
+                    busesLoaded = true
+                    delay(
+                        when {
+                            result == null -> 30_000L
+                            result.isEmpty() -> 45_000L
+                            else -> 20_000L
+                        },
+                    )
+                }
+            }
+        }
+
+        LaunchedEffect(buses, selectedBusId) {
+            val id = selectedBusId ?: return@LaunchedEffect
+            if (buses.none { it.executionId == id }) selectedBusId = null
+        }
+
+        LaunchedEffect(
+            buses, selectedBusId, line, mapReady,
+            ring, ringPx, selectedBusRing, busPx, busSelectedPx,
+        ) {
+            if (!mapReady) return@LaunchedEffect
+            val map = holder.map ?: return@LaunchedEffect
+            holder.busMarkers.forEach { map.overlays.remove(it) }
+            holder.busMarkers.clear()
+            val l = line
+            if (l != null) {
+                val color = lineColor(l).toArgb()
+                buses.forEach { bus ->
+                    val isSelected = bus.executionId == selectedBusId
+                    val marker = Marker(map).apply {
+                        position = GeoPoint(bus.vehicle.first, bus.vehicle.second)
+                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                        icon = BusDrawable(
+                            fill = color,
+                            ring = if (isSelected) selectedBusRing else ring,
+                            ringPx = ringPx,
+                            sizePx = if (isSelected) busSelectedPx else busPx,
+                            label = bus.line,
+                        )
+                        title = t("Autobus linii ", "Line ") + bus.line
+                        snippet = bus.nextStopName
+                        relatedObject = bus.executionId
+                        setOnMarkerClickListener { _, _ ->
+                            selectedBusId = bus.executionId
+                            selected = null
+                            true
+                        }
+                    }
+                    holder.busMarkers += marker
+                    map.overlays.add(marker)
+                }
+            }
+            map.invalidate()
+        }
+
         // pasek filtrów linii + akcje
         Column(
             modifier = Modifier
@@ -335,7 +436,10 @@ fun MapScreen(
                             label = t("Wszystkie", "All"),
                             selected = line == null,
                             color = scheme.primary,
-                            onClick = { line = null },
+                            onClick = {
+                                line = null
+                                selectedBusId = null
+                            },
                         )
                     }
                     items(index.lines, key = { "l$it" }) { l ->
@@ -343,7 +447,10 @@ fun MapScreen(
                             label = l,
                             selected = line == l,
                             color = lineColor(l),
-                            onClick = { line = if (line == l) null else l },
+                            onClick = {
+                                line = if (line == l) null else l
+                                selectedBusId = null
+                            },
                         )
                     }
                 }
@@ -376,6 +483,32 @@ fun MapScreen(
                 modifier = Modifier.padding(start = 12.dp, top = 6.dp),
                 style = mapStyle,
             )
+            if (line != null && online) {
+                val liveText = when {
+                    !busesLoaded -> t("Szukam autobusów…", "Finding live buses…")
+                    busesError && buses.isEmpty() ->
+                        t("Nie udało się pobrać autobusów", "Couldn't load live buses")
+                    buses.isEmpty() -> t("Brak autobusów na żywo", "No live buses")
+                    else -> "${buses.size} ${I18n.rides(buses.size)} " +
+                        t("na żywo", "live")
+                }
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = scheme.surfaceContainer.copy(alpha = 0.92f),
+                    modifier = Modifier.padding(start = 12.dp, top = 8.dp),
+                ) {
+                    Text(
+                        liveText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (buses.isEmpty() && busesLoaded) {
+                            scheme.onSurfaceVariant
+                        } else {
+                            scheme.primary
+                        },
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
+            }
             if (!online) {
                 Surface(
                     shape = RoundedCornerShape(10.dp),
@@ -400,9 +533,23 @@ fun MapScreen(
                 .padding(end = 12.dp),
         )
 
-        // karta wybranego przystanku
+        // karta wybranego autobusu albo przystanku
+        val selectedBus = selectedBusId?.let { id ->
+            buses.firstOrNull { it.executionId == id }
+        }
         val sel = selected?.takeIf { it in world.stops.indices }
-        if (sel != null) {
+        if (selectedBus != null) {
+            LiveBusCard(
+                bus = selectedBus,
+                nextStopIndex = selectedBus.nextStopPlaceId?.let { stopIndexById[it] },
+                onOpenBoard = onOpenBoard,
+                onClose = { selectedBusId = null },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(start = 12.dp, end = 12.dp, bottom = 32.dp)
+                    .fillMaxWidth(),
+            )
+        } else if (sel != null) {
             val stop = world.stops[sel]
             Surface(
                 shape = RoundedCornerShape(22.dp),
@@ -518,5 +665,108 @@ private fun MapChip(label: String, selected: Boolean, color: Color, onClick: () 
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
         )
+    }
+}
+
+/** Karta po dotknięciu autobusu: kierunek, następny przystanek i ETA. */
+@Composable
+private fun LiveBusCard(
+    bus: Api.LiveBus,
+    nextStopIndex: Int?,
+    onOpenBoard: (Int) -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        shape = RoundedCornerShape(22.dp),
+        color = scheme.surfaceContainer,
+        shadowElevation = 8.dp,
+        modifier = modifier,
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                LineChip(bus.line, big = true)
+                Spacer(Modifier.width(10.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        t("Autobus na żywo", "Live bus"),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        bus.direction ?: t("Kierunek nieznany", "Direction unknown"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                IconButton(onClick = onClose) {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = t("Zamknij", "Close"),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                DelayChip(bus.delayMin, bus.estimated, canceled = false)
+                if (bus.atStop) {
+                    StatusChip(
+                        t("na przystanku", "at the stop"),
+                        scheme.tertiary,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(10.dp))
+            Text(
+                if (bus.atStop) {
+                    t("Na przystanku", "At the stop")
+                } else {
+                    t("Następny przystanek", "Next stop")
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = scheme.onSurfaceVariant,
+            )
+            Text(
+                bus.nextStopName ?: t("Nie znam następnego przystanku", "Next stop unknown"),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val eta = buildList {
+                bus.minutesToNext?.let { min ->
+                    add(if (min <= 0) t("teraz", "now") else t("za $min min", "in $min min"))
+                }
+                bus.clockToNext?.let { add(fmtTime(it)) }
+            }.joinToString("  ·  ")
+            if (eta.isNotEmpty()) {
+                Text(
+                    eta,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.primary,
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+            Button(
+                onClick = { nextStopIndex?.let(onOpenBoard) },
+                enabled = nextStopIndex != null,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(Icons.Filled.DirectionsBus, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(t("Tablica przystanku", "Stop board"))
+            }
+        }
     }
 }

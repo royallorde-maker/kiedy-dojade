@@ -231,6 +231,23 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.8",
+                lines = listOf(
+                    t(
+                        "Autobusy na żywo na mapie: po wybraniu linii autobusy w trasie są oznaczone numerem linii na kolorowym znaczniku. Dotknij autobusu, aby zobaczyć kierunek, następny przystanek i czas dojazdu.",
+                        "Live buses on the map: after choosing a line, buses on the route are marked with the line number on a coloured marker. Tap a bus to see its direction, next stop and arrival time.",
+                    ),
+                    t(
+                        "Pokazujemy tylko autobusy, które już rozpoczęły kurs — pojazdy czekające w zajezdni nie trafiają na mapę. Pozycje odświeżają się co około 20 sekund tylko przy widocznym ekranie, a bez internetu mapa nie wysyła zapytań.",
+                        "Only buses that have already started their run appear — vehicles waiting at the depot are not shown. Positions refresh about every 20 seconds only while the screen is visible, and without internet the map sends no requests.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.7",
                 lines = listOf(
                     t(

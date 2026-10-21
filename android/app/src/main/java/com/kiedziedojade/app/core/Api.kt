@@ -1,7 +1,11 @@
 package com.kiedziedojade.app.core
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URLEncoder
 import java.time.Instant
@@ -51,48 +55,84 @@ object Api {
     suspend fun stopBoard(placeId: String): List<LiveRow> = withContext(Dispatchers.IO) {
         val encoded = placeId.replace(":", "%3A")
         val json = Net.getText("$BASE/departures/$encoded", timeoutMs = 8000)
-        val root = JSONObject(json)
-        // The city's current API calls the array "rows"; older builds used
-        // "departures". Accept both so the board keeps working either way.
-        val arr = root.optJSONArray("departures") ?: root.optJSONArray("rows")
-            ?: return@withContext emptyList()
+        parseLiveRows(JSONObject(json))
+    }
+
+    /**
+     * One request for up to six stops. The city API returns the same rows as
+     * [stopBoard], but grouped under `departures[].rows`; flattening them lets
+     * the map discover every live run approaching the probe stops.
+     */
+    suspend fun stopBoards(placeIds: List<String>): List<LiveRow> = withContext(Dispatchers.IO) {
+        if (placeIds.isEmpty()) return@withContext emptyList()
+        val places = placeIds.joinToString(",") { URLEncoder.encode(it, "UTF-8") }
+        val json = Net.getText("$BASE/departures?places=$places", timeoutMs = 8000)
+        parseLiveRows(JSONObject(json))
+    }
+
+    internal fun parseLiveRows(root: JSONObject): List<LiveRow> {
         val dirs = root.optJSONObject("directions")
         // "2 min" is relative to the server clock, "13:15" is a clock time.
         val baseMin = root.optLong("timestamp", 0L).takeIf { it > 0 }
             ?.let { Instant.ofEpochSecond(it).atZone(WARSAW).let { t -> t.hour * 60 + t.minute } }
             ?: nowMinutes()
-        val out = ArrayList<LiveRow>(arr.length())
-        for (i in 0 until arr.length()) {
-            val r = arr.getJSONObject(i)
-            val timeText = r.optStringOrNull("time")
-            val staticText = r.optStringOrNull("static_time")
-            val depMin = clockOrRelative(timeText, baseMin) ?: clockOrRelative(staticText, baseMin)
-            val schedMin = clockOrRelative(staticText, baseMin) ?: depMin
-            val dirId = r.optIntOrNull("direction_id")
-            out += LiveRow(
-                tripId = if (r.has("trip_id") && !r.isNull("trip_id")) {
-                    r.optLong("trip_id").takeIf { it > 0 }
-                } else {
-                    null
-                },
-                tripExecutionId = r.optStringOrNull("trip_execution_id"),
-                line = r.optStringOrNull("line_name"),
-                direction = r.optStringOrNull("direction")
-                    ?: dirId?.let { id -> dirs?.optString(id.toString())?.takeIf { it.isNotBlank() } },
-                departureSec = r.optIntOrNull("real_departure") ?: r.optIntOrNull("departure")
-                    ?: depMin?.let { it * 60 },
-                scheduledSec = r.optIntOrNull("timetable_departure") ?: r.optIntOrNull("departure")
-                    ?: schedMin?.let { it * 60 },
-                delayMin = r.optDoubleOrNull("time_diff")?.let { Math.round(it).toInt() },
-                canceled = r.optBoolean("canceled", false),
-                estimated = r.optBoolean("is_estimated", false),
-                load = r.optStringOrNull("passenger_load"),
-                platform = r.optStringOrNull("platform"),
-                index = r.optIntOrNull("trip_index"),
-                atStop = r.optBoolean("at_stop", false),
-            )
+        val out = ArrayList<LiveRow>()
+
+        fun append(arr: JSONArray) {
+            for (i in 0 until arr.length()) {
+                val r = arr.optJSONObject(i) ?: continue
+                out += parseLiveRow(r, dirs, baseMin)
+            }
         }
-        out
+
+        // Single-stop responses put rows directly in "departures"; multi-stop
+        // responses put one object with a "rows" array per place.
+        val groups = root.optJSONArray("departures")
+        if (groups != null) {
+            val grouped = (0 until groups.length()).any { i ->
+                (groups.opt(i) as? JSONObject)?.has("rows") == true
+            }
+            if (grouped) {
+                for (i in 0 until groups.length()) {
+                    groups.optJSONObject(i)?.optJSONArray("rows")?.let { append(it) }
+                }
+            } else {
+                append(groups)
+            }
+        } else {
+            root.optJSONArray("rows")?.let { append(it) }
+        }
+        return out
+    }
+
+    private fun parseLiveRow(r: JSONObject, dirs: JSONObject?, baseMin: Int): LiveRow {
+        val timeText = r.optStringOrNull("time")
+        val staticText = r.optStringOrNull("static_time")
+        val depMin = clockOrRelative(timeText, baseMin) ?: clockOrRelative(staticText, baseMin)
+        val schedMin = clockOrRelative(staticText, baseMin) ?: depMin
+        val dirId = r.optIntOrNull("direction_id")
+        return LiveRow(
+            tripId = if (r.has("trip_id") && !r.isNull("trip_id")) {
+                r.optLong("trip_id").takeIf { it > 0 }
+            } else {
+                null
+            },
+            tripExecutionId = r.optStringOrNull("trip_execution_id"),
+            line = r.optStringOrNull("line_name"),
+            direction = r.optStringOrNull("direction")
+                ?: dirId?.let { id -> dirs?.optString(id.toString())?.takeIf { it.isNotBlank() } },
+            departureSec = r.optIntOrNull("real_departure") ?: r.optIntOrNull("departure")
+                ?: depMin?.let { it * 60 },
+            scheduledSec = r.optIntOrNull("timetable_departure") ?: r.optIntOrNull("departure")
+                ?: schedMin?.let { it * 60 },
+            delayMin = r.optDoubleOrNull("time_diff")?.let { Math.round(it).toInt() },
+            canceled = r.optBoolean("canceled", false),
+            estimated = r.optBoolean("is_estimated", false),
+            load = r.optStringOrNull("passenger_load"),
+            platform = r.optStringOrNull("platform"),
+            index = r.optIntOrNull("trip_index"),
+            atStop = r.optBoolean("at_stop", false),
+        )
     }
 
     // ------------------------------------------------------------ trip execution
@@ -200,6 +240,121 @@ object Api {
             hasProgress && index >= 0 && nextIndex > index
     }
 
+    /**
+     * A vehicle that has actually started its run. Future departures also carry
+     * a depot position in the API, so the map must not draw those as live buses.
+     */
+    data class LiveBus(
+        val executionId: String,
+        val line: String,
+        val direction: String?,
+        /** vehicle position as (lat, lng) */
+        val vehicle: Pair<Double, Double>,
+        val nextIndex: Int,
+        val nextStopName: String?,
+        val nextStopPlaceId: String?,
+        val minutesToNext: Int?,
+        val clockToNext: Int?,
+        val atStop: Boolean,
+        val delayMin: Int?,
+        val estimated: Boolean,
+    )
+
+    private const val MAX_LIVE_BUSES = 8
+    private const val LIVE_BUS_LOOKAHEAD_MIN = 45
+    private const val LIVE_BUS_CONCURRENCY = 4
+
+    /**
+     * Finds live vehicles of [line] by asking a few stops along its route.
+     * The public API has no fleet endpoint, so this is the same departure data
+     * the boards use; trip executions are then fetched for their GPS positions.
+     */
+    suspend fun liveBuses(line: String, probePlaceIds: List<String>): List<LiveBus> {
+        if (probePlaceIds.isEmpty()) return emptyList()
+        val now = nowMinutes()
+        val candidates = liveCandidates(line, stopBoards(probePlaceIds), now)
+            .mapNotNull { row ->
+                val id = row.tripExecutionId?.takeIf { it.isNotBlank() }
+                    ?: return@mapNotNull null
+                id to row
+            }
+        if (candidates.isEmpty()) return emptyList()
+        val found = ArrayList<LiveBus>()
+        // Maks. kilka równoległych zapytań, żeby nie zalewać miejskiego API.
+        for (chunk in candidates.chunked(LIVE_BUS_CONCURRENCY)) {
+            found += coroutineScope {
+                chunk.map { (id, row) ->
+                    async(Dispatchers.IO) {
+                        val exec = tripExecution(id, row.index ?: 0) ?: return@async null
+                        liveBus(line, row, exec, now)
+                    }
+                }.awaitAll().filterNotNull()
+            }
+        }
+        return found.sortedWith(compareBy({ it.nextIndex }, { it.executionId }))
+    }
+
+    /**
+     * Keeps rows of [line] with a real execution id, drops canceled and
+     * far-future departures, and removes the same vehicle reported at several
+     * probe stops. Pure, so the map's line filtering is covered by tests.
+     */
+    internal fun liveCandidates(
+        line: String,
+        rows: List<LiveRow>,
+        now: Int,
+        limit: Int = MAX_LIVE_BUSES,
+    ): List<LiveRow> {
+        val byExecution = LinkedHashMap<String, LiveRow>()
+        rows.forEach { row ->
+            val dep = row.depMin
+            if (row.line?.equals(line, ignoreCase = true) != true) return@forEach
+            if (row.canceled) return@forEach
+            if (!row.atStop && dep != null &&
+                minuteDiff(dep, now) !in -2..LIVE_BUS_LOOKAHEAD_MIN
+            ) {
+                return@forEach
+            }
+            val id = row.tripExecutionId?.takeIf { it.isNotBlank() } ?: return@forEach
+            val old = byExecution[id]
+            if (old == null || candidateRank(row) < candidateRank(old)) {
+                byExecution[id] = row
+            }
+        }
+        return byExecution.values
+            .sortedBy { candidateRank(it) }
+            .take(limit)
+    }
+
+    /** At-stop rows with no countdown still describe a vehicle we can show. */
+    private fun candidateRank(row: LiveRow): Long = when {
+        row.atStop -> 0L
+        row.depMin == null -> 1_000_000L
+        else -> 2_000_000L + (row.depMin ?: 0)
+    }
+
+    internal fun liveBus(line: String, row: LiveRow, exec: TripExec, now: Int): LiveBus? {
+        val vehicle = exec.vehicle ?: return null
+        if (!exec.hasProgress) return null
+        val index = exec.nextIndex
+        if (index !in exec.times.indices) return null
+        val next = exec.times[index]
+        return LiveBus(
+            executionId = row.tripExecutionId.orEmpty(),
+            line = row.line?.takeIf { it.isNotBlank() } ?: line,
+            direction = exec.direction?.takeIf { it.isNotBlank() } ?: row.direction,
+            vehicle = vehicle,
+            nextIndex = index,
+            nextStopName = next.name.takeIf { it.isNotBlank() },
+            nextStopPlaceId = next.placeId.takeIf { it.isNotBlank() },
+            minutesToNext = exec.minutesTo(index, now),
+            clockToNext = exec.clockTo(index),
+            atStop = exec.atStop,
+            delayMin = row.delayMin,
+            estimated = exec.estimated || row.estimated,
+        )
+    }
+
     suspend fun tripExecution(executionId: String, index: Int = 0): TripExec? =
         withContext(Dispatchers.IO) {
             runCatching {
@@ -243,6 +398,10 @@ object Api {
                 if (item is Number) canceled += item.toInt()
             }
         }
+        // Current API nests the line as {"name":"1A"}; older responses used a
+        // plain string. Read both without changing the public shape.
+        val line = trip?.optJSONObject("line")?.optStringOrNull("name")
+            ?: trip?.optStringOrNull("line")
         val vehicleJson = root.optJSONObject("vehicle")
         val vehicle = vehicleJson?.let { v ->
             val lat = v.optDouble("lat", Double.NaN)
@@ -254,7 +413,7 @@ object Api {
             }
         }
         return TripExec(
-            line = trip?.optStringOrNull("line"),
+            line = line,
             direction = trip?.optStringOrNull("direction"),
             times = times,
             estimates = estimates,

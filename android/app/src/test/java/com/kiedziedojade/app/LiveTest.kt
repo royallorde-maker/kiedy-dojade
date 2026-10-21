@@ -135,6 +135,133 @@ class LiveTest {
         assertEquals(setOf(2, 4), ex.canceledStops)
     }
 
+    @Test
+    fun `nested line name is read from trip execution`() {
+        val ex = Api.parseTripExec(
+            JSONObject(
+                """
+                {
+                  "trip": {
+                    "line": {"name": "1A"},
+                    "direction": "PILSKA",
+                    "times": [{"index":0,"place_id":"a","stop_name":"A","departure_time":"12:00"}]
+                  },
+                  "estimated": true
+                }
+                """
+            )
+        )
+        assertEquals("1A", ex.line)
+    }
+
+    @Test
+    fun `multi stop departures are flattened with directions`() {
+        val rows = Api.parseLiveRows(
+            JSONObject(
+                """
+                {
+                  "status": "ok",
+                  "departures": [
+                    {"designator": 133, "rows": [
+                      {"time":"2 min","static_time":"2 min","time_diff":1,"line_name":"7",
+                       "direction_id":56491000,"trip_execution_id":"7.1:x:1","trip_index":4,
+                       "at_stop":false,"canceled":false,"is_estimated":true}
+                    ]},
+                    {"designator": 251, "rows": [
+                      {"time":"13:15","static_time":"13:15","time_diff":-1,"line_name":"1A",
+                       "trip_execution_id":"1.2:x:2","trip_index":6,
+                       "at_stop":true,"canceled":false,"is_estimated":false}
+                    ]}
+                  ],
+                  "directions": {"56491000": "DWORCOWA"}
+                }
+                """
+            )
+        )
+        assertEquals(2, rows.size)
+        assertEquals("DWORCOWA", rows[0].direction)
+        assertEquals(1, rows[0].delayMin)
+        assertTrue(rows[1].atStop)
+        assertEquals(-1, rows[1].delayMin)
+        assertEquals("1.2:x:2", rows[1].tripExecutionId)
+    }
+
+    @Test
+    fun `single stop departures still use the same parser`() {
+        val rows = Api.parseLiveRows(
+            JSONObject(
+                """
+                {
+                  "departures": [
+                    {"time":"3 min","static_time":"4 min","time_diff":-1,"line_name":"9",
+                     "trip_execution_id":"9.1:x:1","trip_index":2,"at_stop":false,
+                     "canceled":false,"is_estimated":true}
+                  ]
+                }
+                """
+            )
+        )
+        assertEquals(1, rows.size)
+        assertEquals("9", rows[0].line)
+        assertEquals(-1, rows[0].delayMin)
+    }
+
+    @Test
+    fun `live candidates filter line, canceled, horizon and duplicate executions`() {
+        val now = 720
+        val rows = listOf(
+            row(null, "1", 725).copy(tripExecutionId = "a"),
+            row(null, "1", 730).copy(tripExecutionId = "a"),
+            row(null, "1A", 725).copy(tripExecutionId = "b"),
+            row(null, "1", 725).copy(tripExecutionId = "c", canceled = true),
+            row(null, "1", 900).copy(tripExecutionId = "d"),
+            row(null, "1", 725).copy(tripExecutionId = null),
+            row(null, "1", 900).copy(tripExecutionId = "at-stop", atStop = true),
+        )
+        val out = Api.liveCandidates("1", rows, now)
+        assertEquals(listOf("at-stop", "a"), out.map { it.tripExecutionId })
+        assertEquals(725 * 60, out[1].departureSec)
+    }
+
+    @Test
+    fun `live bus needs a started run, gps and a next stop`() {
+        val row = row(null, "7", 600).copy(
+            tripExecutionId = "exec",
+            delayMin = 2,
+            index = 2,
+        )
+        val ex = Api.TripExec(
+            line = "7",
+            direction = "DWORCOWA",
+            times = (0..4).map {
+                Api.TripStopTime(it, "p$it", "S$it", 600 + it * 2)
+            },
+            estimates = listOf(
+                Api.TripEstimate(null, 0, 12 * 60 + 4),
+                Api.TripEstimate(null, 2, 12 * 60 + 6),
+                Api.TripEstimate(null, 5, 12 * 60 + 9),
+            ),
+            vehicle = 53.71 to 16.69,
+            atStop = false,
+            nextIndex = 2,
+            vehicleIndex = 1,
+            canceledStops = emptySet(),
+            estimated = true,
+        )
+        val bus = Api.liveBus("7", row, ex, now = 720)!!
+        assertEquals("exec", bus.executionId)
+        assertEquals("S2", bus.nextStopName)
+        assertEquals("p2", bus.nextStopPlaceId)
+        assertEquals(0, bus.minutesToNext)
+        assertEquals(12 * 60 + 4, bus.clockToNext)
+        assertEquals(2, bus.delayMin)
+        assertFalse(bus.atStop)
+
+        assertNull(Api.liveBus("7", row, ex.copy(nextIndex = 0, vehicleIndex = -1), now = 720))
+        assertNull(Api.liveBus("7", row, ex.copy(vehicle = null), now = 720))
+        assertNull(Api.liveBus("7", row, ex.copy(nextIndex = 5), now = 720))
+    }
+
     private fun ride(tripId: Long = 7L, depMin: Int = 600): RideLeg {
         val a = stop(0, "a", "A")
         val b = stop(1, "b", "B")

@@ -21,6 +21,35 @@ data class MapIndex(
     /** Przystanki do pokazania przy filtrze [line] (albo wszystkie). */
     fun stopsFor(world: World, line: String?): Set<Int> =
         line?.let { lineStops[it] } ?: allStops(world)
+
+    /**
+     * Przystanki, o które pytamy tablice na żywo, aby znaleźć autobusy linii.
+     * Interfejs API przyjmuje najwyżej sześć miejsc w jednym zapytaniu, więc
+     * wybieramy równomiernie rozłożone przystanki najdłuższego kursu. Dzięki
+     * temu każdy autobus w trasie ma szansę pojawić się na jednej z tablic.
+     */
+    fun probeStops(line: String?, limit: Int = 6): List<Stop> {
+        if (limit <= 0) return emptyList()
+        val pts = line?.let { route[it] }.orEmpty()
+        if (pts.isEmpty()) return emptyList()
+        val out = LinkedHashMap<String, Stop>()
+        if (pts.size <= limit) {
+            pts.forEach { out.putIfAbsent(it.id, it) }
+        } else if (limit == 1) {
+            out[pts.first().id] = pts.first()
+        } else {
+            for (i in 0 until limit) {
+                val at = (i.toLong() * (pts.size - 1) / (limit - 1)).toInt()
+                val stop = pts[at]
+                out.putIfAbsent(stop.id, stop)
+            }
+        }
+        // pętle i przystanki powtarzane w kursie mogą dać mniej niż [limit]
+        if (out.size < limit) {
+            pts.forEach { if (out.size < limit) out.putIfAbsent(it.id, it) }
+        }
+        return out.values.toList()
+    }
 }
 
 fun mapIndex(world: World): MapIndex {

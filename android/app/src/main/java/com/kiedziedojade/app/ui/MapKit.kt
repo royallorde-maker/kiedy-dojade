@@ -222,3 +222,73 @@ internal class DotDrawable(
     override fun getIntrinsicWidth(): Int = sizePx
     override fun getIntrinsicHeight(): Int = sizePx
 }
+
+/**
+ * Autobus na mapie: numer linii w kolorowym korpusie, biała szyba i obwódka.
+ * Rysowany jako Drawable, więc osmdroid nie potrzebuje bitmap ani zasobów.
+ */
+internal class BusDrawable(
+    private val fill: Int,
+    private val ring: Int,
+    private val ringPx: Int,
+    private val sizePx: Int,
+    private val label: String,
+) : Drawable() {
+    private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+    }
+    private val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+    }
+    private val glassPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = android.graphics.Color.argb(225, 255, 255, 255)
+    }
+    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = android.graphics.Color.WHITE
+        textAlign = Paint.Align.CENTER
+        typeface = android.graphics.Typeface.DEFAULT_BOLD
+    }
+
+    override fun draw(canvas: Canvas) {
+        val cx = bounds.exactCenterX()
+        val cy = bounds.exactCenterY()
+        val w = bounds.width().toFloat()
+        val h = bounds.height().toFloat()
+        val bodyW = w * 0.66f
+        val bodyH = h * 0.76f
+        val left = cx - bodyW / 2f
+        val top = cy - bodyH / 2f
+        val right = cx + bodyW / 2f
+        val bottom = cy + bodyH / 2f
+        val rr = bodyW * 0.22f
+
+        ringPaint.color = ring
+        ringPaint.strokeWidth = ringPx.toFloat()
+        canvas.drawRoundRect(left, top, right, bottom, rr, rr, ringPaint)
+        val inset = ringPx * 0.65f
+        fillPaint.color = fill
+        canvas.drawRoundRect(
+            left + inset, top + inset, right - inset, bottom - inset,
+            (rr - inset).coerceAtLeast(1f), (rr - inset).coerceAtLeast(1f), fillPaint,
+        )
+
+        // przednia szyba
+        canvas.drawRoundRect(
+            left + bodyW * 0.20f, top + bodyH * 0.14f,
+            right - bodyW * 0.20f, top + bodyH * 0.29f,
+            rr * 0.30f, rr * 0.30f, glassPaint,
+        )
+
+        textPaint.textSize = sizePx * 0.27f
+        val baseline = cy - (textPaint.ascent() + textPaint.descent()) / 2f + bodyH * 0.17f
+        canvas.drawText(label, cx, baseline, textPaint)
+    }
+
+    override fun setAlpha(alpha: Int) {}
+    override fun setColorFilter(colorFilter: ColorFilter?) {}
+    @Deprecated("Deprecated in Java")
+    override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+    override fun getIntrinsicWidth(): Int = sizePx
+    override fun getIntrinsicHeight(): Int = sizePx
+}
