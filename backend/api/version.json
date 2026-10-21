@@ -1,8 +1,8 @@
 {
-  "versionCode": 12,
-  "versionName": "1.4.7",
+  "versionCode": 13,
+  "versionName": "1.4.8",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.7 — poprawki prowadzenia i stabilne przystanki",
+  "changelog": "release: android 1.4.8 — autobusy na żywo na mapie",
   "force": false,
-  "publishedAt": "2026-10-21T08:11:14Z"
+  "publishedAt": "2026-10-21T10:15:53Z"
 }
