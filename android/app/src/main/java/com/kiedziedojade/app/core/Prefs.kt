@@ -104,8 +104,13 @@ data class SavedPlace(
     }
 }
 
-/** Zapisane połączenie: skąd → dokąd. */
-data class SavedRoute(val from: SavedPlace, val to: SavedPlace)
+/** Zapisane połączenie: skąd → dokąd i opcjonalna ulubiona godzina odjazdu. */
+data class SavedRoute(
+    val from: SavedPlace,
+    val to: SavedPlace,
+    /** minuty od północy; null = „teraz” */
+    val departMin: Int? = null,
+)
 
 class Prefs(context: Context) {
 
@@ -277,6 +282,17 @@ class Prefs(context: Context) {
         }
     }
 
+    /** Ustawia (albo czyści) godzinę odjazdu zapisanej trasy. */
+    fun setFavoriteRouteTime(route: SavedRoute, departMin: Int?) {
+        favoriteRoutes = favoriteRoutes.map {
+            if (it.from.samePlace(route.from) && it.to.samePlace(route.to)) {
+                it.copy(departMin = departMin)
+            } else {
+                it
+            }
+        }
+    }
+
     /** Add stable stop ids to old saves; safe to call after every data refresh. */
     fun migrateStopIds(world: World) {
         lastFrom = lastFrom?.withStopId(world)
@@ -285,7 +301,10 @@ class Prefs(context: Context) {
         recents = recents.map { it.withStopId(world) }
         if (favoriteRoutes.isNotEmpty()) {
             favoriteRoutes = favoriteRoutes.map {
-                SavedRoute(it.from.withStopId(world), it.to.withStopId(world))
+                it.copy(
+                    from = it.from.withStopId(world),
+                    to = it.to.withStopId(world),
+                )
             }
         }
     }
@@ -347,6 +366,7 @@ class Prefs(context: Context) {
             val o = JSONObject()
             o.put("from", placeJson(r.from))
             o.put("to", placeJson(r.to))
+            r.departMin?.let { o.put("depart_min", it) }
             arr.put(o)
         }
         return arr.toString()
@@ -360,7 +380,12 @@ class Prefs(context: Context) {
                 val o = arr.optJSONObject(i) ?: return@mapNotNull null
                 val from = o.optJSONObject("from")?.let { placeFrom(it) } ?: return@mapNotNull null
                 val to = o.optJSONObject("to")?.let { placeFrom(it) } ?: return@mapNotNull null
-                SavedRoute(from, to)
+                val departMin = if (o.has("depart_min") && !o.isNull("depart_min")) {
+                    o.optInt("depart_min").takeIf { it in 0..1439 }
+                } else {
+                    null
+                }
+                SavedRoute(from, to, departMin = departMin)
             }
         } catch (_: Exception) {
             emptyList()

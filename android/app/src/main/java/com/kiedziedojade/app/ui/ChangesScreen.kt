@@ -231,6 +231,23 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.9",
+                lines = listOf(
+                    t(
+                        "Ulubione trasy mają teraz własną godzinę odjazdu. Dotknij zegara na karcie trasy, wybierz godzinę i zapisz ją — przy ponownym wyszukaniu z Ulubionych od razu użyjemy tej godziny. „Teraz” czyści ustawienie.",
+                        "Favourite routes can now store their own departure time. Tap the clock on a route card, choose a time and save it — opening the route from Favourites will search with that time. “Now” clears the setting.",
+                    ),
+                    t(
+                        "Godzina jest zapisywana osobno dla każdej trasy i pozostaje po restarcie aplikacji. Dotknięcie karty nadal otwiera wyniki; dotknięcie godziny tylko ją zmienia. Jeśli godzina już minęła, pokażemy najbliższy kurs następnego dnia.",
+                        "The time is saved per route and survives app restarts. Tapping the card still opens results; tapping the time only changes it. If the time has already passed, we show the next trip the following day.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.8",
                 lines = listOf(
                     t(

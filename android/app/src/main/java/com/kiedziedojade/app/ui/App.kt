@@ -239,10 +239,10 @@ fun KdApp(
     }
 
     /** Data nie jest wybierana: godzina, która minęła, oznacza jutro. */
-    fun queryFor(f: PlaceRef, d: PlaceRef): JourneyQuery {
+    fun queryAt(f: PlaceRef, d: PlaceRef, minute: Int?): JourneyQuery {
         val dep = com.kiedziedojade.app.core.resolveDeparture(
             java.time.ZonedDateTime.now(com.kiedziedojade.app.core.WARSAW),
-            departMin.takeIf { it >= 0 },
+            minute,
         )
         return JourneyQuery(
             from = f,
@@ -251,6 +251,9 @@ fun KdApp(
             departMin = dep.departMin,
         )
     }
+
+    fun queryFor(f: PlaceRef, d: PlaceRef): JourneyQuery =
+        queryAt(f, d, departMin.takeIf { it >= 0 })
 
     fun setMapStyle(style: MapStyle) {
         mapStyle = style
@@ -550,11 +553,13 @@ fun KdApp(
                                     val f = route.from.toRef(w)
                                     val d = route.to.toRef(w)
                                     if (f != null && d != null) {
+                                        val minute = route.departMin
                                         setFrom(f)
                                         setTo(d)
+                                        departMin = minute ?: -1
                                         stack.clear()
                                         stack += Route.Plan
-                                        stack += Route.Results(queryFor(f, d))
+                                        stack += Route.Results(queryAt(f, d, minute))
                                         tab = 0
                                     } else {
                                         Toast.makeText(

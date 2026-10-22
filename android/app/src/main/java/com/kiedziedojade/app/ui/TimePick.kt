@@ -1,6 +1,8 @@
 package com.kiedziedojade.app.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,6 +29,7 @@ fun TimePickDialog(
     initial: Int?,
     onDismiss: () -> Unit,
     onPick: (Int) -> Unit,
+    onUseNow: (() -> Unit)? = null,
 ) {
     val start = initial ?: nowMinutes()
     val state = rememberTimePickerState(
@@ -58,8 +61,20 @@ fun TimePickDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(t("Anuluj", "Cancel"))
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (onUseNow != null) {
+                    TextButton(
+                        onClick = {
+                            onUseNow()
+                            onDismiss()
+                        },
+                    ) {
+                        Text(t("Teraz", "Now"))
+                    }
+                }
+                TextButton(onClick = onDismiss) {
+                    Text(t("Anuluj", "Cancel"))
+                }
             }
         },
     )
