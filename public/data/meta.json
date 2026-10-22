@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-10-21T10:15:22.573Z",
+  "generatedAt": "2026-10-22T02:51:57.969Z",
   "source": "https://szczecinek.kiedyprzyjedzie.pl (Komunikacja Miejska Szczecinek)",
   "city": "Szczecinek",
   "timezone": "Europe/Warsaw",
   "stopsRevision": 2090,
   "horizon": {
-    "from": "2026-10-21",
+    "from": "2026-10-22",
     "to": "2026-12-31"
   },
   "fingerprints": {
@@ -17,8 +17,8 @@
   "patterns": {
     "p1": {
       "type": "workday",
-      "days": 44,
-      "sampleDay": "2026-10-21"
+      "days": 43,
+      "sampleDay": "2026-10-22"
     },
     "p2": {
       "type": "sat",
@@ -40,5 +40,5 @@
     "stops": 113,
     "trips": 1106
   },
-  "requestCount": 762
+  "requestCount": 757
 }
