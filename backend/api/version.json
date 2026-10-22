@@ -1,8 +1,8 @@
 {
-  "versionCode": 13,
-  "versionName": "1.4.8",
+  "versionCode": 14,
+  "versionName": "1.4.9",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.8 — autobusy na żywo na mapie",
+  "changelog": "release: android 1.4.9 — własne godziny w ulubionych",
   "force": false,
-  "publishedAt": "2026-10-21T10:15:53Z"
+  "publishedAt": "2026-10-22T06:47:13Z"
 }
