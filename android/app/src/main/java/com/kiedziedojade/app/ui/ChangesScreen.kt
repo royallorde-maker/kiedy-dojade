@@ -231,6 +231,23 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.10",
+                lines = listOf(
+                    t(
+                        "Dolna nawigacja i kafelki motywów mieszczą się teraz w 360 dp, a pola trasy pokazują krótsze nazwy miejsc. Przycisk GPS przeniósł się do pola „Skąd”, więc „Znajdź połączenie” widać bez przewijania.",
+                        "Bottom navigation and theme tiles now fit at 360 dp, and route fields use shorter place names. The GPS button moved into the “From” field, so “Find a connection” is visible without scrolling.",
+                    ),
+                    t(
+                        "Komunikaty zwijają się do dwóch linii z „Czytaj dalej”. W angielskiej wersji zniknęły polskie liczby mnogie, a „Moja lokalizacja” tłumaczy się po zmianie języka. Mapa ma mniejsze kropki i bliższy domyślny zoom.",
+                        "Announcements collapse to two lines with “Read more”. English no longer shows Polish plurals, and “My location” retranslates after switching language. The map has smaller dots and a closer default zoom.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.9",
                 lines = listOf(
                     t(
