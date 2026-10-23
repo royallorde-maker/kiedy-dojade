@@ -403,8 +403,21 @@ object Planner {
         val boardings = legs.count { it is RideLeg }
         val firstRideIdx = legs.indexOfFirst { it is RideLeg }
 
+        // Identyfikator trafia do klucza LazyColumn i stanu rozwinięcia.
+        // Sam numer kursu + przystanek startowy nie wystarcza, gdy dwa warianty
+        // różnią się dopiero na przesiadce — składamy go z całej trasy.
+        val itineraryId = buildString {
+            append(pattern).append('-').append(leaveAt).append('-').append(arriveAt)
+            for (leg in legs) {
+                when (leg) {
+                    is RideLeg -> append("-R").append(leg.tripId).append('@').append(leg.boardStop.i)
+                    is WalkLeg -> append("-W").append(leg.minutes)
+                }
+            }
+        }
+
         return Itinerary(
-            id = "$pattern-${runs[0][0].ride?.tripIdx}-${runs[0][0].ride?.from}-$leaveAt",
+            id = itineraryId,
             legs = legs, leaveAt = leaveAt, arriveAt = arriveAt,
             transfers = maxOf(0, boardings - 1), walkMeters = walkMeters, walkMinutes = walkMinutes,
             firstRideLeg = firstRideIdx, pattern = pattern, tag = Tag.BEST.value,

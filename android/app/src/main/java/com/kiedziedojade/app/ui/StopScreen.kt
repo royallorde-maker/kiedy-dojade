@@ -44,6 +44,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.kiedziedojade.app.core.Api
+import com.kiedziedojade.app.core.I18n
 import com.kiedziedojade.app.core.I18n.t
 import com.kiedziedojade.app.core.Planner
 import com.kiedziedojade.app.core.Prefs
@@ -160,7 +161,7 @@ fun StopScreen(
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (stop.onDemand) {
-                            StatusChip("NŻ", MaterialTheme.colorScheme.tertiary)
+                            StatusChip(t("na żądanie", "on request"), MaterialTheme.colorScheme.tertiary)
                             Spacer(Modifier.width(6.dp))
                         }
                         if (embedded) {
@@ -382,8 +383,12 @@ private fun TimetableCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                val stopsLeft = row.trip.times.size - row.seq - 1
                 Text(
-                    t("${row.trip.times.size - row.seq - 1} przyst. do końca", "${row.trip.times.size - row.seq - 1} stops to the end"),
+                    t(
+                        "$stopsLeft przyst. do końca",
+                        "$stopsLeft " + I18n.plural(stopsLeft, "stop", "stops", "stops") + " to the end",
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -1,7 +1,6 @@
 package com.kiedziedojade.app
 
 import android.content.Intent
-import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -57,8 +56,12 @@ class MainActivity : ComponentActivity() {
                     AppTheme.MLEKO -> false
                     else -> true
                 }
-                val bg = if (dark) Color.parseColor("#0A1120") else Color.parseColor("#F1F3F8")
-                window.setBackgroundDrawable(ColorDrawable(bg))
+                val windowTheme = when {
+                    theme != AppTheme.SYSTEM -> theme
+                    systemDark -> AppTheme.MONO
+                    else -> AppTheme.MLEKO
+                }
+                window.setBackgroundDrawable(ColorDrawable(windowTheme.windowBg.toInt()))
                 val controller = WindowCompat.getInsetsController(window, window.decorView)
                 controller.isAppearanceLightStatusBars = !dark
                 controller.isAppearanceLightNavigationBars = !dark

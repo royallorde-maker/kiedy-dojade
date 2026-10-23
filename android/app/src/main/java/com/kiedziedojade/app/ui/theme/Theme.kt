@@ -44,7 +44,7 @@ enum class AppTheme(val label: String, val darkBars: Boolean, val windowBg: Long
     SYSTEM("Systemowy", false, 0xFF0A1120),
     MONO("Mono", true, 0xFF0A1120),
     GRAFIT("Grafit", true, 0xFF131316),
-    MLEKO("Mleko", false, 0xFFF1F1EC),
+    MLEKO("Mleko", false, 0xFFF1F3F8),
     CANDY("Cukierek", true, 0xFF1A0E14),
     BURSZTYN("Bursztyn", true, 0xFF171208),
     LAS("Las", true, 0xFF0C1510),

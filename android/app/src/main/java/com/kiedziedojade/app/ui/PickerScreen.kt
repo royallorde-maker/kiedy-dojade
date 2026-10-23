@@ -215,7 +215,8 @@ private fun SavedRow(
         "stop" -> (place.toRef(world) as? PlaceRef.StopRef)?.let { ref ->
             world.stops.getOrNull(ref.index)
         }?.let {
-            t("Przystanek ", "Stop ") + it.code + if (it.onDemand) " · NŻ" else ""
+            t("Przystanek ", "Stop ") + it.code +
+                if (it.onDemand) t(" · na żądanie", " · on request") else ""
         }
         "poi" -> poiKindLabel(place.pkind ?: "")
         "point" -> if (place.lat != null && place.lng != null) {
@@ -243,7 +244,8 @@ private fun ResultRow(world: World, prefs: Prefs, item: SearchItem, onPick: (Pla
         else -> kindIcon(item.pkind)
     }
     val sub = when (item.kind) {
-        "stop" -> t("Przystanek ", "Stop ") + item.code + if (item.onDemand) " · NŻ" else ""
+        "stop" -> t("Przystanek ", "Stop ") + item.code +
+            if (item.onDemand) t(" · na żądanie", " · on request") else ""
         "street" -> t("ulica", "street")
         else -> poiKindLabel(item.pkind ?: "")
     }

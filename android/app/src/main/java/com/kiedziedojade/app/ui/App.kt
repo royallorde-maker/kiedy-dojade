@@ -396,13 +396,15 @@ fun KdApp(
                             selected = tab == 3,
                             onClick = { tab = 3 },
                             icon = { Icon(Icons.Filled.Star, contentDescription = null) },
-                            label = { Text(t("Ulubione", "Favourites")) },
+                            // „Favourites” łamie się na dwie linie przy 360 dp.
+                            label = { Text(t("Ulubione", "Saved")) },
                         )
                         NavigationBarItem(
                             selected = tab == 4,
                             onClick = { tab = 4 },
                             icon = { Icon(Icons.Filled.Tune, contentDescription = null) },
-                            label = { Text(t("Ustawienia", "Settings")) },
+                            // „Ustawienia” nie mieści się w piątej zakładce przy 360 dp.
+                            label = { Text(t("Opcje", "Options")) },
                         )
                     }
                 },

@@ -30,10 +30,39 @@ object I18n {
         }
     }
 
-    fun stops(n: Int) = plural(n, "przystanek", "przystanki", "przystanków")
-    fun trips(n: Int) = plural(n, "kurs", "kursy", "kursów")
-    fun transfers(n: Int) = plural(n, "przesiadka", "przesiadki", "przesiadek")
-    fun stopsShort(n: Int) = plural(n, "przystanek", "przystanki", "przystanków")
-    fun minutes(n: Int) = if (pl) plural(n, "minuta", "minuty", "minut") else plural(n, "minute", "minutes", "minutes")
-    fun rides(n: Int) = plural(n, "autobus", "autobusy", "autobusów")
+    fun stops(n: Int) = if (pl) {
+        plural(n, "przystanek", "przystanki", "przystanków")
+    } else {
+        plural(n, "stop", "stops", "stops")
+    }
+
+    fun trips(n: Int) = if (pl) {
+        plural(n, "kurs", "kursy", "kursów")
+    } else {
+        plural(n, "trip", "trips", "trips")
+    }
+
+    fun transfers(n: Int) = if (pl) {
+        plural(n, "przesiadka", "przesiadki", "przesiadek")
+    } else {
+        plural(n, "change", "changes", "changes")
+    }
+
+    fun stopsShort(n: Int) = if (pl) {
+        plural(n, "przystanek", "przystanki", "przystanków")
+    } else {
+        plural(n, "stop", "stops", "stops")
+    }
+
+    fun minutes(n: Int) = if (pl) {
+        plural(n, "minuta", "minuty", "minut")
+    } else {
+        plural(n, "minute", "minutes", "minutes")
+    }
+
+    fun rides(n: Int) = if (pl) {
+        plural(n, "autobus", "autobusy", "autobusów")
+    } else {
+        plural(n, "bus", "buses", "buses")
+    }
 }

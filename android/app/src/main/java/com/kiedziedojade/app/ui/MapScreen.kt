@@ -138,8 +138,8 @@ fun MapScreen(
     val fillSelected = scheme.tertiary.toArgb()
     val ring = scheme.onPrimary.toArgb()
     val ringPx = with(density) { 2.dp.roundToPx() }
-    val dotNormal = with(density) { 13.dp.roundToPx() }
-    val dotSelected = with(density) { 19.dp.roundToPx() }
+    val dotNormal = with(density) { 11.dp.roundToPx() }
+    val dotSelected = with(density) { 17.dp.roundToPx() }
     val userPx = with(density) { 16.dp.roundToPx() }
     val userFill = scheme.tertiary.toArgb()
     val selectedBusRing = scheme.tertiary.toArgb()
@@ -157,7 +157,8 @@ fun MapScreen(
                     setBuiltInZoomControls(false) // pinch/2×tap i własne +/−
                     minZoomLevel = 10.0
                     maxZoomLevel = MapTiles.MAX_ZOOM.toDouble()
-                    controller.setZoom(13.5)
+                    // 14 zamiast 13,5 — mniej kropek naraz, miasto nadal w kadrze.
+                    controller.setZoom(14.0)
                     controller.setCenter(center)
                     holder.map = this
                     if (!mapReady) mapReady = true

@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsBus
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
-import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Navigation
@@ -63,6 +62,7 @@ import com.kiedziedojade.app.core.routedPaths
 import com.kiedziedojade.app.core.matchLiveRide
 import com.kiedziedojade.app.core.todayStr
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 @Composable
@@ -107,8 +107,13 @@ fun ResultsScreen(
         }
         val o = outcome ?: return@LaunchedEffect
         val first = o.itineraries.firstOrNull()?.firstRide ?: return@LaunchedEffect
-        live = runCatching { Api.stopBoard(first.boardStop.id) }.getOrNull()
-            ?.let { matchLiveRide(it, first) }
+        // opóźnienia zmieniają się w czasie — odświeżamy je po cichu, dopóki
+        // ekran jest otwarty, zamiast pokazywać stan z chwili wejścia
+        while (true) {
+            live = runCatching { Api.stopBoard(first.boardStop.id) }.getOrNull()
+                ?.let { matchLiveRide(it, first) }
+            delay(30_000)
+        }
     }
 
     val o = outcome
@@ -122,7 +127,8 @@ fun ResultsScreen(
             Column(modifier = Modifier.padding(horizontal = 4.dp)) {
                 ScreenHeader(
                     title = t("Połączenia", "Connections"),
-                    subtitle = query.from.name + "  →  " + query.to.name + "  ·  " +
+                    subtitle = compactPlaceName(query.from.name) + "  →  " +
+                        compactPlaceName(query.to.name) + "  ·  " +
                         relativeDay(query.serviceDate) + " " + fmtTime(query.departMin),
                     onBack = onBack,
                     below = if (o != null) {
@@ -194,12 +200,12 @@ fun ResultsScreen(
             if (o.itineraries.isEmpty()) {
                 item {
                     EmptyState(
-                        icon = Icons.Filled.EventBusy,
+                        icon = Icons.Filled.DirectionsBus,
                         title = t("Brak połączeń autobusem", "No bus connections"),
                         text = if (o.walkOnly != null) {
                             t(
                                 "W tym momencie żadna linia nie jedzie w stronę celu — zostaje spacer.",
-                                "No line heads your way right now — walking is the option.",
+                                "No bus goes that way right now — walking is your best bet.",
                             )
                         } else {
                             t(
@@ -323,16 +329,16 @@ private fun ItineraryCard(
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (isBest) {
-                    StatusChip(t("NAJLEPSZE", "BEST"), MaterialTheme.colorScheme.primary)
+                    StatusChip(t("Najlepsza", "Best"), MaterialTheme.colorScheme.primary)
                 }
                 when (it.tag) {
                     Tag.FEWER_TRANSFERS.value -> StatusChip(
-                        t("MNIEJ PRZESIADEK", "FEWER CHANGES"),
+                        t("Mniej przesiadek", "Fewer changes"),
                         MaterialTheme.colorScheme.tertiary,
                     )
 
                     Tag.NEXT.value -> StatusChip(
-                        t("KOLEJNE", "NEXT"),
+                        t("Później", "Later"),
                         MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -493,8 +499,12 @@ private fun LegRowRide(
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Medium,
                 )
+                val rideStops = leg.stops.size - 1
                 Text(
-                    t("${leg.stops.size - 1} przyst.", "${leg.stops.size - 1} stops"),
+                    t(
+                        "$rideStops przyst.",
+                        "$rideStops " + I18n.plural(rideStops, "stop", "stops", "stops"),
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -50,6 +50,7 @@ import com.kiedziedojade.app.core.isoToDate
 import com.kiedziedojade.app.core.todayStr
 import kotlinx.coroutines.delay
 import java.time.LocalDate
+import java.time.LocalTime
 
 /** Wejście „karta po karcie” — jak w reszcie apki. */
 @Composable
@@ -97,6 +98,41 @@ fun relativeDay(iso: String, today: String = todayStr()): String {
         base.plusDays(1) -> t("Jutro", "Tomorrow")
         base.minusDays(1) -> t("Wczoraj", "Yesterday")
         else -> fmtDate(iso, I18n.pl)
+    }
+}
+
+/**
+ * Krótsza nazwa miejsca do wąskich pól: „Sikorskiego/ Dworzec PKP” →
+ * „Dworzec PKP”, „DWORCOWA (DW. KOLEJOWY)” → „Dworcowa”. Pełna nazwa
+ * zostaje w danych i na tablicy przystanku.
+ */
+fun compactPlaceName(raw: String): String {
+    // Etykiety pozycji są zapisywane razem z trasą, więc po zmianie języka
+    // trzeba je przetłumaczyć na bieżąco.
+    when (raw) {
+        "Moja lokalizacja", "My location" -> return t("Moja lokalizacja", "My location")
+        "Punkt na mapie", "Map point" -> return t("Punkt na mapie", "Map point")
+    }
+    val afterSlash = raw.substringAfterLast('/', "").trim()
+    val base = afterSlash.ifEmpty { raw }
+    val short = base.substringBefore('(').trim().ifEmpty { base }
+    val shouty = short.length > 2 &&
+        short.none { it.isLowerCase() } &&
+        short.all { it.isLetter() || it.isDigit() || it.isWhitespace() || it == '-' }
+    return if (shouty) {
+        short.lowercase().replaceFirstChar { it.titlecase() }
+    } else {
+        short
+    }
+}
+
+/** "Dzień dobry" / "Cześć" / "Dobry wieczór" — drobiazg, który brzmi jak człowiek. */
+fun greetingPrefix(): String {
+    val hour = runCatching { LocalTime.now().hour }.getOrDefault(12)
+    return when (hour) {
+        in 5..11 -> t("Dzień dobry", "Good morning")
+        in 12..17 -> t("Cześć", "Hello")
+        else -> t("Dobry wieczór", "Good evening")
     }
 }
 
@@ -210,7 +246,10 @@ fun ScreenHeader(
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         if (onBack != null) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "wstecz")
+                Icon(
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = t("wstecz", "back"),
+                )
             }
             Spacer(Modifier.width(2.dp))
         } else {

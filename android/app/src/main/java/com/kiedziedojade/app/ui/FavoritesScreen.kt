@@ -126,7 +126,7 @@ private fun FavoriteRouteCard(
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    route.from.name + "  →  " + route.to.name,
+                    compactPlaceName(route.from.name) + "  →  " + compactPlaceName(route.to.name),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                     maxLines = 2,
