@@ -1,8 +1,8 @@
 {
-  "versionCode": 14,
-  "versionName": "1.4.9",
+  "versionCode": 15,
+  "versionName": "1.4.10",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.9 — własne godziny w ulubionych",
+  "changelog": "release: android 1.4.10 — czytelniejszy interfejs i poprawki tłumaczeń",
   "force": false,
-  "publishedAt": "2026-10-22T06:47:13Z"
+  "publishedAt": "2026-10-23T22:11:31Z"
 }
