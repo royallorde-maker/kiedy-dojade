@@ -34,6 +34,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -315,7 +316,10 @@ fun KdApp(
         val res = repo.refresh()
         res.world?.let { world = it }
         dataNote = when {
-            res.error != null -> t("Nie udało się odświeżyć danych: ", "Could not refresh data: ") + res.error
+            res.error != null -> t(
+                "Nie udało się odświeżyć danych — używana jest kopia lokalna.",
+                "Couldn't refresh data — using the local copy.",
+            )
             res.changed -> t("Dane rozkładowe zaktualizowane", "Schedule data updated")
             else -> null
         }
@@ -328,7 +332,10 @@ fun KdApp(
                 val res = repo.refresh(force = true)
                 res.world?.let { world = it }
                 dataNote = when {
-                    res.error != null -> t("Błąd odświeżania: ", "Refresh error: ") + res.error
+                    res.error != null -> t(
+                        "Nie udało się odświeżyć danych. Spróbuj ponownie później.",
+                        "Couldn't refresh the data. Try again later.",
+                    )
                     else -> t("Dane rozkładowe zaktualizowane", "Schedule data updated")
                 }
                 refreshing = false
@@ -373,28 +380,42 @@ fun KdApp(
         } else {
             Scaffold(
                 bottomBar = {
-                    NavigationBar {
+                    val navColors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        tonalElevation = 0.dp,
+                    ) {
                         NavigationBarItem(
                             selected = tab == 0,
                             onClick = { tab = 0 },
+                            colors = navColors,
                             icon = { Icon(Icons.Filled.Search, contentDescription = null) },
                             label = { Text(t("Szukaj", "Plan")) },
                         )
                         NavigationBarItem(
                             selected = tab == 1,
                             onClick = { tab = 1 },
+                            colors = navColors,
                             icon = { Icon(Icons.Filled.DirectionsBus, contentDescription = null) },
                             label = { Text(t("Tablica", "Board")) },
                         )
                         NavigationBarItem(
                             selected = tab == 2,
                             onClick = { tab = 2 },
+                            colors = navColors,
                             icon = { Icon(Icons.Filled.Map, contentDescription = null) },
                             label = { Text(t("Mapa", "Map")) },
                         )
                         NavigationBarItem(
                             selected = tab == 3,
                             onClick = { tab = 3 },
+                            colors = navColors,
                             icon = { Icon(Icons.Filled.Star, contentDescription = null) },
                             // „Favourites” łamie się na dwie linie przy 360 dp.
                             label = { Text(t("Ulubione", "Saved")) },
@@ -402,6 +423,7 @@ fun KdApp(
                         NavigationBarItem(
                             selected = tab == 4,
                             onClick = { tab = 4 },
+                            colors = navColors,
                             icon = { Icon(Icons.Filled.Tune, contentDescription = null) },
                             // „Ustawienia” nie mieści się w piątej zakładce przy 360 dp.
                             label = { Text(t("Opcje", "Options")) },
@@ -445,7 +467,7 @@ fun KdApp(
                                                 } else {
                                                     Toast.makeText(
                                                         context,
-                                                        t("Nie udało się ustalić lokalizacji", "Could not get the location"),
+                                                        requestLocation.errorText(),
                                                         Toast.LENGTH_SHORT,
                                                     ).show()
                                                 }
@@ -635,7 +657,7 @@ fun KdApp(
                             } else {
                                 Toast.makeText(
                                     context,
-                                    t("Nie udało się ustalić lokalizacji", "Could not get the location"),
+                                    requestLocation.errorText(),
                                     Toast.LENGTH_SHORT,
                                 ).show()
                             }
@@ -854,6 +876,24 @@ class LocationRequester(
         } else {
             cb?.invoke(null)
         }
+    }
+
+    /** Konkretna przyczyna zamiast jednego ogólnego „nie udało się”. */
+    fun errorText(): String = when {
+        !locator.hasPermission() -> t(
+            "Brak zgody na lokalizację — włącz ją w ustawieniach telefonu.",
+            "No location permission — enable it in your phone settings.",
+        )
+
+        !locator.locationEnabled() -> t(
+            "Lokalizacja w telefonie jest wyłączona — włącz GPS i spróbuj ponownie.",
+            "Location is off on your phone — turn on GPS and try again.",
+        )
+
+        else -> t(
+            "Nie udało się ustalić pozycji. Spróbuj ponownie, najlepiej na zewnątrz.",
+            "Could not get a location fix. Try again, ideally outdoors.",
+        )
     }
 }
 

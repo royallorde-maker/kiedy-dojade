@@ -242,8 +242,9 @@ fun ScreenHeader(
     onBack: (() -> Unit)? = null,
     below: @Composable (() -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
+    large: Boolean = false,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+    Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
         if (onBack != null) {
             IconButton(onClick = onBack) {
                 Icon(
@@ -252,11 +253,17 @@ fun ScreenHeader(
                 )
             }
             Spacer(Modifier.width(2.dp))
-        } else {
-            Spacer(Modifier.width(4.dp))
         }
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(
+                title,
+                style = if (large) {
+                    MaterialTheme.typography.headlineMedium
+                } else {
+                    MaterialTheme.typography.headlineSmall
+                },
+                fontWeight = FontWeight.Bold,
+            )
             if (subtitle != null) {
                 Text(
                     subtitle,

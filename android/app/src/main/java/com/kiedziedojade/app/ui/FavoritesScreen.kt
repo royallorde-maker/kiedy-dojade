@@ -51,13 +51,14 @@ fun FavoritesScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 20.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
             ScreenHeader(
                 title = t("Ulubione", "Favourites"),
                 subtitle = t("Twoje zapisane trasy i godziny", "Your saved routes and times"),
+                large = true,
             )
         }
 
@@ -106,22 +107,15 @@ private fun FavoriteRouteCard(
     onPickTime: () -> Unit,
     onRemove: () -> Unit,
 ) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onOpen),
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-    ) {
+    KdCard(onClick = onOpen) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(start = 14.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
         ) {
             Icon(
                 Icons.Filled.Route,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(26.dp),
+                modifier = Modifier.size(24.dp),
             )
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -133,21 +127,10 @@ private fun FavoriteRouteCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    FavoriteTimeChip(
-                        departMin = route.departMin,
-                        onClick = onPickTime,
-                    )
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        t("Dotknij, aby wyszukać", "Tap to search"),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                FavoriteTimeChip(
+                    departMin = route.departMin,
+                    onClick = onPickTime,
+                )
             }
             IconButton(onClick = onRemove) {
                 Icon(

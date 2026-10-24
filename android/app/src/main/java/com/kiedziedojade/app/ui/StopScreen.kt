@@ -145,7 +145,7 @@ fun StopScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 24.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {

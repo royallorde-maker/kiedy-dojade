@@ -241,6 +241,7 @@ fun MapScreen(
                         sizePx = if (isSel) dotSelected else dotNormal,
                     )
                     title = stop.name
+                    infoWindow = null
                     relatedObject = idx
                     setOnMarkerClickListener { _, _ ->
                         selected = idx
@@ -302,6 +303,7 @@ fun MapScreen(
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                 icon = DotDrawable(userFill, ring, ringPx, userPx)
                 title = t("Moja lokalizacja", "My location")
+                infoWindow = null
                 position = GeoPoint(fix.first, fix.second)
                 holder.userMarker = this
                 map.overlays.add(this)
@@ -405,6 +407,7 @@ fun MapScreen(
                         )
                         title = t("Autobus linii ", "Line ") + bus.line
                         snippet = bus.nextStopName
+                        infoWindow = null
                         relatedObject = bus.executionId
                         setOnMarkerClickListener { _, _ ->
                             selectedBusId = bus.executionId
@@ -424,39 +427,45 @@ fun MapScreen(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxWidth()
-                .padding(top = 10.dp),
+                .padding(start = 12.dp, end = 12.dp, top = 10.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                LazyRow(
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = scheme.surfaceContainer.copy(alpha = 0.95f),
+                    shadowElevation = 2.dp,
                     modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(start = 12.dp, end = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    item(key = "all") {
-                        MapChip(
-                            label = t("Wszystkie", "All"),
-                            selected = line == null,
-                            color = scheme.primary,
-                            onClick = {
-                                line = null
-                                selectedBusId = null
-                            },
-                        )
-                    }
-                    items(index.lines, key = { "l$it" }) { l ->
-                        MapChip(
-                            label = l,
-                            selected = line == l,
-                            color = lineColor(l),
-                            onClick = {
-                                line = if (line == l) null else l
-                                selectedBusId = null
-                            },
-                        )
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        item(key = "all") {
+                            MapChip(
+                                label = t("Wszystkie", "All"),
+                                selected = line == null,
+                                color = scheme.primary,
+                                onClick = {
+                                    line = null
+                                    selectedBusId = null
+                                },
+                            )
+                        }
+                        items(index.lines, key = { "l$it" }) { l ->
+                            MapChip(
+                                label = l,
+                                selected = line == l,
+                                color = lineColor(l),
+                                onClick = {
+                                    line = if (line == l) null else l
+                                    selectedBusId = null
+                                },
+                            )
+                        }
                     }
                 }
+                Spacer(Modifier.width(8.dp))
                 SmallFloatingActionButton(
-                    modifier = Modifier.padding(end = 12.dp),
                     onClick = {
                         requester.request { fix ->
                             if (fix != null) {
@@ -470,7 +479,7 @@ fun MapScreen(
                             } else {
                                 Toast.makeText(
                                     context,
-                                    t("Nie udało się ustalić lokalizacji", "Could not get the location"),
+                                    requester.errorText(),
                                     Toast.LENGTH_SHORT,
                                 ).show()
                             }
@@ -481,7 +490,7 @@ fun MapScreen(
                 }
             }
             MapAttribution(
-                modifier = Modifier.padding(start = 12.dp, top = 6.dp),
+                modifier = Modifier.padding(start = 4.dp, top = 6.dp),
                 style = mapStyle,
             )
             if (line != null && online) {
@@ -496,7 +505,7 @@ fun MapScreen(
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = scheme.surfaceContainer.copy(alpha = 0.92f),
-                    modifier = Modifier.padding(start = 12.dp, top = 8.dp),
+                    modifier = Modifier.padding(start = 4.dp, top = 6.dp),
                 ) {
                     Text(
                         liveText,
@@ -514,7 +523,7 @@ fun MapScreen(
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = scheme.surfaceContainer.copy(alpha = 0.92f),
-                    modifier = Modifier.padding(start = 12.dp, top = 8.dp),
+                    modifier = Modifier.padding(start = 4.dp, top = 6.dp),
                 ) {
                     Text(
                         t("Mapa wymaga internetu — rozkłady działają offline", "Map needs internet — schedules work offline"),
@@ -547,21 +556,21 @@ fun MapScreen(
                 onClose = { selectedBusId = null },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(start = 12.dp, end = 12.dp, bottom = 32.dp)
+                    .padding(start = 12.dp, end = 12.dp, bottom = 16.dp)
                     .fillMaxWidth(),
             )
         } else if (sel != null) {
             val stop = world.stops[sel]
             Surface(
-                shape = RoundedCornerShape(22.dp),
+                shape = RoundedCornerShape(20.dp),
                 color = scheme.surfaceContainer,
-                shadowElevation = 8.dp,
+                shadowElevation = 6.dp,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(start = 12.dp, end = 12.dp, bottom = 32.dp)
+                    .padding(start = 12.dp, end = 12.dp, bottom = 16.dp)
                     .fillMaxWidth(),
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
                             val (first, second) = stop.nameParts
@@ -652,19 +661,19 @@ private fun MapChip(label: String, selected: Boolean, color: Color, onClick: () 
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(50),
-        color = if (selected) color else scheme.surfaceContainerHigh.copy(alpha = 0.92f),
+        color = if (selected) color else scheme.surfaceContainerLowest,
         contentColor = if (selected) {
             if (color.luminance() > 0.55f) Color(0xFF11151C) else Color.White
         } else {
             scheme.onSurfaceVariant
         },
-        shadowElevation = 2.dp,
+        shadowElevation = 0.dp,
     ) {
         Text(
             label,
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.labelMedium,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
         )
     }
 }
@@ -680,12 +689,12 @@ private fun LiveBusCard(
 ) {
     val scheme = MaterialTheme.colorScheme
     Surface(
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(20.dp),
         color = scheme.surfaceContainer,
-        shadowElevation = 8.dp,
+        shadowElevation = 6.dp,
         modifier = modifier,
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 LineChip(bus.line, big = true)
                 Spacer(Modifier.width(10.dp))

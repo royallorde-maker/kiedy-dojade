@@ -75,23 +75,16 @@ fun SettingsScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
             Appear(0) {
-                Column {
-                    Text(
-                        t("Ustawienia", "Settings"),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        t("Motyw, mapa, język i dane", "Theme, map, language and data"),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                ScreenHeader(
+                    title = t("Ustawienia", "Settings"),
+                    subtitle = t("Motyw, mapa, język i dane", "Theme, map, language and data"),
+                    large = true,
+                )
             }
         }
 
@@ -113,11 +106,13 @@ fun SettingsScreen(
                             )
                             Text(
                                 t(
-                                    "Wersja " + BuildConfig.VERSION_NAME + " · sprawdź lub zobacz historię",
-                                    "Version " + BuildConfig.VERSION_NAME + " · check or view history",
+                                    "Wersja " + BuildConfig.VERSION_NAME + " · historia zmian",
+                                    "Version " + BuildConfig.VERSION_NAME + " · release history",
                                 ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                         Icon(
@@ -353,7 +348,7 @@ private fun DataLine(label: String, value: String) {
             label,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(128.dp),
+            modifier = Modifier.width(112.dp),
         )
         Text(
             value,
@@ -399,8 +394,8 @@ private fun ThemeOption(
 ) {
     val scheme = schemeFor(theme)
     Surface(
-        modifier = modifier.heightIn(min = 58.dp),
-        shape = RoundedCornerShape(16.dp),
+        modifier = modifier.heightIn(min = 54.dp),
+        shape = RoundedCornerShape(14.dp),
         color = if (selected) {
             MaterialTheme.colorScheme.primaryContainer
         } else {
@@ -410,7 +405,7 @@ private fun ThemeOption(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
         ) {
             Box {
                 ThemeSwatch(
@@ -452,10 +447,10 @@ private fun ThemeOption(
 
 @Composable
 private fun ThemeSwatch(background: Color, accent: Color, ring: Color) {
-    Box(modifier = Modifier.size(24.dp)) {
+    Box(modifier = Modifier.size(22.dp)) {
         Box(
             modifier = Modifier
-                .size(22.dp)
+                .size(20.dp)
                 .background(background, CircleShape)
                 .border(1.dp, ring, CircleShape),
         )
@@ -463,7 +458,7 @@ private fun ThemeSwatch(background: Color, accent: Color, ring: Color) {
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .offset(x = (-1).dp, y = (-1).dp)
-                .size(9.dp)
+                .size(8.dp)
                 .background(accent, CircleShape),
         )
     }

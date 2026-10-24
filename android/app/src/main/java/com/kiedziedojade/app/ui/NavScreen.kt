@@ -536,7 +536,7 @@ fun NavScreen(
                 shadowElevation = 6.dp,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Column(modifier = Modifier.padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 4.dp)) {
+                Column(modifier = Modifier.padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 10.dp)) {
                     Row(verticalAlignment = Alignment.Top) {
                         LegDot(instruction.icon, instruction.accent)
                         Spacer(Modifier.width(12.dp))
@@ -592,7 +592,7 @@ fun NavScreen(
                         }
                         Column(
                             horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             if (chipLine != null && !state.finished) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -605,19 +605,31 @@ fun NavScreen(
                                     LineChip(chipLine)
                                 }
                             }
-                        }
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Spacer(Modifier.weight(1f))
-                        if (gTarget != null) {
-                            TextButton(onClick = { openGoogleMapsNav(context, gTarget.first, gTarget.second) }) {
-                                Icon(
-                                    Icons.Filled.Navigation,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                Text(t("Google Maps", "Google Maps"), style = MaterialTheme.typography.labelLarge)
+                            if (gTarget != null) {
+                                Surface(
+                                    onClick = {
+                                        openGoogleMapsNav(context, gTarget.first, gTarget.second)
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = scheme.primaryContainer,
+                                    contentColor = scheme.onPrimaryContainer,
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                                    ) {
+                                        Icon(
+                                            Icons.Filled.Navigation,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(15.dp),
+                                        )
+                                        Text(
+                                            t("Google Maps", "Google Maps"),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            maxLines = 1,
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -655,6 +667,8 @@ fun NavScreen(
                             Text(
                                 if (state.finished) {
                                     t("jesteś na miejscu", "you are there")
+                                } else if (leftMin <= 0) {
+                                    t("za chwilę", "any moment")
                                 } else {
                                     t("za ", "in ") + leftMin + " " + I18n.minutesAfter(leftMin)
                                 },

@@ -231,6 +231,27 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.15",
+                lines = listOf(
+                    t(
+                        "Cała aplikacja ma teraz spokojniejszy, bardziej spójny wygląd: karty lepiej odcinają się od tła, nagłówki i marginesy są wspólne, a przyciski wyboru używają łagodnego błękitu zamiast wielu mocnych akcentów.",
+                        "The whole app now looks calmer and more consistent: cards stand out from the background, headers and margins match, and selection buttons use a soft blue instead of many strong accents.",
+                    ),
+                    t(
+                        "Mapa: lżejszy pasek filtrów linii, kompaktowa karta przystanku i autobusu oraz przycisk lokalizacji obok filtrów. Ulubione, ustawienia i tablica dostały krótsze, czytelniejsze karty.",
+                        "Map: a lighter line-filter bar, a compact stop and bus card, and a locate button next to the filters. Saved routes, settings and the board got shorter, clearer cards.",
+                    ),
+                    t(
+                        "Prowadzenie: niższa karta, Google Maps obok linii i „za chwilę” zamiast „za 0 minut”. Poza Szczecinkiem aplikacja od razu wyjaśnia, że obsługuje tylko autobusy miejskie w Szczecinku — GPS działa, ale nie ma tam przystanków z naszego rozkładu. Komunikaty o lokalizacji i odświeżaniu danych są teraz konkretniejsze.",
+                        "Navigation: a shorter card, Google Maps next to the line, and “in a moment” instead of “in 0 minutes”. Outside Szczecinek the app now explains that it only covers Szczecinek city buses — GPS works, but there are no stops from our timetable there. Location and data-refresh messages are now more specific.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.14",
                 lines = listOf(
                     t(

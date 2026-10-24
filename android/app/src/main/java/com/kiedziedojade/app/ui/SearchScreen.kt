@@ -58,6 +58,7 @@ import com.kiedziedojade.app.core.World
 import com.kiedziedojade.app.core.buildIndex
 import com.kiedziedojade.app.core.firstStopItem
 import com.kiedziedojade.app.core.fmtTime
+import com.kiedziedojade.app.core.isOutsideCoverage
 import com.kiedziedojade.app.core.resolveDeparture
 import com.kiedziedojade.app.update.rememberIsOnline
 import java.time.ZonedDateTime
@@ -81,6 +82,7 @@ fun SearchScreen(
 ) {
     val online = rememberIsOnline()
     val index = remember(world) { buildIndex(world) }
+    val outsideCoverage = isOutsideCoverage(world, from) || isOutsideCoverage(world, to)
     // Zapytanie zostaje po polsku (tak nazywają się przystanki), a etykieta
     // jest krótka i tłumaczona — dzięki temu kafelki nie ucinają nazw ulic.
     val quick = listOf(
@@ -99,33 +101,30 @@ fun SearchScreen(
     ) {
         item {
             Appear(0) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "KiedyDojadę",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            greetingPrefix() + t("! Dokąd jedziemy?", "! Where are we going?"),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                ScreenHeader(
+                    title = "KiedyDojadę",
+                    subtitle = greetingPrefix() + t("! Dokąd jedziemy?", "! Where are we going?"),
+                    below = {
                         Text(
                             t("Szczecinek · autobusy miejskie", "Szczecinek · city buses"),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             letterSpacing = 0.6.sp,
                         )
-                    }
-                    if (!online) {
-                        StatusChip(
-                            t("Brak sieci", "No network"),
-                            color = MaterialTheme.colorScheme.error,
-                            icon = Icons.Filled.WifiOff,
-                        )
-                    }
-                }
+                    },
+                    trailing = if (!online) {
+                        {
+                            StatusChip(
+                                t("Brak sieci", "No network"),
+                                color = MaterialTheme.colorScheme.error,
+                                icon = Icons.Filled.WifiOff,
+                            )
+                        }
+                    } else {
+                        null
+                    },
+                    large = true,
+                )
             }
         }
 
@@ -212,6 +211,18 @@ fun SearchScreen(
                                     fmtTime(dep.departMin),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(start = 2.dp),
+                            )
+                        }
+                        if (outsideCoverage) {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                t(
+                                    "Ta trasa jest poza Szczecinkiem — aplikacja obsługuje tylko autobusy miejskie w Szczecinku.",
+                                    "This route is outside Szczecinek — the app only covers Szczecinek city buses.",
+                                ),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.padding(start = 2.dp),
                             )
                         }

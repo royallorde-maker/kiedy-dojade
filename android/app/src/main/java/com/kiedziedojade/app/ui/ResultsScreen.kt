@@ -56,6 +56,7 @@ import com.kiedziedojade.app.core.World
 import com.kiedziedojade.app.core.fmtDuration
 import com.kiedziedojade.app.core.fmtMeters
 import com.kiedziedojade.app.core.fmtTime
+import com.kiedziedojade.app.core.isOutsideCoverage
 import com.kiedziedojade.app.core.RoutedPaths
 import com.kiedziedojade.app.core.itinerarySegments
 import com.kiedziedojade.app.core.routedPaths
@@ -83,6 +84,9 @@ fun ResultsScreen(
     var outcome by remember(query, worldRev) { mutableStateOf<PlanOutcome?>(null) }
     var expanded by remember(query, worldRev) { mutableStateOf<String?>(null) }
     val isToday = query.serviceDate == todayStr()
+    val outsideCoverage = remember(world, query) {
+        isOutsideCoverage(world, query.from) || isOutsideCoverage(world, query.to)
+    }
 
     LaunchedEffect(query, worldRev) {
         outcome = withContext(Dispatchers.Default) {
@@ -120,45 +124,62 @@ fun ResultsScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 20.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
-            Column(modifier = Modifier.padding(horizontal = 4.dp)) {
-                ScreenHeader(
-                    title = t("Połączenia", "Connections"),
-                    subtitle = compactPlaceName(query.from.name) + "  →  " +
-                        compactPlaceName(query.to.name) + "  ·  " +
-                        relativeDay(query.serviceDate) + " " + fmtTime(query.departMin),
-                    onBack = onBack,
-                    below = if (o != null) {
-                        { PatternLine(o.patternType, o.exactDay) }
-                    } else {
-                        null
-                    },
-                    trailing = if (onToggleFavorite != null) {
-                        {
-                            IconButton(onClick = onToggleFavorite) {
-                                Icon(
-                                    if (isFavorite) Icons.Filled.Star else Icons.Filled.StarBorder,
-                                    contentDescription = if (isFavorite) {
-                                        t("Usuń z ulubionych", "Remove from favourites")
-                                    } else {
-                                        t("Dodaj do ulubionych", "Add to favourites")
-                                    },
-                                    tint = if (isFavorite) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                                )
+            ScreenHeader(
+                title = t("Połączenia", "Connections"),
+                subtitle = compactPlaceName(query.from.name) + "  →  " +
+                    compactPlaceName(query.to.name),
+                onBack = onBack,
+                below = {
+                    val title = buildString {
+                        append(relativeDay(query.serviceDate))
+                        append(' ')
+                        append(fmtTime(query.departMin))
+                        o?.let {
+                            append("  ·  ")
+                            append(patternLabel(it.patternType))
+                            if (!it.exactDay) {
+                                append(" (")
+                                append(t("wg dnia tygodnia", "by weekday"))
+                                append(')')
                             }
                         }
-                    } else {
-                        null
-                    },
-                )
-            }
+                    }
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (o != null && !o.exactDay) {
+                            MaterialTheme.colorScheme.tertiary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                },
+                trailing = if (onToggleFavorite != null) {
+                    {
+                        IconButton(onClick = onToggleFavorite) {
+                            Icon(
+                                if (isFavorite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                                contentDescription = if (isFavorite) {
+                                    t("Usuń z ulubionych", "Remove from favourites")
+                                } else {
+                                    t("Dodaj do ulubionych", "Add to favourites")
+                                },
+                                tint = if (isFavorite) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                            )
+                        }
+                    }
+                } else {
+                    null
+                },
+            )
         }
 
         if (!isToday) {
@@ -201,14 +222,23 @@ fun ResultsScreen(
                 item {
                     EmptyState(
                         icon = Icons.Filled.DirectionsBus,
-                        title = t("Brak połączeń autobusem", "No bus connections"),
-                        text = if (o.walkOnly != null) {
-                            t(
+                        title = if (outsideCoverage) {
+                            t("Poza zasięgiem rozkładu", "Outside the timetable area")
+                        } else {
+                            t("Brak połączeń autobusem", "No bus connections")
+                        },
+                        text = when {
+                            outsideCoverage -> t(
+                                "Aplikacja obsługuje tylko autobusy miejskie w Szczecinku. GPS działa, ale w tej okolicy nie ma przystanków z naszego rozkładu.",
+                                "The app only covers Szczecinek city buses. GPS works, but there are no stops from our timetable in this area.",
+                            )
+
+                            o.walkOnly != null -> t(
                                 "W tym momencie żadna linia nie jedzie w stronę celu — zostaje spacer.",
                                 "No bus goes that way right now — walking is your best bet.",
                             )
-                        } else {
-                            t(
+
+                            else -> t(
                                 "Nic nie jedzie w tę stronę o tej porze. Spróbuj innej godziny.",
                                 "Nothing heads that way at this time. Try another hour.",
                             )
@@ -313,7 +343,7 @@ private fun ItineraryCard(
             ) {
                 Text(
                     fmtTime(it.leaveAt),
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
@@ -323,7 +353,7 @@ private fun ItineraryCard(
                 )
                 Text(
                     fmtTime(it.arriveAt),
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                 )
             }
@@ -423,22 +453,6 @@ private fun metaLine(it: Itinerary): String {
     }
     if (it.walkMeters > 0) parts += t("pieszo ", "walk ") + fmtMeters(it.walkMeters)
     return parts.joinToString("  ·  ")
-}
-
-/** Typ dnia rozkładu pod nagłówkiem — spokojniejsza niż rząd pigułek. */
-@Composable
-private fun PatternLine(type: String, exactDay: Boolean) {
-    val scheme = MaterialTheme.colorScheme
-    val text = buildString {
-        append(patternLabel(type))
-        if (!exactDay) append("  ·  " + t("rozkład wg dnia tygodnia", "schedule by weekday"))
-    }
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelSmall,
-        color = if (exactDay) scheme.onSurfaceVariant else scheme.tertiary,
-        modifier = Modifier.padding(top = 2.dp),
-    )
 }
 
 @Composable

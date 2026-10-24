@@ -111,10 +111,10 @@ fun PickerScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 6.dp)
                 .focusRequester(focus),
-            placeholder = { Text(t("Szukaj przystanku, ulicy, miejsca…", "Search a stop, street, place…")) },
+            placeholder = { Text(t("Szukaj miejsca", "Search places"), maxLines = 1, overflow = TextOverflow.Ellipsis) },
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
             singleLine = true,
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(18.dp),
             colors = TextFieldDefaults.colors(
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
@@ -365,14 +365,19 @@ fun FavoriteStar(prefs: Prefs, place: SavedPlace) {
     }
 }
 
-/** Chip z godziną/etykietą (używany na ekranie planowania). */
+/**
+ * Chip wyboru (godzina, język, styl mapy). Zaznaczenie jest tonalne, żeby
+ * mocny kolor podstawowy zostawał dla głównego przycisku akcji.
+ */
 @Composable
 fun TimeChip(label: String, icon: ImageVector?, selected: Boolean, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
     Surface(
         shape = RoundedCornerShape(50),
-        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
+        color = if (selected) scheme.primaryContainer else scheme.surfaceContainerHigh,
+        contentColor = if (selected) scheme.onPrimaryContainer else scheme.onSurface,
         modifier = Modifier
-            .heightIn(min = 48.dp)
+            .heightIn(min = 44.dp)
             .clickable(onClick = onClick),
     ) {
         Row(
@@ -384,14 +389,14 @@ fun TimeChip(label: String, icon: ImageVector?, selected: Boolean, onClick: () -
                 Icon(
                     icon,
                     contentDescription = null,
-                    tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (selected) scheme.onPrimaryContainer else scheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp),
                 )
             }
             Text(
                 label,
                 style = MaterialTheme.typography.labelLarge,
-                color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             )
         }
     }
