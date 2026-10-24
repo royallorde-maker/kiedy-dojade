@@ -1,8 +1,8 @@
 {
-  "versionCode": 18,
-  "versionName": "1.4.13",
+  "versionCode": 19,
+  "versionName": "1.4.14",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.13 - mapa bez GPS nie pokazuje autobusu zamiast pozycji",
+  "changelog": "release: android 1.4.14 - wiersz Marsz pokazuje godzinę dojścia i odliczanie",
   "force": false,
-  "publishedAt": "2026-10-24T16:57:15Z"
+  "publishedAt": "2026-10-24T17:41:13Z"
 }
