@@ -231,6 +231,23 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.13",
+                lines = listOf(
+                    t(
+                        "Gdy telefon nie ma pozycji GPS, mapa nie centruje się już na autobusie. Pokazuje trasę i komunikat „GPS wyłączony” lub „szukam pozycji…”, więc znacznik autobusu nie wygląda jak Twoja lokalizacja.",
+                        "When the phone has no GPS fix, the map no longer centers on the bus. It shows the route and a “location off” or “finding location…” message, so the bus marker no longer looks like your position.",
+                    ),
+                    t(
+                        "Przy działającym GPS nic się nie zmienia: niebieska strzałka nadal pokazuje Twoją pozycję i jedzie razem z Tobą.",
+                        "With a working GPS nothing changes: the blue arrow still shows your position and follows you.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.12",
                 lines = listOf(
                     t(

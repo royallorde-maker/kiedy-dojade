@@ -113,6 +113,8 @@ fun NavScreen(
     var fix by remember { mutableStateOf<Fix?>(null) }
     var prev by remember { mutableStateOf<Fix?>(null) }
     var canLocate by remember { mutableStateOf(locator.hasPermission()) }
+    var locEnabled by remember { mutableStateOf(locator.locationEnabled()) }
+    var gpsSearch by remember { mutableStateOf(false) }
     var nowMin by remember { mutableIntStateOf(nowMinutes()) }
     var delayMin by remember { mutableIntStateOf(0) }
     var canceled by remember { mutableStateOf(false) }
@@ -143,7 +145,7 @@ fun NavScreen(
             )
         }
     }
-    LaunchedEffect(canLocate, lifecycleOwner) {
+    LaunchedEffect(canLocate, lifecycleOwner, locEnabled) {
         if (!canLocate) return@LaunchedEffect
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             locator.stream().collect { f ->
@@ -172,14 +174,27 @@ fun NavScreen(
         }
     }
 
-    // zegar: odjazd/przyjazd liczone na bieżąco
+    // zegar: odjazd/przyjazd liczone na bieżąco; przy okazji sprawdzamy,
+    // czy użytkownik nie włączył/wyłączył lokalizacji w systemie
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             while (true) {
                 nowMin = nowMinutes()
+                locEnabled = locator.locationEnabled()
                 delay(20_000)
             }
         }
+    }
+
+    // Kilka sekund bez ramki GPS to nie błąd mapy — powiedzmy to wprost,
+    // zamiast zostawiać użytkownika z samym znacznikiem autobusu.
+    LaunchedEffect(canLocate, fix) {
+        if (!canLocate || fix != null) {
+            gpsSearch = false
+            return@LaunchedEffect
+        }
+        delay(5_000)
+        if (fix == null) gpsSearch = true
     }
 
     val steps = remember(itinerary) { navSteps(itinerary) }
@@ -479,6 +494,15 @@ fun NavScreen(
 
     val gTarget = step?.target ?: itinerary.lastRide?.alightStop?.let { it.lat to it.lng }
 
+    // Dlaczego nie ma niebieskiego znacznika? Powiedzmy to zamiast pokazywać
+    // tylko autobus — najczęściej to wyłączona lokalizacja albo brak zgody.
+    val gpsNote = when {
+        !canLocate -> t("brak zgody na GPS", "no GPS permission") to scheme.error
+        !locEnabled -> t("GPS wyłączony", "location off") to scheme.error
+        gpsSearch -> t("szukam pozycji…", "finding location…") to scheme.tertiary
+        else -> null
+    }
+
     Box(Modifier.fillMaxSize()) {
         RouteNavMap(
             segs = remember(itinerary, paths) { itinerarySegments(itinerary, paths.walk, paths.ride) },
@@ -559,6 +583,15 @@ fun NavScreen(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
+                            gpsNote?.let { (note, noteColor) ->
+                                Spacer(Modifier.size(2.dp))
+                                Text(
+                                    note,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = noteColor,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            }
                         }
                         Column(
                             horizontalAlignment = Alignment.End,
@@ -631,13 +664,6 @@ fun NavScreen(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = scheme.onSurfaceVariant,
                             )
-                            if (!canLocate) {
-                                Text(
-                                    "  ·  " + t("brak GPS", "no GPS"),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = scheme.error,
-                                )
-                            }
                             if (liveVisible) {
                                 Text(
                                     "  ·  " + t("autobus na żywo", "bus live"),

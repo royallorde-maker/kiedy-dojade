@@ -28,6 +28,19 @@ class Locator(private val context: Context) {
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
 
+    /** Systemowa lokalizacja włączona? Sama zgoda to jeszcze nie działający GPS. */
+    fun locationEnabled(): Boolean {
+        val lm = manager()
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            runCatching { lm.isLocationEnabled }.getOrDefault(false)
+        } else {
+            runCatching {
+                lm.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                    lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+            }.getOrDefault(false)
+        }
+    }
+
     private fun manager(): LocationManager =
         context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 

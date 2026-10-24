@@ -419,7 +419,9 @@ fun RouteNavMap(
         else ((pts.first().first + pts.last().first) / 2.0) to
             ((pts.first().second + pts.last().second) / 2.0)
     }
-    val target = fix ?: bus ?: fallback
+    // Nigdy nie centrujemy na autobusie: bez pozycji GPS jego znacznik
+    // wyglądałby jak znacznik pasażera. Pokazujemy wtedy planowaną trasę.
+    val target = fix ?: fallback
     if (target == null) {
         Box(modifier.background(scheme.surfaceContainerHighest))
         return
