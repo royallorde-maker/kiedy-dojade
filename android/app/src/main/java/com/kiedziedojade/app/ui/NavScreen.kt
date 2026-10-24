@@ -66,11 +66,8 @@ import com.kiedziedojade.app.core.Locator
 import com.kiedziedojade.app.core.MapStyle
 import com.kiedziedojade.app.core.NavStep
 import com.kiedziedojade.app.core.RideLeg
-import com.kiedziedojade.app.core.WALK_DETOUR
-import com.kiedziedojade.app.core.WalkLeg
 import com.kiedziedojade.app.core.World
 import com.kiedziedojade.app.core.courseHeading
-import com.kiedziedojade.app.core.fmtMeters
 import com.kiedziedojade.app.core.fmtTime
 import com.kiedziedojade.app.core.haversine
 import com.kiedziedojade.app.core.headingDeg
@@ -764,6 +761,7 @@ private fun navInstruction(
         is NavStep.Walk -> {
             val meters = distance ?: step.meters
             val mins = walkMinutes(meters)
+            val arriveAt = nowMin + mins
             // Odjazd jest ważniejszy niż długość marszu — pokazujemy go nawet
             // wtedy, gdy miasto nie ma jeszcze wykonania kursu na żywo.
             val departure = boardClock ?: plannedBoardClock
@@ -771,7 +769,12 @@ private fun navInstruction(
                 add(
                     NavFact(
                         t("Marsz", "Walk"),
-                        fmtMeters(meters * WALK_DETOUR) + " · " + mins + " " + I18n.minutes(mins),
+                        fmtTime(arriveAt) + " · " +
+                            if (mins <= 0) {
+                                t("teraz", "now")
+                            } else {
+                                t("za ", "in ") + mins + " " + I18n.minutesAfter(mins)
+                            },
                     ),
                 )
                 if (departure != null) {

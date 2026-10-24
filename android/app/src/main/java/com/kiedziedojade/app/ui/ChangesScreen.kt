@@ -231,6 +231,23 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.14",
+                lines = listOf(
+                    t(
+                        "Wiersz „Marsz” pokazuje teraz godzinę dojścia do przystanku i odliczanie, tak samo jak „Odjazd” — np. „Marsz: 19:20 · za 9 minut” obok „Odjazd: 19:21 · za 10 minut”.",
+                        "The “Walk” row now shows the time you reach the stop and the countdown, just like “Departure” — e.g. “Walk: 19:20 · in 9 minutes” next to “Departure: 19:21 · in 10 minutes”.",
+                    ),
+                    t(
+                        "Odległość w metrach zniknęła z tego wiersza. Pozostałe informacje — autobus i opóźnienie — zostają bez zmian.",
+                        "The distance in metres is gone from that row. The other information — bus and delay — stays the same.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.13",
                 lines = listOf(
                     t(
