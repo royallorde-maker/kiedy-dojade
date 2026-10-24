@@ -1,8 +1,8 @@
 {
-  "versionCode": 16,
-  "versionName": "1.4.11",
+  "versionCode": 17,
+  "versionName": "1.4.12",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.11 - odjazd i nastepny przystanek w nawigacji",
+  "changelog": "release: android 1.4.12 - czytelna karta prowadzenia",
   "force": false,
-  "publishedAt": "2026-10-24T15:15:28Z"
+  "publishedAt": "2026-10-24T16:02:33Z"
 }
