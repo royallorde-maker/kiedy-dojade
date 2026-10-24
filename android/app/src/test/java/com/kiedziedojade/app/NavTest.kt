@@ -14,9 +14,11 @@ import com.kiedziedojade.app.core.headingDelta
 import com.kiedziedojade.app.core.markerHeading
 import com.kiedziedojade.app.core.navDestination
 import com.kiedziedojade.app.core.navDistance
+import com.kiedziedojade.app.core.navFixPlausible
 import com.kiedziedojade.app.core.navState
 import com.kiedziedojade.app.core.navSteps
 import com.kiedziedojade.app.core.normalizeHeading
+import com.kiedziedojade.app.core.rideNextStopIndex
 import com.kiedziedojade.app.core.rideStopsLeft
 import com.kiedziedojade.app.core.screenCompassHeading
 import com.kiedziedojade.app.core.trackingExpired
@@ -64,6 +66,15 @@ class NavTest {
         assertEquals(2, rideStopsLeft(r, fix(board)))
         assertEquals(1, rideStopsLeft(r, fix(mid)))
         assertEquals(0, rideStopsLeft(r, fix(alight)))
+    }
+
+    @Test
+    fun `the next planned stop follows the closest one`() {
+        val r = ride()
+        assertEquals(1, rideNextStopIndex(r, fix(board)))
+        assertEquals(2, rideNextStopIndex(r, fix(mid)))
+        assertNull(rideNextStopIndex(r, fix(alight)))
+        assertNull(rideNextStopIndex(r, null))
     }
 
     @Test
@@ -257,5 +268,50 @@ class NavTest {
         assertEquals(604, r.departMin)
         assertEquals(2, r.stops.size)
         assertEquals("B", navDestination(it))
+    }
+
+    private fun guardItinerary(): Itinerary {
+        val a = Stop(
+            i = 0, id = "31830:1", code = 101, name = "A",
+            lat = board.first, lng = board.second,
+            onDemand = false, station = false, onlyDisembarking = false,
+        )
+        val b = Stop(
+            i = 1, id = "31830:2", code = 102, name = "B",
+            lat = alight.first, lng = alight.second,
+            onDemand = false, station = false, onlyDisembarking = false,
+        )
+        return Itinerary(
+            id = "guard",
+            legs = listOf(
+                RideLeg(
+                    tripId = 7L, line = "2", dir = "Dworzec",
+                    boardStop = a, alightStop = b,
+                    depMin = 604, arrMin = 615,
+                    stops = listOf(RideStop(a, 604), RideStop(b, 615)),
+                ),
+            ),
+            leaveAt = 604,
+            arriveAt = 615,
+            transfers = 0,
+            walkMeters = 0.0,
+            walkMinutes = 0,
+            firstRideLeg = 0,
+            pattern = "workday",
+            tag = "best",
+        )
+    }
+
+    @Test
+    fun `a fix far from the planned journey is ignored`() {
+        // Warszawa, ~400 km od Szczecinka — taki fix dawał 11 419 km marszu.
+        assertFalse(navFixPlausible(guardItinerary(), fix(52.2297 to 21.0122)))
+    }
+
+    @Test
+    fun `a fix at the journey is used for navigation`() {
+        val it = guardItinerary()
+        assertTrue(navFixPlausible(it, fix(board)))
+        assertTrue(navFixPlausible(it, fix(alight)))
     }
 }

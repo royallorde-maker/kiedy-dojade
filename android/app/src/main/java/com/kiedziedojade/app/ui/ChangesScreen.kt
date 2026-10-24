@@ -231,6 +231,23 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.11",
+                lines = listOf(
+                    t(
+                        "Nawigacja pokazuje odjazd autobusu i odliczanie juz podczas marszu do przystanku, a w trakcie jazdy nazwe nastepnego przystanku i godzine. Bledna lokalizacja z emulatora lub GPS ponad 50 km od trasy nie psuje juz wskazowek.",
+                        "Navigation now shows the bus departure and countdown while walking to the stop, and the next stop with its time while riding. A bogus emulator or GPS fix more than 50 km from the route no longer breaks the directions.",
+                    ),
+                    t(
+                        "Gdy miasto nie podaje jeszcze kursu na zywo, korzystamy z planowego rozkladu, wiec odjazd i nastepny przystanek sa widoczne od razu.",
+                        "Where the city has no live run yet, we fall back to the timetable, so the departure and next stop still appear.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.10",
                 lines = listOf(
                     t(

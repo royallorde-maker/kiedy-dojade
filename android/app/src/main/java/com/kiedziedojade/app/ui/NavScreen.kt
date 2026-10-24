@@ -74,6 +74,8 @@ import com.kiedziedojade.app.core.headingDeg
 import com.kiedziedojade.app.core.itinerarySegments
 import com.kiedziedojade.app.core.markerHeading
 import com.kiedziedojade.app.core.matchLiveRide
+import com.kiedziedojade.app.core.navFixPlausible
+import com.kiedziedojade.app.core.rideNextStopIndex
 import com.kiedziedojade.app.core.routedPaths
 import com.kiedziedojade.app.core.minuteDiff
 import com.kiedziedojade.app.core.minutesUntil
@@ -153,6 +155,10 @@ fun NavScreen(
                 // GPS pod drzewami potrafi mieć 100 m błędu; taka ramka nie
                 // powinna przesuwać kamery ani zaliczać przystanku.
                 if (f.accuracy != null && f.accuracy > MAX_FIX_ACCURACY_M) return@collect
+                // Emulator albo mock location potrafi podać współrzędne z
+                // drugiego końca świata. Wtedy lepiej pokazać planowany marsz
+                // niż „11 419 km · 146 399 minut”.
+                if (!navFixPlausible(itinerary, f)) return@collect
                 val moved = last == null ||
                     haversine(last.lat, last.lng, f.lat, f.lng) >= 0.8
                 if (moved) {
@@ -274,6 +280,11 @@ fun NavScreen(
         }
     }
 
+    // najbliższy kurs z planu — także wtedy, gdy nie ma jeszcze wykonania na żywo
+    val nextRideStep = remember(steps, state.stepIndex) {
+        steps.drop(state.stepIndex).filterIsInstance<NavStep.Ride>().firstOrNull()
+    }
+
     // wartości na żywo: indeksy przystanków w kursie i to, co z nich wynika
     val liveExec = live?.takeIf { it.times.isNotEmpty() }
     val boardIdx = remember(liveExec, liveRide) {
@@ -281,6 +292,23 @@ fun NavScreen(
     }
     val alightIdx = remember(liveExec, liveRide) {
         liveExec?.indexOfPlace(liveRide?.alightStop?.id.orEmpty())
+    }
+    // Gdy autobus stoi na przystanku, „następny” to ten po nim — nie ten,
+    // na którym właśnie otworzyły się drzwi.
+    val liveNextIdx = remember(liveExec) {
+        liveExec?.takeIf { it.hasProgress }?.let { ex ->
+            val i = if (ex.atStop) ex.nextIndex + 1 else ex.nextIndex
+            i.takeIf { it in ex.times.indices }
+        }
+    }
+    val liveNextStopName = remember(liveExec, liveNextIdx) {
+        liveNextIdx?.let { i -> liveExec?.times?.getOrNull(i)?.name?.takeIf { it.isNotBlank() } }
+    }
+    val liveNextClock = remember(liveExec, liveNextIdx) {
+        liveNextIdx?.let { liveExec?.clockTo(it) }
+    }
+    val liveNextInMin = remember(liveExec, liveNextIdx, nowMin) {
+        liveNextIdx?.let { liveExec?.minutesTo(it, nowMin) }
     }
     val liveVisible = liveExec != null && boardIdx != null
     val boardAtStop = liveVisible && liveExec!!.atStop && liveExec.nextIndex == boardIdx
@@ -311,6 +339,22 @@ fun NavScreen(
             (alightIdx != null && alightIdx in liveExec.canceledStops)))
 
     val rideStep = step as? NavStep.Ride
+    // planowany następny przystanek — widoczny także bez wykonania kursu na żywo
+    val plannedNextStop = remember(rideStep, fix, liveRide) {
+        val idx = rideStep?.let { rideNextStopIndex(it, fix) } ?: return@remember null
+        liveRide?.stops?.getOrNull(idx)
+    }
+    val nextStopName = liveNextStopName ?: plannedNextStop?.stop?.name
+    val nextStopClock = if (liveNextStopName != null) {
+        liveNextClock
+    } else {
+        plannedNextStop?.let { it.min + shownDelay }
+    }
+    val nextStopInMin = if (liveNextStopName != null) {
+        liveNextInMin
+    } else {
+        nextStopClock?.let { minutesUntil(it, nowMin) }
+    }
     val busDist = if (busPos != null && fix != null) {
         haversine(fix!!.lat, fix!!.lng, busPos!!.first, busPos!!.second)
     } else {
@@ -420,7 +464,11 @@ fun NavScreen(
         missed = missed,
         departedUnknown = departedUnknown,
         boardClock = boardClock,
+        plannedBoardClock = nextRideStep?.departMin,
         alightClock = alightClock,
+        nextStopName = nextStopName,
+        nextStopClock = nextStopClock,
+        nextStopInMin = nextStopInMin,
         primary = scheme.primary,
         tertiary = scheme.tertiary,
         error = scheme.error,
@@ -617,7 +665,11 @@ private fun navInstruction(
     missed: Boolean,
     departedUnknown: Boolean,
     boardClock: Int?,
+    plannedBoardClock: Int?,
     alightClock: Int?,
+    nextStopName: String?,
+    nextStopClock: Int?,
+    nextStopInMin: Int?,
     primary: Color,
     tertiary: Color,
     error: Color,
@@ -642,10 +694,19 @@ private fun navInstruction(
             val meters = distance ?: step.meters
             val mins = walkMinutes(meters)
             val parts = ArrayList<String>()
-            parts += fmtMeters(meters * WALK_DETOUR) + "  ·  " + mins + " " + I18n.minutes(mins)
-            if (boardClock != null) {
-                parts += t("odjazd ", "departs ") + fmtTime(boardClock)
+            // Odjazd jest ważniejszy niż długość marszu — pokazujemy go nawet
+            // wtedy, gdy miasto nie ma jeszcze wykonania kursu na żywo.
+            val departure = boardClock ?: plannedBoardClock
+            if (departure != null) {
+                val inMin = live?.boardInMin ?: minutesUntil(departure, nowMin)
+                parts += t("odjazd ", "departs ") + fmtTime(departure) + "  ·  " +
+                    if (inMin <= 0) {
+                        t("teraz", "now")
+                    } else {
+                        t("za ", "in ") + inMin + " " + I18n.minutes(inMin)
+                    }
             }
+            parts += fmtMeters(meters * WALK_DETOUR) + "  ·  " + mins + " " + I18n.minutes(mins)
             live?.let { l ->
                 when {
                     l.passedBoard -> parts += t("autobus już odjechał", "the bus has left")
@@ -667,6 +728,22 @@ private fun navInstruction(
         is NavStep.Ride -> {
             val arr = alightClock ?: (step.arriveMin + delayMin)
             val dep = boardClock ?: (step.departMin + delayMin)
+            val nextInfo = nextStopName?.takeIf { it != step.alightName }?.let { name ->
+                val whenText = buildList {
+                    nextStopClock?.let { add(fmtTime(it)) }
+                    nextStopInMin?.let {
+                        add(
+                            if (it <= 0) {
+                                t("teraz", "now")
+                            } else {
+                                t("za ", "in ") + it + " " + I18n.minutes(it)
+                            },
+                        )
+                    }
+                }.joinToString("  ·  ")
+                t("następny: ", "next: ") + name +
+                    if (whenText.isEmpty()) "" else "  ·  $whenText"
+            }
             return when {
                 canceled -> NavInstruction(
                     bus,
@@ -727,12 +804,18 @@ private fun navInstruction(
                     error,
                 )
 
-                stopsLeft == null -> NavInstruction(
-                    bus,
-                    t("Jedziesz linią ", "You are on line ") + step.line,
-                    step.alightName + "  ·  " + fmtTime(arr),
-                    primary,
-                )
+                stopsLeft == null -> {
+                    val detail = buildList {
+                        nextInfo?.let { add(it) }
+                        add(t("wysiadka: ", "get off: ") + step.alightName + "  ·  " + fmtTime(arr))
+                    }.joinToString("  ·  ")
+                    NavInstruction(
+                        bus,
+                        t("Jedziesz linią ", "You are on line ") + step.line,
+                        detail,
+                        primary,
+                    )
+                }
 
                 stopsLeft <= 0 -> NavInstruction(
                     bus,
@@ -741,12 +824,18 @@ private fun navInstruction(
                     error,
                 )
 
-                else -> NavInstruction(
-                    bus,
-                    t("Wysiądź za ", "Get off in ") + stopsLeft + " " + I18n.stops(stopsLeft),
-                    step.alightName + "  ·  " + fmtTime(arr),
-                    lineColor(step.line),
-                )
+                else -> {
+                    val detail = buildList {
+                        nextInfo?.let { add(it) }
+                        add(t("wysiadka: ", "get off: ") + step.alightName + "  ·  " + fmtTime(arr))
+                    }.joinToString("  ·  ")
+                    NavInstruction(
+                        bus,
+                        t("Wysiądź za ", "Get off in ") + stopsLeft + " " + I18n.stops(stopsLeft),
+                        detail,
+                        lineColor(step.line),
+                    )
+                }
             }
         }
 

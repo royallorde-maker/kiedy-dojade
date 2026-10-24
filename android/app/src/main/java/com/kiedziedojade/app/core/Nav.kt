@@ -91,6 +91,27 @@ const val NAV_ARRIVE_M = 45.0
 /** GPS o gorszej dokładności nie może przesuwać prowadzenia ani zaliczać kroków. */
 const val MAX_FIX_ACCURACY_M = 120f
 
+/**
+ * Fix farther than this from every meaningful point of the itinerary is not
+ * the passenger we planned for (emulator/default location, mock GPS). Without
+ * this guard the walk card happily showed 11,419 km and 146,399 minutes.
+ */
+const val MAX_NAV_FIX_DISTANCE_M = 50_000.0
+
+/** True when [fix] is close enough to the planned journey to drive navigation. */
+fun navFixPlausible(itinerary: Itinerary, fix: Fix): Boolean {
+    val anchors = buildList {
+        itinerary.firstRide?.boardStop?.let { add(it.lat to it.lng) }
+        itinerary.lastRide?.alightStop?.let { add(it.lat to it.lng) }
+        (itinerary.legs.firstOrNull() as? WalkLeg)?.fromPt?.let { add(it) }
+        (itinerary.legs.lastOrNull() as? WalkLeg)?.toPt?.let { add(it) }
+    }
+    if (anchors.isEmpty()) return true
+    return anchors.any {
+        haversine(fix.lat, fix.lng, it.first, it.second) <= MAX_NAV_FIX_DISTANCE_M
+    }
+}
+
 /** Po tylu minutach od planowego przyjazdu porzucone śledzenie gasimy. */
 const val TRACKING_GRACE_MIN = 180
 
@@ -118,6 +139,16 @@ fun rideStopsLeft(step: NavStep.Ride, fix: Fix?): Int? {
         }
     }
     return (step.stops.size - 1 - bestI).coerceAtLeast(0)
+}
+
+/**
+ * Indeks następnego przystanku kursu po najbliższym, wg planu. Używany jako
+ * zapas, gdy miasto nie podaje jeszcze wykonania kursu na żywo.
+ */
+fun rideNextStopIndex(step: NavStep.Ride, fix: Fix?): Int? {
+    val left = rideStopsLeft(step, fix) ?: return null
+    if (left <= 0) return null
+    return (step.stops.size - left).takeIf { it in step.stops.indices }
 }
 
 /** Stan prowadzenia dla pozycji [fix]: który krok, ile zostało, czy wysiadać. */
