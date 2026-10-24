@@ -1,8 +1,8 @@
 {
-  "versionCode": 15,
-  "versionName": "1.4.10",
+  "versionCode": 16,
+  "versionName": "1.4.11",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.10 — czytelniejszy interfejs i poprawki tłumaczeń",
+  "changelog": "release: android 1.4.11 - odjazd i nastepny przystanek w nawigacji",
   "force": false,
-  "publishedAt": "2026-10-23T22:11:31Z"
+  "publishedAt": "2026-10-24T15:15:28Z"
 }
