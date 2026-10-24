@@ -46,8 +46,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -524,11 +527,30 @@ fun NavScreen(
                                 maxLines = 2,
                             )
                             Spacer(Modifier.size(2.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (chipLine != null) {
-                                    LineChip(chipLine)
-                                    Spacer(Modifier.width(8.dp))
+                            if (instruction.facts.isNotEmpty()) {
+                                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    instruction.facts.forEach { fact ->
+                                        Text(
+                                            buildAnnotatedString {
+                                                withStyle(
+                                                    SpanStyle(
+                                                        color = scheme.onSurfaceVariant,
+                                                        fontWeight = FontWeight.Medium,
+                                                    ),
+                                                ) {
+                                                    append(fact.label)
+                                                    append(": ")
+                                                }
+                                                append(fact.value)
+                                            },
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = scheme.onSurface,
+                                            maxLines = 3,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
                                 }
+                            } else {
                                 Text(
                                     instruction.detail,
                                     style = MaterialTheme.typography.bodySmall,
@@ -542,11 +564,17 @@ fun NavScreen(
                             horizontalAlignment = Alignment.End,
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            DelayChip(
-                                shownDelay.takeIf { liveRide != null },
-                                estimated = liveExec?.estimated == true,
-                                canceled = liveCanceled,
-                            )
+                            if (chipLine != null && !state.finished) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        t("Linia", "Line"),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = scheme.onSurfaceVariant,
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    LineChip(chipLine)
+                                }
+                            }
                         }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -598,7 +626,7 @@ fun NavScreen(
                                 if (state.finished) {
                                     t("jesteś na miejscu", "you are there")
                                 } else {
-                                    t("za ", "in ") + leftMin + " " + I18n.minutes(leftMin)
+                                    t("za ", "in ") + leftMin + " " + I18n.minutesAfter(leftMin)
                                 },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = scheme.onSurfaceVariant,
@@ -631,12 +659,16 @@ fun NavScreen(
     }
 }
 
+/** Jedna etykieta z wartością w karcie prowadzenia. */
+private data class NavFact(val label: String, val value: String)
+
 /** Tekst instrukcji na żywo: co robić teraz. */
 private data class NavInstruction(
     val icon: ImageVector,
     val title: String,
     val detail: String,
     val accent: Color,
+    val facts: List<NavFact> = emptyList(),
 )
 
 /** To, co wiemy o autobusie z API na żywo i co ma trafić do instrukcji. */
@@ -646,6 +678,13 @@ private data class LiveInfo(
     val stopsToBoard: Int?,
     val boardInMin: Int?,
 )
+
+/** Opóźnienie jako osobny wiersz — samo „+1 min” nie mówi, czego dotyczy. */
+private fun delayFact(delayMin: Int): NavFact? = when {
+    delayMin > 0 -> NavFact(t("Opóźnienie", "Delay"), "+$delayMin min")
+    delayMin < 0 -> NavFact(t("Przed czasem", "Early"), "${-delayMin} min")
+    else -> null
+}
 
 private fun navInstruction(
     step: NavStep?,
@@ -685,64 +724,93 @@ private fun navInstruction(
         return NavInstruction(
             bus,
             t("Wysiądź teraz", "Get off now"),
-            getOffName + (getOffClock?.let { "  ·  " + fmtTime(it) } ?: ""),
+            "",
             error,
+            listOf(
+                NavFact(
+                    t("Wysiadka", "Get off"),
+                    getOffName + (getOffClock?.let { " · " + fmtTime(it) } ?: ""),
+                ),
+            ),
         )
     }
     when (step) {
         is NavStep.Walk -> {
             val meters = distance ?: step.meters
             val mins = walkMinutes(meters)
-            val parts = ArrayList<String>()
             // Odjazd jest ważniejszy niż długość marszu — pokazujemy go nawet
             // wtedy, gdy miasto nie ma jeszcze wykonania kursu na żywo.
             val departure = boardClock ?: plannedBoardClock
-            if (departure != null) {
-                val inMin = live?.boardInMin ?: minutesUntil(departure, nowMin)
-                parts += t("odjazd ", "departs ") + fmtTime(departure) + "  ·  " +
-                    if (inMin <= 0) {
-                        t("teraz", "now")
-                    } else {
-                        t("za ", "in ") + inMin + " " + I18n.minutes(inMin)
-                    }
-            }
-            parts += fmtMeters(meters * WALK_DETOUR) + "  ·  " + mins + " " + I18n.minutes(mins)
-            live?.let { l ->
-                when {
-                    l.passedBoard -> parts += t("autobus już odjechał", "the bus has left")
-                    l.atBoard -> parts += t("autobus na przystanku", "bus at the stop")
-                    l.stopsToBoard != null && l.stopsToBoard in 1..12 ->
-                        parts += t("autobus ", "bus ") + l.stopsToBoard + " " +
-                            I18n.stops(l.stopsToBoard) + t(" stąd", " away")
+            val facts = buildList {
+                add(
+                    NavFact(
+                        t("Marsz", "Walk"),
+                        fmtMeters(meters * WALK_DETOUR) + " · " + mins + " " + I18n.minutes(mins),
+                    ),
+                )
+                if (departure != null) {
+                    val inMin = live?.boardInMin ?: minutesUntil(departure, nowMin)
+                    add(
+                        NavFact(
+                            t("Odjazd", "Departure"),
+                            fmtTime(departure) + " · " +
+                                if (inMin <= 0) {
+                                    t("teraz", "now")
+                                } else {
+                                    t("za ", "in ") + inMin + " " + I18n.minutesAfter(inMin)
+                                },
+                        ),
+                    )
                 }
+                live?.let { l ->
+                    val n = l.stopsToBoard
+                    val busText = when {
+                        l.passedBoard -> t("już odjechał", "has left")
+                        l.atBoard -> t("na przystanku", "at the stop")
+                        n != null && n in 1..12 ->
+                            n.toString() + " " + I18n.stops(n) + " " + t("przed Tobą", "ahead")
+                        else -> null
+                    }
+                    if (busText != null) add(NavFact(t("Autobus", "Bus"), busText))
+                }
+                delayFact(delayMin)?.let { add(it) }
             }
             val urgent = live?.boardInMin != null && !live.passedBoard && live.boardInMin < mins
             return NavInstruction(
                 walk,
                 t("Pieszo do ", "Walk to ") + step.toName,
-                parts.joinToString("  ·  "),
+                "",
                 if (urgent) error else tertiary,
+                facts,
             )
         }
 
         is NavStep.Ride -> {
             val arr = alightClock ?: (step.arriveMin + delayMin)
             val dep = boardClock ?: (step.departMin + delayMin)
-            val nextInfo = nextStopName?.takeIf { it != step.alightName }?.let { name ->
-                val whenText = buildList {
-                    nextStopClock?.let { add(fmtTime(it)) }
-                    nextStopInMin?.let {
-                        add(
-                            if (it <= 0) {
-                                t("teraz", "now")
-                            } else {
-                                t("za ", "in ") + it + " " + I18n.minutes(it)
-                            },
-                        )
-                    }
-                }.joinToString("  ·  ")
-                t("następny: ", "next: ") + name +
-                    if (whenText.isEmpty()) "" else "  ·  $whenText"
+            val nextWhen = buildList {
+                nextStopClock?.let { add(fmtTime(it)) }
+                nextStopInMin?.let {
+                    add(
+                        if (it <= 0) {
+                            t("teraz", "now")
+                        } else {
+                            t("za ", "in ") + it + " " + I18n.minutesAfter(it)
+                        },
+                    )
+                }
+            }.joinToString(" · ")
+            val alightFact = NavFact(
+                t("Wysiadka", "Get off"),
+                step.alightName + " · " + fmtTime(arr),
+            )
+            val nextFacts = buildList {
+                if (nextStopName != null && nextStopName != step.alightName) {
+                    add(NavFact(t("Następny", "Next"), nextStopName))
+                    if (nextWhen.isNotEmpty()) add(NavFact(t("Dojazd", "Due"), nextWhen))
+                }
+                add(alightFact)
+                delayFact(delayMin)?.let { add(it) }
             }
             return when {
                 canceled -> NavInstruction(
@@ -759,28 +827,50 @@ private fun navInstruction(
                     error,
                 )
 
-                getOffSoon -> NavInstruction(
-                    bus,
-                    t("Przygotuj się do wysiadki", "Get ready to get off"),
-                    step.alightName + "  ·  " + fmtTime(arr) +
-                        (stopsLeft?.let { "  ·  " + t("za ", "in ") + it + " " + I18n.stops(it) } ?: ""),
-                    error,
-                )
+                getOffSoon -> {
+                    val facts = buildList {
+                        stopsLeft?.let { left ->
+                            add(NavFact(t("Za", "In"), left.toString() + " " + I18n.stops(left)))
+                        }
+                        add(alightFact)
+                    }
+                    NavInstruction(
+                        bus,
+                        t("Przygotuj się do wysiadki", "Get ready to get off"),
+                        "",
+                        error,
+                        facts,
+                    )
+                }
 
                 waiting -> {
                     val inMin = minutesUntil(dep, nowMin)
-                    val parts = ArrayList<String>()
-                    parts += step.direction
-                    if (live?.atBoard == true) {
-                        parts += t("autobus na przystanku", "the bus is at the stop")
-                    } else {
-                        parts += t("odjazd ", "departs ") + fmtTime(dep)
-                        if (inMin > 0) {
-                            parts += t("za ", "in ") + inMin + " " + I18n.minutes(inMin)
+                    val facts = buildList {
+                        add(NavFact(t("Kierunek", "Direction"), step.direction))
+                        if (live?.atBoard == true) {
+                            add(NavFact(t("Autobus", "Bus"), t("na przystanku", "at the stop")))
+                        } else {
+                            add(
+                                NavFact(
+                                    t("Odjazd", "Departure"),
+                                    fmtTime(dep) + " · " +
+                                        if (inMin <= 0) {
+                                            t("teraz", "now")
+                                        } else {
+                                            t("za ", "in ") + inMin + " " + I18n.minutesAfter(inMin)
+                                        },
+                                ),
+                            )
+                            live?.stopsToBoard?.takeIf { it in 1..12 }?.let { n ->
+                                add(
+                                    NavFact(
+                                        t("Autobus", "Bus"),
+                                        n.toString() + " " + I18n.stops(n) + " " + t("przed Tobą", "ahead"),
+                                    ),
+                                )
+                            }
                         }
-                        live?.stopsToBoard?.takeIf { it in 1..12 }?.let { n ->
-                            parts += t("autobus ", "bus ") + n + " " + I18n.stops(n) + t(" stąd", " away")
-                        }
+                        delayFact(delayMin)?.let { add(it) }
                     }
                     NavInstruction(
                         bus,
@@ -789,8 +879,9 @@ private fun navInstruction(
                         } else {
                             t("Czekaj na linię ", "Wait for line ") + step.line
                         },
-                        parts.joinToString("  ·  "),
+                        "",
                         if (live?.atBoard == true) tertiary else primary,
+                        facts,
                     )
                 }
 
@@ -804,38 +895,29 @@ private fun navInstruction(
                     error,
                 )
 
-                stopsLeft == null -> {
-                    val detail = buildList {
-                        nextInfo?.let { add(it) }
-                        add(t("wysiadka: ", "get off: ") + step.alightName + "  ·  " + fmtTime(arr))
-                    }.joinToString("  ·  ")
-                    NavInstruction(
-                        bus,
-                        t("Jedziesz linią ", "You are on line ") + step.line,
-                        detail,
-                        primary,
-                    )
-                }
+                stopsLeft == null -> NavInstruction(
+                    bus,
+                    t("Jedziesz linią ", "You are on line ") + step.line,
+                    "",
+                    primary,
+                    nextFacts,
+                )
 
                 stopsLeft <= 0 -> NavInstruction(
                     bus,
                     t("Wysiądź na następnym przystanku", "Get off at the next stop"),
-                    step.alightName + "  ·  " + fmtTime(arr),
+                    "",
                     error,
+                    listOf(alightFact),
                 )
 
-                else -> {
-                    val detail = buildList {
-                        nextInfo?.let { add(it) }
-                        add(t("wysiadka: ", "get off: ") + step.alightName + "  ·  " + fmtTime(arr))
-                    }.joinToString("  ·  ")
-                    NavInstruction(
-                        bus,
-                        t("Wysiądź za ", "Get off in ") + stopsLeft + " " + I18n.stops(stopsLeft),
-                        detail,
-                        lineColor(step.line),
-                    )
-                }
+                else -> NavInstruction(
+                    bus,
+                    t("Wysiądź za ", "Get off in ") + stopsLeft + " " + I18n.stops(stopsLeft),
+                    "",
+                    lineColor(step.line),
+                    nextFacts,
+                )
             }
         }
 

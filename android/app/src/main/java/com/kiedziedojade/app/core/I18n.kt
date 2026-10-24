@@ -60,6 +60,13 @@ object I18n {
         plural(n, "minute", "minutes", "minutes")
     }
 
+    /** Biernik po „za”: za 1 minutę, za 2 minuty, za 5 minut. */
+    fun minutesAfter(n: Int) = if (pl) {
+        plural(n, "minutę", "minuty", "minut")
+    } else {
+        plural(n, "minute", "minutes", "minutes")
+    }
+
     fun rides(n: Int) = if (pl) {
         plural(n, "autobus", "autobusy", "autobusów")
     } else {

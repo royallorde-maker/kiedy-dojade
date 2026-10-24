@@ -253,6 +253,9 @@ class PlannerTest {
         assertEquals("5 przystanków", "5 " + I18n.stops(5))
         assertEquals("12 przystanków", "12 " + I18n.stops(12))
         assertEquals("22 przystanki", "22 " + I18n.stops(22))
+        assertEquals("1 minutę", "1 " + I18n.minutesAfter(1))
+        assertEquals("2 minuty", "2 " + I18n.minutesAfter(2))
+        assertEquals("5 minut", "5 " + I18n.minutesAfter(5))
     }
 
     @Test

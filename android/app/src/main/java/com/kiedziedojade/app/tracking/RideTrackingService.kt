@@ -472,10 +472,10 @@ class RideTrackingService : Service() {
                         snap.boardStop?.let { parts += it }
                         snap.boardClock?.let { parts += t("odjazd ", "departs ") + fmtTime(it) }
                         snap.boardInMin?.takeIf { it > 0 }?.let {
-                            parts += t("za ", "in ") + it + " " + I18n.minutes(it)
+                            parts += t("za ", "in ") + it + " " + I18n.minutesAfter(it)
                         }
                         snap.stopsToBoard?.takeIf { it in 1..12 }?.let { n ->
-                            parts += t("autobus ", "bus ") + n + " " + I18n.stops(n) + t(" stąd", " away")
+                            parts += t("autobus ", "bus ") + n + " " + I18n.stops(n) + t(" przed Tobą", " ahead")
                         }
                     }
                 }

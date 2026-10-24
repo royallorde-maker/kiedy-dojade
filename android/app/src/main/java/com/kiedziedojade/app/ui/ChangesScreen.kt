@@ -231,6 +231,23 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.12",
+                lines = listOf(
+                    t(
+                        "Karta prowadzenia pokazuje teraz każdą wartość pod własną etykietą: Marsz, Odjazd, Autobus, Wysiadka i Opóźnienie. Koniec z ciągiem liczb, w którym nie wiadomo, która jest która.",
+                        "The navigation card now labels every value: Walk, Departure, Bus, Get off and Delay. No more a run of numbers where you cannot tell which is which.",
+                    ),
+                    t(
+                        "Linia ma podpis „Linia 1”, odległość autobusu brzmi „6 przystanków przed Tobą”, a zamiast samego „+1 min” widać „Opóźnienie: +1 min”. Poprawiliśmy też odmianę „za 1 minutę”.",
+                        "The line is labelled “Line 1”, the bus distance reads “6 stops ahead”, and instead of a bare “+1 min” you see “Delay: +1 min”. We also fixed the Polish “za 1 minutę”.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.11",
                 lines = listOf(
                     t(
