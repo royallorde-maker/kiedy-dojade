@@ -1,8 +1,8 @@
 {
-  "versionCode": 21,
-  "versionName": "1.4.16",
+  "versionCode": 22,
+  "versionName": "1.4.17",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.16 - poprawki stabilności prowadzenia i odświeżania danych",
+  "changelog": "release: android 1.4.17 - zabezpieczenia danych i planera",
   "force": false,
-  "publishedAt": "2026-10-26T15:24:00Z"
+  "publishedAt": "2026-10-26T15:36:49Z"
 }
