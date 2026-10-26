@@ -32,6 +32,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -57,6 +58,7 @@ import com.kiedziedojade.app.core.fmtDuration
 import com.kiedziedojade.app.core.fmtMeters
 import com.kiedziedojade.app.core.fmtTime
 import com.kiedziedojade.app.core.isOutsideCoverage
+import com.kiedziedojade.app.core.nowMinutes
 import com.kiedziedojade.app.core.RoutedPaths
 import com.kiedziedojade.app.core.itinerarySegments
 import com.kiedziedojade.app.core.routedPaths
@@ -121,6 +123,24 @@ fun ResultsScreen(
     }
 
     val o = outcome
+
+    // odliczanie na najlepszej karcie: zegar tyka dopóki ekran jest otwarty,
+    // więc „za 2 min” nie zamiera w zamrożonej wartości z chwili wejścia
+    val firstIt = o?.itineraries?.firstOrNull()
+    var itinNow by remember(o, query) { mutableIntStateOf(nowMinutes()) }
+    LaunchedEffect(o, query) {
+        while (true) {
+            itinNow = nowMinutes()
+            delay(20_000)
+        }
+    }
+    val countdown = if (isToday && firstIt != null) {
+        val diff = firstIt.leaveAt - itinNow
+        // poniżej zera (odjechał) milknie — nie zostawi zakrzepłego „odjeżdża”
+        if (diff in 1..14) t("za $diff min", "in $diff min") else null
+    } else {
+        null
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -256,6 +276,7 @@ fun ResultsScreen(
                         mapStyle = mapStyle,
                         isBest = it2.tag == Tag.BEST.value,
                         live = if (it2 === best) live else null,
+                        countdown = if (it2 === best) countdown else null,
                         expanded = expanded == it2.id,
                         onToggle = { expanded = if (expanded == it2.id) null else it2.id },
                         onOpenStop = onOpenStop,
@@ -324,6 +345,7 @@ private fun ItineraryCard(
     mapStyle: MapStyle,
     isBest: Boolean,
     live: Api.LiveRow?,
+    countdown: String?,
     expanded: Boolean,
     onToggle: () -> Unit,
     onOpenStop: (Int) -> Unit,
@@ -373,6 +395,14 @@ private fun ItineraryCard(
                     )
                 }
                 live?.let { row -> DelayChip(row.delayMin, row.estimated, row.canceled) }
+                if (countdown != null) {
+                    Text(
+                        countdown,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
         }
 

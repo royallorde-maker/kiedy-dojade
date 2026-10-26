@@ -295,12 +295,22 @@ private fun AnnouncementCard(
         color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f),
     ) {
         Row(modifier = Modifier.padding(start = 14.dp, top = 10.dp, bottom = 10.dp)) {
-            Icon(
-                Icons.Filled.Campaign,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                modifier = Modifier.size(20.dp),
-            )
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(
+                        MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.10f),
+                        CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.Campaign,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.size(17.dp),
+                )
+            }
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(

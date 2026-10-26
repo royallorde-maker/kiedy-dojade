@@ -1,7 +1,11 @@
 package com.kiedziedojade.app.ui
 
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -182,6 +186,33 @@ fun LineChip(line: String, big: Boolean = false) {
     }
 }
 
+/** Pulsujący punkt „na żywo” — cicha informacja zamiast kolejnej pigułki. */
+@Composable
+fun LiveBadge(
+    tint: Color = MaterialTheme.colorScheme.primary,
+    text: String = t("na żywo", "live"),
+) {
+    val pulse = rememberInfiniteTransition(label = "live")
+    val dot by pulse.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(850, easing = LinearEasing)),
+        label = "liveDot",
+    )
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .alpha(dot)
+                .background(tint, CircleShape),
+        )
+        Text(text, style = MaterialTheme.typography.labelSmall, color = tint, fontWeight = FontWeight.Medium)
+    }
+}
+
 /** Mała pigułka statusu (opóźnienie, NŻ, odwołany, szacowany). */
 @Composable
 fun StatusChip(
@@ -222,11 +253,18 @@ fun EmptyState(icon: ImageVector, title: String, text: String) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Icon(
-            icon, contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(44.dp),
-        )
+        Box(
+            modifier = Modifier
+                .size(76.dp)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                icon, contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(32.dp),
+            )
+        }
         Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
         Text(
             text,

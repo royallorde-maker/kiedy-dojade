@@ -231,6 +231,23 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.18",
+                lines = listOf(
+                    t(
+                        "Spokojniejsza tablica i wyniki: odjazdy mają ożywioną kropkę zamiast stosu etykiet, ostatnie minuty przed odjazdem podświetlają się, a najlepsze połączenie pokazuje odliczanie do wyjazdu.",
+                        "Calm board and results: departures carry a pulsing live dot instead of chip rows, the last minutes before departure light up, and the best connection shows a departure countdown.",
+                    ),
+                    t(
+                        "Drobiazgi wizualne: puste stany dostały miękkie tło, rozwijanie kursów i ikony ogłoszeń są spójniejsze z resztą aplikacji. Bez zmian w funkcjach.",
+                        "Visual touches: soft backgrounds for empty states, and trip/announcement icons now match the rest of the app. No functional changes.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.17",
                 lines = listOf(
                     t(

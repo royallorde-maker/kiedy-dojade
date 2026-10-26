@@ -18,6 +18,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DirectionsBus
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -39,7 +41,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -314,17 +315,31 @@ private fun LiveRow(row: Api.LiveRow, now: Int) {
             )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (inMin != null) {
+                    // ostatnie minuty przed odjazdem stają się ciepłe (primary) —
+                    // rzut oka wystarczy, żeby wiedzieć, że trzeba już wyjść
                     Text(
                         if (inMin <= 0) t("teraz", "now") else t("za $inMin min", "in $inMin min"),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (inMin <= 3) FontWeight.SemiBold else FontWeight.Medium,
+                        color = if (inMin <= 3) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     )
                 }
-                DelayChip(row.delayMin, row.estimated, row.canceled)
+                if (canceled) {
+                    StatusChip(t("odwołany", "canceled"), MaterialTheme.colorScheme.error)
+                } else if (row.delayMin != null && row.delayMin != 0) {
+                    DelayChip(row.delayMin, false, false)
+                } else if (row.estimated) {
+                    LiveBadge()
+                }
                 if (row.platform != null) {
-                    StatusChip(
+                    Text(
                         t("peron ", "platform ") + row.platform!!,
-                        MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -393,10 +408,15 @@ private fun TimetableCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                if (expanded) "−" else "+",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 18.sp,
+            Icon(
+                if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                contentDescription = if (expanded) {
+                    t("Zwiń kurs", "Collapse trip")
+                } else {
+                    t("Pokaż trasę", "Show route")
+                },
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
             )
         }
         if (expanded) {
