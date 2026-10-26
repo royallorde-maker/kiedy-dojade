@@ -231,6 +231,19 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.22",
+                lines = listOf(
+                    t(
+                        "Podglądasz w zoomie — mapa dopisuje ostrość: kafelki są teraz renderowane z najbliższego poziomu, więc powiększanie pomiędzy pełnymi stopniami nie rozmywa ulic. Znacznik Twojej pozycji w prowadzeniu zastąpiła elegancka iglica kursu (ikonka „navigation” Material Symbols) z białą obwódką, cieniem i łagodniejszą poświatą.",
+                        "Zoom in and the map sharpens: tiles now render from the nearest level, so zooming between full steps no longer blurs the streets. Your position marker in navigation got an elegant course needle (the Material Symbols \"navigation\" icon) with a white casing, a soft shadow and a gentler glow.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.21",
                 lines = listOf(
                     t(

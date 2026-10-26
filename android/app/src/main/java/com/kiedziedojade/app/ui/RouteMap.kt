@@ -45,6 +45,9 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -141,7 +144,7 @@ fun routeDots(it: Itinerary): List<RouteDot> {
 private data class Tile(val x: Int, val y: Int, val bmp: ImageBitmap)
 
 /** Wspólny cache kafelków w pamięci (kilka miniatur dzieli te same kafelki). */
-private val tileMem = object : LruCache<String, ImageBitmap>(8 * 1024 * 1024) {
+private val tileMem = object : LruCache<String, ImageBitmap>(16 * 1024 * 1024) {
     override fun sizeOf(key: String, value: ImageBitmap): Int = value.width * value.height * 4
 }
 
@@ -150,6 +153,28 @@ private val nightMatrix = ColorMatrix(TILE_NIGHT_MATRIX)
 
 /** Filtr dzienny — te same wartości co w osmdroidzie (MapKit). */
 private val dayMatrix = ColorMatrix(TILE_DAY_MATRIX)
+
+/**
+ * Iglica kursu pasażera — ikona „navigation” z Material Symbols Rounded
+ * (fill), w surowym układzie 24×24 (viewBox „0 -960 960 960”). Domyślna
+ * licencja Apache 2.0 (material-design-icons).
+ */
+private const val NEEDLE_D =
+    "M480-240 222-130q-13 5-24.5 2.5T178-138q-8-8-10.5-20t2.5-25l273-615q5-12 " +
+        "15.5-18t21.5-6q11 0 21.5 6t15.5 18l273 615q5 13 2.5 25T782-138q-8 8-19.5 " +
+        "10.5T738-130L480-240Z"
+
+/** Wysokość iglicy w jednostkach siatki ikony (tip ≈ -855, korpus ≈ -125). */
+private const val NEEDLE_UNITS = 730f
+
+/** Środek iglicy w jednostkach siatki ikony. */
+private const val NEEDLE_CENTER_X = 480f
+private const val NEEDLE_CENTER_Y = -482f
+
+/** Iglica sparsowana raz — rysowana na kanwie prowadzenia. */
+private val userNeedle by lazy {
+    PathParser().parsePathString(NEEDLE_D).toPath()
+}
 
 /** Cache kafelków mapy prowadzenia — ograniczany, żeby nie rósł bez końca. */
 @Volatile
@@ -548,7 +573,11 @@ fun RouteNavMap(
             val w = with(density) { maxWidth.toPx() }.toInt()
             val h = with(density) { maxHeight.toPx() }.toInt()
 
-            val tileZoom = floor(zoomNow).toInt().coerceIn(MapTiles.MIN_ZOOM, MapTiles.MAX_ZOOM)
+            // Kafelki wybieramy do NAJBLIŻSZEGO poziomu (nie dolnego): do połowy
+            // poziomu skalujemy w dół, powyżej — ściągamy kafelki o poziom
+            // wyżej. Klatka zoomu 15.7 renderuje wtedy z 16 (x0.7), a nie
+            // rozmyte 15 (x1.7) — powiększanie jest ostre, jak w Mapach Google.
+            val tileZoom = floor(zoomNow + 0.5).toInt().coerceIn(MapTiles.MIN_ZOOM, MapTiles.MAX_ZOOM)
             val tileScale = 2.0.pow((zoomNow - tileZoom).toDouble())
             val tilePx = tileBasePx * tileScale
             val world = tileBasePx * 2.0.pow(zoomNow.toDouble())
@@ -720,24 +749,50 @@ fun RouteNavMap(
                     }
                 }
 
-                // pozycja użytkownika: poświata, strzałka kierunku i kropka
+                // pozycja użytkownika: podwójna poświata, kropka i iglica
+                // kursu (ikona „navigation” Material Symbols), z białą
+                // obwódką i cieniem — jak w nawigacjach mobilnych
                 shownFix?.let { f ->
                     val px = ((Merc.x(f.second) - centerX) * world + halfW).toFloat()
                     val py = ((Merc.y(f.first) - centerY) * world + halfH).toFloat()
                     val p = Offset(px, py)
                     drawCircle(
-                        color = scheme.primary.copy(alpha = 0.16f),
-                        radius = 30.dp.toPx(),
+                        color = scheme.primary.copy(alpha = 0.10f),
+                        radius = 34.dp.toPx(),
+                        center = p,
+                    )
+                    drawCircle(
+                        color = scheme.primary.copy(alpha = 0.14f),
+                        radius = 24.dp.toPx(),
                         center = p,
                     )
                     if (shownHeading != null) {
                         rotate(degrees = shownHeading, pivot = p) {
-                            val arrow = Path()
-                            arrow.moveTo(px, py - 34.dp.toPx())
-                            arrow.lineTo(px - 13.dp.toPx(), py - 11.dp.toPx())
-                            arrow.lineTo(px + 13.dp.toPx(), py - 11.dp.toPx())
-                            arrow.close()
-                            drawPath(arrow, color = scheme.primary)
+                            val s = 19.dp.toPx() / NEEDLE_UNITS
+                            val cx = px - s * NEEDLE_CENTER_X
+                            val cy = py - 21.dp.toPx() - s * NEEDLE_CENTER_Y
+                            translate(cx, cy) {
+                                scale(scale = s, pivot = Offset.Zero) {
+                                    // cień pod iglicą
+                                    translate(0.6f.dp.toPx(), 1.6f.dp.toPx()) {
+                                        drawPath(
+                                            userNeedle,
+                                            color = Color.Black.copy(alpha = 0.20f),
+                                        )
+                                    }
+                                    // biała obwódka (pogrubiony kontur)
+                                    drawPath(
+                                        userNeedle,
+                                        color = Color.White,
+                                        style = Stroke(
+                                            width = 2.2f.dp.toPx() / s,
+                                            cap = StrokeCap.Round,
+                                            join = StrokeJoin.Round,
+                                        ),
+                                    )
+                                    drawPath(userNeedle, color = scheme.primary)
+                                }
+                            }
                         }
                     }
                     drawCircle(color = ringColor, radius = 11.dp.toPx(), center = p)
