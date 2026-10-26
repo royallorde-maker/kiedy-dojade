@@ -1,8 +1,8 @@
 {
-  "versionCode": 24,
-  "versionName": "1.4.19",
+  "versionCode": 25,
+  "versionName": "1.4.20",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.19 - lista wynikow bez karty pieszo",
+  "changelog": "release: android 1.4.20 - plynny znacznik autobusu i spokojniejsze kolory mapy",
   "force": false,
-  "publishedAt": "2026-10-26T21:07:14Z"
+  "publishedAt": "2026-10-26T21:25:13Z"
 }
