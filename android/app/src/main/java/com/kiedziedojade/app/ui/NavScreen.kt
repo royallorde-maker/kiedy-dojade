@@ -222,6 +222,9 @@ fun NavScreen(
     var live by remember { mutableStateOf<Api.TripExec?>(null) }
     var busPos by remember { mutableStateOf<Pair<Double, Double>?>(null) }
     var busHeading by remember { mutableStateOf<Float?>(null) }
+    // aktualna częstotliwość pytań o autobus — mapa animuje znacznik dokładnie
+    // z tym rytmem, więc nie staje między odczytami
+    var pollMs by remember { mutableStateOf(15_000L) }
 
     // autobus na żywo: pozycja pojazdu, ETA i postęp kursu. Częściej pytamy,
     // gdy pojazd jest blisko lub stoi na przystanku; rzadziej w trasie.
@@ -292,6 +295,7 @@ fun NavScreen(
                     proximity != null && proximity < 1_200.0 -> 10_000L
                     else -> 15_000L
                 }
+                pollMs = wait
                 delay(wait)
             }
         }
@@ -523,6 +527,7 @@ fun NavScreen(
             bus = busPos.takeIf { liveVisible },
             busHeading = busHeading,
             busColor = lineColor(chipLine.orEmpty()),
+            pollMs = pollMs,
             showAttribution = false,
             mapStyle = mapStyle,
             modifier = Modifier.fillMaxSize(),

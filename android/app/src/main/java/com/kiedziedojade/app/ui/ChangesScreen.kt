@@ -231,6 +231,19 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.20",
+                lines = listOf(
+                    t(
+                        "Prowadzenie na żywo płynniej: autobus jedzie po mapie cały czas między odczytami (bez zamierania i przeskoku przy każdej aktualizacji), a strzałka kursu obraca się spokojniej. Mapa w jasnym motywie ma teraz lekko wyciszone kolory — beże OSM tonem zsiadają się z aplikacją; etykiety i linie zostały równie czytelne.",
+                        "Smoother live tracking: the bus now moves continuously on the map between updates (no freezing mid-glide or snapping on each refresh), and its heading wheel turns more gently. The light-theme map got subtly muted colors — OSM's beiges now sit in tune with the app; labels and lines are just as readable.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.19",
                 lines = listOf(
                     t(

@@ -60,6 +60,7 @@ import com.kiedziedojade.app.core.WalkLeg
 import com.kiedziedojade.app.core.autoNavZoom
 import com.kiedziedojade.app.core.cornerAheadMeters
 import com.kiedziedojade.app.core.fitStatic
+import com.kiedziedojade.app.core.haversine
 import com.kiedziedojade.app.core.projectOnPath
 import com.kiedziedojade.app.core.traveledCut
 import com.kiedziedojade.app.core.trimTraveled
@@ -144,14 +145,10 @@ private val tileMem = object : LruCache<String, ImageBitmap>(8 * 1024 * 1024) {
 }
 
 /** Filtr nocny kafelków — jak na ekranie mapy. */
-private val nightMatrix = ColorMatrix(
-    floatArrayOf(
-        -0.92f, 0f, 0f, 0f, 235f,
-        0f, -0.92f, 0f, 0f, 235f,
-        0f, 0f, -0.92f, 0f, 235f,
-        0f, 0f, 0f, 1f, 0f,
-    ),
-)
+private val nightMatrix = ColorMatrix(TILE_NIGHT_MATRIX)
+
+/** Filtr dzienny — te same wartości co w osmdroidzie (MapKit). */
+private val dayMatrix = ColorMatrix(TILE_DAY_MATRIX)
 
 /** Cache kafelków mapy prowadzenia — ograniczany, żeby nie rósł bez końca. */
 @Volatile
@@ -230,7 +227,9 @@ fun RouteMiniMap(
     val scheme = MaterialTheme.colorScheme
     val walkColor = scheme.tertiary
     val ringColor = scheme.onPrimary
-    val night = if (dark) ColorFilter.colorMatrix(nightMatrix) else null
+    val tileFilter = remember(dark) {
+        if (dark) ColorFilter.colorMatrix(nightMatrix) else ColorFilter.colorMatrix(dayMatrix)
+    }
 
     Box(
         modifier = modifier
@@ -287,7 +286,7 @@ fun RouteMiniMap(
                             (tile.y * tilePx - originY).roundToInt(),
                         ),
                         dstSize = IntSize(side, side),
-                        colorFilter = night,
+                        colorFilter = tileFilter,
                     )
                 }
 
@@ -378,35 +377,52 @@ fun RouteNavMap(
     busColor: Color = Color(0xFF1E88E5),
     showAttribution: Boolean = true,
     mapStyle: MapStyle = MapStyle.STANDARD,
+    /** co ile ms backend podaje nową pozycję autobusu (8–15 s) */
+    pollMs: Long = 15_000L,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
     val scheme = MaterialTheme.colorScheme
     val walkColor = scheme.tertiary
     val ringColor = scheme.onPrimary
-    val night = if (dark) ColorFilter.colorMatrix(nightMatrix) else null
+    val tileFilter = remember(dark) {
+        if (dark) ColorFilter.colorMatrix(nightMatrix) else ColorFilter.colorMatrix(dayMatrix)
+    }
 
     // 256 dp na kafelek: etykiety ulic są czytelne na telefonie, a zoom
     // odpowiada temu, co użytkownik widzi w Mapach Google.
     val tileBasePx = with(density) { 256.dp.toPx() }
 
-    // płynne przejście znacznika autobusu między kolejnymi odczytami API
+    // płynne przejście znacznika autobusu między kolejnymi odczytami API:
+    // ruch trwa dokładnie tyle, co odstęp między pytaniami, więc kropka
+    // jedzie cały czas i nie staje w połowie drogi do kolejnego punktu
     var prevBus by remember { mutableStateOf<Pair<Double, Double>?>(null) }
     var curBus by remember { mutableStateOf<Pair<Double, Double>?>(null) }
     val busMix = remember { Animatable(1f) }
-    LaunchedEffect(bus) {
+    LaunchedEffect(bus, pollMs) {
         if (bus == null) {
             prevBus = null
             curBus = null
             busMix.snapTo(1f)
         } else if (bus != curBus) {
-            prevBus = curBus
+            val prev = curBus
+            prevBus = prev
             curBus = bus
-            if (prevBus == null) {
+            // skok danych (pojazd pojawił się nagle gdzie indziej) — zamiast
+            // lotu znacznika przez pół miasta, pokaż nową pozycję od razu
+            val jump = prev != null &&
+                haversine(prev.first, prev.second, bus.first, bus.second) > 450.0
+            if (prev == null || jump) {
                 busMix.snapTo(1f)
             } else {
                 busMix.snapTo(0f)
-                busMix.animateTo(1f, tween(durationMillis = 11_000, easing = LinearEasing))
+                busMix.animateTo(
+                    1f,
+                    tween(
+                        durationMillis = pollMs.coerceIn(4_000L, 20_000L).toInt(),
+                        easing = LinearEasing,
+                    ),
+                )
             }
         }
     }
@@ -432,7 +448,8 @@ fun RouteNavMap(
     // pozostaje nieruchomy względem mapy zamiast skakać przy każdym odczycie.
     val shownFix = rememberSmoothPosition(fix)
     val shownHeading = rememberSmoothHeading(heading)
-    val shownBusHeading = rememberSmoothHeading(busHeading)
+    // strzałka autobusu kręci się wolniej (dryf kursu, nie kompas pasażera)
+    val shownBusHeading = rememberSmoothHeading(busHeading, durationMillis = 1_100)
 
     // Środek trzymamy w Double: przy zoomie 18 float traci piksele.
     var camCX by remember { mutableStateOf(Merc.x(target.second)) }
@@ -616,7 +633,7 @@ fun RouteNavMap(
                                 (ty * tilePx - top).roundToInt(),
                             ),
                             dstSize = IntSize(tilePx.roundToInt(), tilePx.roundToInt()),
-                            colorFilter = night,
+                            colorFilter = tileFilter,
                         )
                     }
                 }

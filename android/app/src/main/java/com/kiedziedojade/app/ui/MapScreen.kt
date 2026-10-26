@@ -133,8 +133,9 @@ fun MapScreen(
         )
     }
 
-    // nocny filtr kafelków — mapa pasuje do ciemnych motywów
+    // nocny/dzienny filtr kafelków — mapa pasuje do motywu
     val nightFilter = remember { osmNightFilter() }
+    val dayFilter = remember { osmDayFilter() }
 
     val fill = scheme.primary.toArgb()
     val fillSelected = scheme.tertiary.toArgb()
@@ -209,14 +210,14 @@ fun MapScreen(
             if (!mapReady) return@LaunchedEffect
             val map = holder.map ?: return@LaunchedEffect
             map.setTileSource(MapTiles.tileSource(mapStyle))
-            map.overlayManager?.tilesOverlay?.setColorFilter(if (dark) nightFilter else null)
+            map.overlayManager?.tilesOverlay?.setColorFilter(if (dark) nightFilter else dayFilter)
             map.invalidate()
         }
 
         // jasny/ciemny filtr kafelków wg motywu
         LaunchedEffect(dark, mapStyle, mapReady) {
             if (!mapReady) return@LaunchedEffect
-            holder.map?.overlayManager?.tilesOverlay?.setColorFilter(if (dark) nightFilter else null)
+            holder.map?.overlayManager?.tilesOverlay?.setColorFilter(if (dark) nightFilter else dayFilter)
             holder.map?.invalidate()
         }
 

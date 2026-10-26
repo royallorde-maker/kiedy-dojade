@@ -81,17 +81,33 @@ fun initOsmdroid(context: Context) {
     }
 }
 
-/** Nocny filtr kafelków — mapa pasuje do ciemnych motywów. */
-fun osmNightFilter(): ColorMatrixColorFilter = ColorMatrixColorFilter(
-    ColorMatrix(
-        floatArrayOf(
-            -0.92f, 0f, 0f, 0f, 235f,
-            0f, -0.92f, 0f, 0f, 235f,
-            0f, 0f, -0.92f, 0f, 235f,
-            0f, 0f, 0f, 1f, 0f,
-        ),
-    ),
+/** Matryca nocnych kafelków — jedno źródło prawdy dla osmdroid i canvasów. */
+val TILE_NIGHT_MATRIX: FloatArray = floatArrayOf(
+    -0.92f, 0f, 0f, 0f, 235f,
+    0f, -0.92f, 0f, 0f, 235f,
+    0f, 0f, -0.92f, 0f, 235f,
+    0f, 0f, 0f, 1f, 0f,
 )
+
+/**
+ * Matryca dziennych kafelków: 12% mniej nasycenia, minimalnie chłodny odcień
+ * i lekkie rozjaśnienie — beżowa paleta OSM zsiada się tonem z motywem
+ * aplikacji, a ulice i etykiety pozostają równie czytelne.
+ */
+val TILE_DAY_MATRIX: FloatArray = floatArrayOf(
+    0.908f, 0.072f, 0.010f, 0f, 5f,
+    0.037f, 0.953f, 0.010f, 0f, 5f,
+    0.038f, 0.075f, 0.917f, 0f, 5f,
+    0f, 0f, 0f, 1f, 0f,
+)
+
+/** Nocny filtr kafelków — mapa pasuje do ciemnych motywów. */
+fun osmNightFilter(): ColorMatrixColorFilter =
+    ColorMatrixColorFilter(ColorMatrix(TILE_NIGHT_MATRIX))
+
+/** Dzienny filtr kafelków — delikatne uspokojenie palety OSM. */
+fun osmDayFilter(): ColorMatrixColorFilter =
+    ColorMatrixColorFilter(ColorMatrix(TILE_DAY_MATRIX))
 
 /** Atrybucja kafelków. Kliknięcie otwiera stronę licencji OSM. */
 @Composable
