@@ -231,6 +231,19 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.19",
+                lines = listOf(
+                    t(
+                        "Lista wyników bez zbędnej karty „Pieszo”: pojawia się dopiero wtedy, gdy żadna linia nie jedzie w stronę celu. Opcja piesza nie znika — jest po prostu tam, gdzie jej szukasz.",
+                        "Results list without the unnecessary walk card: it now appears only when no bus heads toward your destination. The walking option didn't disappear — it just lives where you'd look for it.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.18",
                 lines = listOf(
                     t(

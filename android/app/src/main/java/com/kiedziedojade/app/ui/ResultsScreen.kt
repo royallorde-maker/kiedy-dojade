@@ -224,7 +224,9 @@ fun ResultsScreen(
             val best = o.itineraries.firstOrNull()
             val walkWins = o.walkOnly != null && (best == null || o.walkOnly.arriveAt <= best.arriveAt)
 
-            if (o.walkOnly != null) {
+            // karta „Pieszo” tylko gdy autobusy nie jadą w ogóle — przy dostę-
+            // pnych autobusach była tylko szumem nad listą wyników
+            if (o.walkOnly != null && o.itineraries.isEmpty()) {
                 item {
                     Appear(0) {
                         WalkOnlyCard(
