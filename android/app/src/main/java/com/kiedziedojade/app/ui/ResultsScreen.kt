@@ -221,11 +221,9 @@ fun ResultsScreen(
         if (o == null) {
             item { LoadingBlock(t("Szukam połączeń…", "Searching connections…")) }
         } else {
-            val best = o.itineraries.firstOrNull()
-            val walkWins = o.walkOnly != null && (best == null || o.walkOnly.arriveAt <= best.arriveAt)
-
             // karta „Pieszo” tylko gdy autobusy nie jadą w ogóle — przy dostę-
-            // pnych autobusach była tylko szumem nad listą wyników
+            // pnych autobusach była tylko szumem nad listą wyników. Bez
+            // podświetlenia: nie ma czemu „wygrywać”, gdy lista nie ma kursów
             if (o.walkOnly != null && o.itineraries.isEmpty()) {
                 item {
                     Appear(0) {
@@ -234,11 +232,13 @@ fun ResultsScreen(
                             meters = o.walkOnly.meters,
                             leaveAt = o.walkOnly.leaveAt,
                             arriveAt = o.walkOnly.arriveAt,
-                            highlighted = walkWins,
+                            highlighted = false,
                         )
                     }
                 }
             }
+
+            val best = o.itineraries.firstOrNull()
 
             if (o.itineraries.isEmpty()) {
                 item {

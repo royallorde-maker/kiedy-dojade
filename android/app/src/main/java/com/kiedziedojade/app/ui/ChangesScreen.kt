@@ -231,6 +231,19 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.21",
+                lines = listOf(
+                    t(
+                        "Poprawka znacznika na żywo: przy zmianie częstotliwości odświeżania (przystanek, zbliżenie) znacznik autobusu potrafił zamrzeć w połowie drogi i cofnąć się przy następnym odczycie. Ponadto karta „Pieszo” nie chwali się już, że jest „szybsza niż autobus”, gdy żadna linia na trasie nie kursuje.",
+                        "Live marker fix: when the refresh cadence changed (a stop, getting closer), the bus marker could freeze mid-glide and hop back on the next update. Also, the walk card no longer claims it's \"faster than the bus\" when no line is running at all.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.20",
                 lines = listOf(
                     t(

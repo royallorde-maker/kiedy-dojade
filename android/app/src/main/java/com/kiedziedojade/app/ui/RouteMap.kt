@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -395,11 +396,16 @@ fun RouteNavMap(
 
     // płynne przejście znacznika autobusu między kolejnymi odczytami API:
     // ruch trwa dokładnie tyle, co odstęp między pytaniami, więc kropka
-    // jedzie cały czas i nie staje w połowie drogi do kolejnego punktu
+    // jedzie cały czas i nie staje w połowie drogi do kolejnego punktu.
+    // Efekt kluczujemy TYLKO pozycją — interwał odczytujemy przez stan,
+    // bo restart po samej zmianie kadencji zamrażałby animację w połowie
+    // segmentu (feed GPS bywa rzadszy niż nasze pytania), by potem skoczyć
+    // do tyłu przy kolejnym odczycie.
     var prevBus by remember { mutableStateOf<Pair<Double, Double>?>(null) }
     var curBus by remember { mutableStateOf<Pair<Double, Double>?>(null) }
     val busMix = remember { Animatable(1f) }
-    LaunchedEffect(bus, pollMs) {
+    val pollMsNow by rememberUpdatedState(pollMs)
+    LaunchedEffect(bus) {
         if (bus == null) {
             prevBus = null
             curBus = null
@@ -419,7 +425,7 @@ fun RouteNavMap(
                 busMix.animateTo(
                     1f,
                     tween(
-                        durationMillis = pollMs.coerceIn(4_000L, 20_000L).toInt(),
+                        durationMillis = pollMsNow.coerceIn(4_000L, 20_000L).toInt(),
                         easing = LinearEasing,
                     ),
                 )
