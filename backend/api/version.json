@@ -1,8 +1,8 @@
 {
-  "versionCode": 22,
-  "versionName": "1.4.17",
+  "versionCode": 23,
+  "versionName": "1.4.18",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.17 - zabezpieczenia danych i planera",
+  "changelog": "release: android 1.4.18 - szlif wizualny tablicy i wynikow",
   "force": false,
-  "publishedAt": "2026-10-26T15:36:49Z"
+  "publishedAt": "2026-10-26T20:46:39Z"
 }
