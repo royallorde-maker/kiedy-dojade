@@ -103,10 +103,16 @@ class DataRepo(private val context: Context) {
                 if (target.exists() && !target.renameTo(old)) {
                     throw IllegalStateException("could not move the old dataset away")
                 }
-                if (!tmp.renameTo(target)) throw IllegalStateException("could not swap the dataset")
+                if (!tmp.renameTo(target)) {
+                    // Restore old data if swap failed
+                    if (old.exists()) old.renameTo(target)
+                    throw IllegalStateException("could not swap the dataset")
+                }
                 old.deleteRecursively()
 
-                val fresh = DataJson.world("cache", readFrom(target)!!)
+                val reader = readFrom(target)
+                    ?: throw IllegalStateException("cannot read from new dataset directory")
+                val fresh = DataJson.world("cache", reader)
                     ?: throw IllegalStateException("downloaded dataset is unreadable")
                 cached = fresh
                 Refresh(changed = true, world = fresh)

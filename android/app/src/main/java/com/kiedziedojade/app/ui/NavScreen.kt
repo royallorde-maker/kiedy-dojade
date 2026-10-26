@@ -280,8 +280,10 @@ fun NavScreen(
                         fails = 0
                     }
                 }
-                val proximity = if (busPos != null && fix != null) {
-                    haversine(fix!!.lat, fix!!.lng, busPos!!.first, busPos!!.second)
+                val f = fix
+                val pos = busPos
+                val proximity = if (f != null && pos != null) {
+                    haversine(f.lat, f.lng, pos.first, pos.second)
                 } else {
                     null
                 }
@@ -370,14 +372,16 @@ fun NavScreen(
     } else {
         nextStopClock?.let { minutesUntil(it, nowMin) }
     }
-    val busDist = if (busPos != null && fix != null) {
-        haversine(fix!!.lat, fix!!.lng, busPos!!.first, busPos!!.second)
+    val f = fix
+    val pos = busPos
+    val busDist = if (f != null && pos != null) {
+        haversine(f.lat, f.lng, pos.first, pos.second)
     } else {
         null
     }
-    val boardDist = if (liveRide != null && fix != null) {
+    val boardDist = if (liveRide != null && f != null) {
         haversine(
-            fix!!.lat, fix!!.lng,
+            f.lat, f.lng,
             liveRide.boardStop.lat, liveRide.boardStop.lng,
         )
     } else {

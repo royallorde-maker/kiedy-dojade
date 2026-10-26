@@ -331,7 +331,7 @@ private fun LiveRow(row: Api.LiveRow, now: Int) {
         }
         Column(horizontalAlignment = Alignment.End) {
             val dep = if (row.delayMin != null && row.delayMin != 0 && row.depMin != null && !canceled) {
-                row.depMin!!
+                row.depMin
             } else {
                 row.schedMin ?: row.depMin
             }

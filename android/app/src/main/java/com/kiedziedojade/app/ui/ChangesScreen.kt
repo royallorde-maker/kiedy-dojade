@@ -231,6 +231,23 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.16",
+                lines = listOf(
+                    t(
+                        "Poprawki stabilności: prowadzenie nie utyka już po trzech błędach pobierania kursu na żywo, a nieudana aktualizacja rozkładu nie zostawia pustego folderu z danymi.",
+                        "Stability fixes: live-run tracking no longer gets stuck after three failed downloads, and a failed schedule update no longer leaves an empty data folder.",
+                    ),
+                    t(
+                        "Zabezpieczenia bez zmian w funkcjach: ekrany prowadzenia, wyników i przystanku są odporne na nietypowe dane, a pamięć planera nie rośnie bez końca.",
+                        "Hardening with no feature changes: the navigation, results and stop screens handle unusual data safely, and the planner's memory no longer grows without bound.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.15",
                 lines = listOf(
                     t(

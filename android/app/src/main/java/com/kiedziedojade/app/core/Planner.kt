@@ -61,7 +61,10 @@ object Planner {
     /** Walking shorter than this is "you are at the stop" — no leg, no time cost. */
     const val TRIVIAL_WALK_M = 25.0
 
-    private val builtCache = HashMap<String, Built>()
+    // Bounded cache with LRU eviction to prevent memory leaks
+    private val builtCache = object : LinkedHashMap<String, Built>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: Map.Entry<String, Built>?) = size > 50
+    }
 
     fun resolvePlace(ref: PlaceRef, stops: List<Stop>): ResolvedPlace = when (ref) {
         is PlaceRef.Gps -> ResolvedPlace(ref.name, ref.lat, ref.lng)

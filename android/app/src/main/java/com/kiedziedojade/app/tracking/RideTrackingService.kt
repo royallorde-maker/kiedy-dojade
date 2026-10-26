@@ -212,13 +212,16 @@ class RideTrackingService : Service() {
                     liveExec = ex
                 } else if (++liveFails >= 3) {
                     resetLive()
-                    execRideIndex = rideIndex
+                    // Don't immediately retry same ride index; wait for next loop iteration
+                    // to avoid infinite loop if the execution consistently fails
                 }
             }
             publish()
 
-            val prox = if (liveExec?.vehicle != null && fix != null) {
-                haversine(fix!!.lat, fix!!.lng, liveExec!!.vehicle!!.first, liveExec!!.vehicle!!.second)
+            val f = fix
+            val veh = liveExec?.vehicle
+            val prox = if (veh != null && f != null) {
+                haversine(f.lat, f.lng, veh.first, veh.second)
             } else {
                 null
             }
