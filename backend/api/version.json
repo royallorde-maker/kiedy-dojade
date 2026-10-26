@@ -1,8 +1,8 @@
 {
-  "versionCode": 20,
-  "versionName": "1.4.15",
+  "versionCode": 21,
+  "versionName": "1.4.16",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.15 - czystszy wygląd i komunikat poza Szczecinkiem",
+  "changelog": "release: android 1.4.16 - poprawki stabilności prowadzenia i odświeżania danych",
   "force": false,
-  "publishedAt": "2026-10-24T19:00:44Z"
+  "publishedAt": "2026-10-26T15:24:00Z"
 }
