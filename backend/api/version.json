@@ -1,8 +1,8 @@
 {
-  "versionCode": 25,
-  "versionName": "1.4.20",
+  "versionCode": 26,
+  "versionName": "1.4.21",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.20 - plynny znacznik autobusu i spokojniejsze kolory mapy",
+  "changelog": "release: android 1.4.21 - hotfix znacznika na zywo i karty pieszo",
   "force": false,
-  "publishedAt": "2026-10-26T21:25:13Z"
+  "publishedAt": "2026-10-26T21:41:44Z"
 }
