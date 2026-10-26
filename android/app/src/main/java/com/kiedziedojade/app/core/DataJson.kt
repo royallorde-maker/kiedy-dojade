@@ -130,9 +130,23 @@ object DataJson {
             PlacesData(emptyList(), emptyList())
         }
         val trips = HashMap<String, List<Trip>>()
+        val stopCount = stops.size
         for (pid in meta.patterns.keys) {
             val content = read("trips-$pid.json") ?: return null
-            trips[pid] = parseTrips(content)
+            // przystanki w trips.json są indeksami stops.json; rozjazd wersji
+            // obu plików (np. po częściowym pobraniu) nie może wywrócić mapy
+            // i planera — wpisy spoza zakresu odrzucamy, kursy wyrzucamy
+            trips[pid] = parseTrips(content).mapNotNull { tr ->
+                // para to (indeks przystanku, minuta): walidujemy tylko indeks
+                val valid = tr.times.filter { (stop, _) -> stop in 0 until stopCount }
+                if (valid.size < 2) {
+                    null
+                } else if (valid.size == tr.times.size) {
+                    tr
+                } else {
+                    tr.copy(times = valid)
+                }
+            }
         }
         World(stops = stops, meta = meta, calendar = calendar, places = places, trips = trips, origin = origin)
     } catch (_: Exception) {

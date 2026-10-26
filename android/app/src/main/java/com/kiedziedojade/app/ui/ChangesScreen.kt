@@ -231,6 +231,23 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.17",
+                lines = listOf(
+                    t(
+                        "Zabezpieczenia danych: rozjazd wersji plików rozkładu między przystankami a kursami nie rozwija już mapy ani planera — podejrzane wpisy są odrzucane, a nie powodują awarii.",
+                        "Data hardening: a version mismatch between stops and trips files can no longer crash the map or planner — suspicious entries are dropped instead of failing.",
+                    ),
+                    t(
+                        "Bezpieczny dostęp równoległy w planerze i drobne szlify wizualne: animacja wejścia listy nie powtarza się przy przewijaniu, a mapa radzi sobie z pustą listą przystanków.",
+                        "Thread-safe planner access and visual polish: list entrance animation no longer replays when scrolling, and the map survives an empty stop list.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.16",
                 lines = listOf(
                     t(

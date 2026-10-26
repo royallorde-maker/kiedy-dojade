@@ -223,7 +223,9 @@ object Planner {
     // ------------------------------------------------------------------ guts
 
     private fun connectionsFor(pattern: String, trips: List<Trip>): Built {
-        val cached = builtCache[pattern]
+        // plan() działa na Dispatchers.Default i może zostać równolegle przy
+        // starcie nowego zapytania — dostęp do cache musi być zsynchronizowany
+        val cached = synchronized(builtCache) { builtCache[pattern] }
         if (cached != null && cached.trips === trips) return cached
         val conns = ArrayList<Connection>()
         trips.forEachIndexed { tripIdx, tr ->
@@ -235,7 +237,7 @@ object Planner {
         }
         conns.sortWith(compareBy<Connection> { it.dep }.thenBy { it.arr })
         val built = Built(trips, conns)
-        builtCache[pattern] = built
+        synchronized(builtCache) { builtCache[pattern] = built }
         return built
     }
 

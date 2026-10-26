@@ -32,6 +32,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,7 +56,9 @@ import java.time.LocalTime
 /** Wejście „karta po karcie” — jak w reszcie apki. */
 @Composable
 fun Appear(index: Int = 0, content: @Composable () -> Unit) {
-    var shown by remember { mutableStateOf(false) }
+    // saveable: po przewinięciu w LazyColumn karta wraca już rozjaśniona,
+    // zamiast powtarzać fade-in przy każdym recyklingu
+    var shown by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         delay(40L * index)
         shown = true

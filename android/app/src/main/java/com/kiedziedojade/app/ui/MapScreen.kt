@@ -125,9 +125,11 @@ fun MapScreen(
     }
 
     val center = remember(world) {
+        // pusta lista przystanków (uszkodzone dane) nie może rozwalić mapy
+        val s = world.stops
         GeoPoint(
-            world.stops.map { it.lat }.average(),
-            world.stops.map { it.lng }.average(),
+            if (s.isEmpty()) 53.710 else s.map { it.lat }.average(),
+            if (s.isEmpty()) 16.699 else s.map { it.lng }.average(),
         )
     }
 
