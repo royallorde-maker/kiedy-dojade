@@ -1,8 +1,8 @@
 {
-  "versionCode": 26,
-  "versionName": "1.4.21",
+  "versionCode": 27,
+  "versionName": "1.4.22",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.21 - hotfix znacznika na zywo i karty pieszo",
+  "changelog": "release: android 1.4.22 - ostry zoom i iglica kursu",
   "force": false,
-  "publishedAt": "2026-10-26T21:41:44Z"
+  "publishedAt": "2026-10-26T22:02:36Z"
 }
