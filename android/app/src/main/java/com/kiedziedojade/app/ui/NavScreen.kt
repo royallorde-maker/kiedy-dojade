@@ -325,12 +325,6 @@ fun NavScreen(
     val liveNextStopName = remember(liveExec, liveNextIdx) {
         liveNextIdx?.let { i -> liveExec?.times?.getOrNull(i)?.name?.takeIf { it.isNotBlank() } }
     }
-    val liveNextClock = remember(liveExec, liveNextIdx) {
-        liveNextIdx?.let { liveExec?.clockTo(it) }
-    }
-    val liveNextInMin = remember(liveExec, liveNextIdx, nowMin) {
-        liveNextIdx?.let { liveExec?.minutesTo(it, nowMin) }
-    }
     val liveVisible = liveExec != null && boardIdx != null
     val boardAtStop = liveVisible && liveExec!!.atStop && liveExec.nextIndex == boardIdx
     val busPassedBoard = liveVisible && liveExec!!.passed(boardIdx!!)
@@ -366,16 +360,6 @@ fun NavScreen(
         liveRide?.stops?.getOrNull(idx)
     }
     val nextStopName = liveNextStopName ?: plannedNextStop?.stop?.name
-    val nextStopClock = if (liveNextStopName != null) {
-        liveNextClock
-    } else {
-        plannedNextStop?.let { it.min + shownDelay }
-    }
-    val nextStopInMin = if (liveNextStopName != null) {
-        liveNextInMin
-    } else {
-        nextStopClock?.let { minutesUntil(it, nowMin) }
-    }
     val f = fix
     val pos = busPos
     val busDist = if (f != null && pos != null) {
@@ -490,8 +474,6 @@ fun NavScreen(
         plannedBoardClock = nextRideStep?.departMin,
         alightClock = alightClock,
         nextStopName = nextStopName,
-        nextStopClock = nextStopClock,
-        nextStopInMin = nextStopInMin,
         primary = scheme.primary,
         tertiary = scheme.tertiary,
         error = scheme.error,
@@ -519,10 +501,12 @@ fun NavScreen(
             baseZoom = when {
                 state.finished -> 16.5f
                 getOffNow -> 16.8f
-                getOffSoon -> 16.2f
-                step is NavStep.Walk -> 16f
-                waiting || boardAtStop -> 15.8f
-                else -> 15f
+                getOffSoon -> 16.4f
+                // marsz i czekanie: blisko — przystanek wyraźnie w kadrze
+                step is NavStep.Walk -> 16.6f
+                waiting || boardAtStop -> 16.4f
+                // w autobusie: szeroko — widać przejazd i kilka przystanków
+                else -> 14f
             },
             bus = busPos.takeIf { liveVisible },
             busHeading = busHeading,
@@ -753,8 +737,6 @@ private fun navInstruction(
     plannedBoardClock: Int?,
     alightClock: Int?,
     nextStopName: String?,
-    nextStopClock: Int?,
-    nextStopInMin: Int?,
     primary: Color,
     tertiary: Color,
     error: Color,
@@ -840,26 +822,15 @@ private fun navInstruction(
         is NavStep.Ride -> {
             val arr = alightClock ?: (step.arriveMin + delayMin)
             val dep = boardClock ?: (step.departMin + delayMin)
-            val nextWhen = buildList {
-                nextStopClock?.let { add(fmtTime(it)) }
-                nextStopInMin?.let {
-                    add(
-                        if (it <= 0) {
-                            t("teraz", "now")
-                        } else {
-                            t("za ", "in ") + it + " " + I18n.minutesAfter(it)
-                        },
-                    )
-                }
-            }.joinToString(" · ")
             val alightFact = NavFact(
                 t("Wysiadka", "Get off"),
                 step.alightName + " · " + fmtTime(arr),
             )
+            // Odliczanie „Dojazd” do następnego przystanku zniknęło: licznik
+            // bywał mylący, a po nim zawsze zostaje godzina wysiadki
             val nextFacts = buildList {
                 if (nextStopName != null && nextStopName != step.alightName) {
                     add(NavFact(t("Następny", "Next"), nextStopName))
-                    if (nextWhen.isNotEmpty()) add(NavFact(t("Dojazd", "Due"), nextWhen))
                 }
                 add(alightFact)
                 delayFact(delayMin)?.let { add(it) }

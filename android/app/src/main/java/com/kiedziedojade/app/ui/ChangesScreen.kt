@@ -231,6 +231,19 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.23",
+                lines = listOf(
+                    t(
+                        "Zoom prowadzenia po ludzku: podczas jazdy autobusem mapa cofa się szerzej (widać przejazd i kilka przystanków przed sobą), a marsz i czekanie na przystanku trzymają bliski kadr. Z karty prowadzenia zniknęło też odliczanie „Dojazd” do następnego przystanku — bywało mylące; nazwa przystanku i godzina wysiadki zostały.",
+                        "Sane navigation zoom: while riding the bus the map widens (you can see the ride and a few stops ahead), while walking and waiting keep a close view. The \"Due\" countdown to the next stop is gone from the navigation card — it was confusing; the stop name and get-off time remain.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.22",
                 lines = listOf(
                     t(
