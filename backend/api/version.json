@@ -1,8 +1,8 @@
 {
-  "versionCode": 27,
-  "versionName": "1.4.22",
+  "versionCode": 28,
+  "versionName": "1.4.23",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.22 - ostry zoom i iglica kursu",
+  "changelog": "release: android 1.4.23 - zoom jazdy szerzy, marszu blizej, bez licznika dojazd",
   "force": false,
-  "publishedAt": "2026-10-26T22:02:36Z"
+  "publishedAt": "2026-10-28T16:28:31Z"
 }
