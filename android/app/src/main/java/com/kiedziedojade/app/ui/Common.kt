@@ -7,6 +7,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -42,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -72,7 +74,7 @@ fun Appear(index: Int = 0, content: @Composable () -> Unit) {
     Box(modifier = Modifier.alpha(alpha).offset(y = shift)) { content() }
 }
 
-/** Karta w stylu apki: duże zaokrąglenie, kolor kontenera, bez obramowań. */
+/** Karta w stylu apki: duże zaokrąglenie, kolor kontenera, delikatna obwódka. */
 @Composable
 fun KdCard(
     modifier: Modifier = Modifier,
@@ -85,16 +87,35 @@ fun KdCard(
         modifier = modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(24.dp),
         color = if (highlighted) {
             scheme.primaryContainer
         } else {
             scheme.surfaceContainer
         },
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.4f)),
     ) {
         Column(modifier = Modifier.padding(16.dp)) { content() }
     }
 }
+
+/**
+ * Sygnaturowy gradient apki — ciepłe bursztynowo-pomarańczowe tło „hero”,
+ * jak karta w aplikacjach finansowych. Ciemnobrązowy napis [KD_ON_HERO]
+ * czyta się na nim jak tusz na papierze.
+ */
+fun kdHeroBrush(): Brush = Brush.linearGradient(
+    colorStops = arrayOf(
+        0f to Color(0xFFFFD07E),
+        0.45f to Color(0xFFF79E3E),
+        1f to Color(0xFFE7701A),
+    ),
+    start = Offset(0f, 0f),
+    end = Offset(720f, 720f),
+)
+
+/** Kolor tekstu/ikon na karcie hero. */
+val KD_ON_HERO = Color(0xFF2A1503)
 
 /** "Dziś" / "Jutro" / a short date for anything further away. */
 fun relativeDay(iso: String, today: String = todayStr()): String {

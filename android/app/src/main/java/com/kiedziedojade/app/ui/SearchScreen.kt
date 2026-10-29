@@ -1,5 +1,6 @@
 package com.kiedziedojade.app.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DirectionsBus
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MyLocation
@@ -31,7 +33,6 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.WifiOff
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +46,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -101,29 +105,11 @@ fun SearchScreen(
     ) {
         item {
             Appear(0) {
-                ScreenHeader(
-                    title = "KiedyDojadę",
-                    subtitle = greetingPrefix() + t("! Dokąd jedziemy?", "! Where are we going?"),
-                    below = {
-                        Text(
-                            t("Szczecinek · autobusy miejskie", "Szczecinek · city buses"),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            letterSpacing = 0.6.sp,
-                        )
-                    },
-                    trailing = if (!online) {
-                        {
-                            StatusChip(
-                                t("Brak sieci", "No network"),
-                                color = MaterialTheme.colorScheme.error,
-                                icon = Icons.Filled.WifiOff,
-                            )
-                        }
-                    } else {
-                        null
-                    },
-                    large = true,
+                HeroCard(
+                    greeting = greetingPrefix() + "!",
+                    headline = t("Dokąd jedziemy?", "Where are we going?"),
+                    caption = t("Szczecinek · autobusy miejskie", "Szczecinek · city buses"),
+                    offline = !online,
                 )
             }
         }
@@ -233,17 +219,29 @@ fun SearchScreen(
 
         item {
             Appear(2) {
-                Button(
+                Surface(
                     onClick = onFind,
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.Transparent,
+                    contentColor = KD_ON_HERO,
+                    modifier = Modifier.fillMaxWidth().height(54.dp),
                 ) {
-                    Icon(Icons.Filled.Search, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        t("Znajdź połączenie", "Find a connection"),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(kdHeroBrush()),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.Search, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                t("Znajdź połączenie", "Find a connection"),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -283,16 +281,95 @@ fun SearchScreen(
     }
 }
 
+/**
+ * Karta „hero” ekranu startowego — ciepły gradient ze szklanym refleksem
+ * i małym biletem w rogu (jak karta płatnicza w aplikacjach finansowych).
+ */
 @Composable
-private fun AnnouncementCard(
-    announcement: Api.Announcement,
+private fun HeroCard(
+    greeting: String,
+    headline: String,
+    caption: String,
+    offline: Boolean,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(26.dp))
+            .background(kdHeroBrush()),
+    ) {
+        // szklany refleks od góry — jak światło na wypukłej karcie
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color.White.copy(alpha = 0.34f),
+                        0.55f to Color.Transparent,
+                    ),
+                ),
+        )
+        // mały „bilet” w prawym dolnym rogu
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = Color.White.copy(alpha = 0.20f),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.45f)),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(12.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(40.dp)) {
+                Icon(
+                    Icons.Filled.DirectionsBus,
+                    contentDescription = null,
+                    tint = KD_ON_HERO,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+        Column(modifier = Modifier.padding(start = 18.dp, top = 16.dp, bottom = 16.dp, end = 76.dp)) {
+            Text(
+                greeting,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = KD_ON_HERO.copy(alpha = 0.72f),
+            )
+            Text(
+                headline,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = KD_ON_HERO,
+            )
+            Spacer(Modifier.height(3.dp))
+            Text(
+                caption,
+                style = MaterialTheme.typography.labelSmall,
+                letterSpacing = 0.6.sp,
+                color = KD_ON_HERO.copy(alpha = 0.72f),
+            )
+            if (offline) {
+                Spacer(Modifier.height(8.dp))
+                StatusChip(
+                    text = t("Brak sieci — pokazuję rozkład", "No network — showing the timetable"),
+                    color = KD_ON_HERO,
+                    background = Color.White.copy(alpha = 0.30f),
+                    icon = Icons.Filled.WifiOff,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnnouncementCard(    announcement: Api.Announcement,
     onDismiss: () -> Unit,
 ) {
     var expanded by rememberSaveable(announcement.id) { mutableStateOf(false) }
     var hasMore by remember { mutableStateOf(false) }
     Surface(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(22.dp),
         color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.55f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
     ) {
         Row(modifier = Modifier.padding(start = 14.dp, top = 10.dp, bottom = 10.dp)) {
             Box(
@@ -381,8 +458,9 @@ private fun QuickDestination(
     val subtitle = entry.item.code?.let { t("Przystanek ", "Stop ") + it } ?: entry.item.name
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(22.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         onClick = onClick,
     ) {
         Row(
@@ -391,8 +469,8 @@ private fun QuickDestination(
         ) {
             Box(
                 modifier = Modifier
-                    .size(30.dp)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), CircleShape),
+                    .size(34.dp)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(

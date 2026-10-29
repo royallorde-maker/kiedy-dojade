@@ -231,6 +231,19 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.4.24",
+                lines = listOf(
+                    t(
+                        "Nowy ekran startowy w klimacie kart płatniczych: ciepła bursztynowo-pomarańczowa karta „hero” ze szklanym refleksem i biletem, przycisk „Znajdź połączenie” w tym samym stylu, a kafelki popularnych celów dostały delikatne obwódki i większe zaokrąglenia. Karty w całej aplikacji mają teraz miększe krawędzie.",
+                        "A start screen in the banking-app spirit: a warm amber-orange \"hero\" card with a glass reflection and a little ticket, the \"Find a connection\" button in the same style, and popular-destination tiles with subtle outlines and rounder corners. Cards across the whole app got softer edges.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.23",
                 lines = listOf(
                     t(
