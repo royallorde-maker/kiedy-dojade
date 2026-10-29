@@ -1,8 +1,8 @@
 {
-  "versionCode": 34,
-  "versionName": "1.5.4",
+  "versionCode": 35,
+  "versionName": "1.5.5",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.5.4 - biel zamiast bursztynu, mniejsza przekladka",
+  "changelog": "release: android 1.5.5 - tylko motyw Grafit",
   "force": false,
-  "publishedAt": "2026-10-29T22:46:43Z"
+  "publishedAt": "2026-10-29T23:17:44Z"
 }
