@@ -1,8 +1,8 @@
 {
-  "versionCode": 30,
-  "versionName": "1.5.0",
+  "versionCode": 31,
+  "versionName": "1.5.1",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.5.0 - interfejs od zera: szklany jezyk, pływająca nawigacja, stos szukania",
+  "changelog": "release: android 1.5.1 - szklo reszty ekranow: prowadzenie, mapa, wybieracz",
   "force": false,
-  "publishedAt": "2026-10-29T21:37:57Z"
+  "publishedAt": "2026-10-29T21:55:46Z"
 }
