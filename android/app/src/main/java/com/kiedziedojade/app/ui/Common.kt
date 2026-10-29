@@ -147,22 +147,26 @@ fun KdCard(
 }
 
 /**
- * Sygnaturowy gradient apki — ciepłe bursztynowo-pomarańczowe tło „hero”,
- * jak karta w aplikacjach finansowych. Ciemnobrązowy napis [KD_ON_HERO]
- * czyta się na nim jak tusz na papierze.
+ * Sygnaturowy gradient apki — czysta, chłodna biel „hero” z delikatnym
+ * spadkiem do szarości. Ciemny napis [KD_ON_HERO] czyta się na niej jak
+ * tusz na papierze, a na ciemnych motywach karta świeci jak papier.
  */
 fun kdHeroBrush(): Brush = Brush.linearGradient(
     colorStops = arrayOf(
-        0f to Color(0xFFFFD07E),
-        0.45f to Color(0xFFF79E3E),
-        1f to Color(0xFFE7701A),
+        0f to Color(0xFFFFFFFF),
+        0.55f to Color(0xFFF7F9FC),
+        1f to Color(0xFFE4EAF2),
     ),
     start = Offset(0f, 0f),
     end = Offset(720f, 720f),
 )
 
-/** Kolor tekstu/ikon na karcie hero. */
-val KD_ON_HERO = Color(0xFF2A1503)
+/** Kolor tekstu/ikon na białej karcie hero. */
+val KD_ON_HERO = Color(0xFF0B1220)
+
+/** Delikatna krawędź białych elementów — widoczna także na jasnym tle. */
+@Composable
+fun kdHeroEdge(): Color = MaterialTheme.colorScheme.outline.copy(alpha = 0.30f)
 
 /**
  * Wspólne szkło całej apki: półprzezroczyste wypełnienie + cienka,
@@ -244,7 +248,7 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
         Box(
             modifier = Modifier
                 .size(width = 14.dp, height = 3.dp)
-                .background(kdHeroBrush(), RoundedCornerShape(2.dp)),
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f), RoundedCornerShape(2.dp)),
         )
         Text(
             text = text.uppercase(),
@@ -356,13 +360,12 @@ fun EmptyState(icon: ImageVector, title: String, text: String) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        // szkło z bursztynowym kręgiem w tle
+        // szkło z delikatnym, neutralnym kręgiem w tle
         Box(contentAlignment = Alignment.Center) {
             Box(
                 modifier = Modifier
                     .size(76.dp)
-                    .background(kdHeroBrush(), CircleShape)
-                    .alpha(0.16f),
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f), CircleShape),
             )
             Box(
                 modifier = Modifier
@@ -454,7 +457,7 @@ fun InfoCard(title: String, lines: List<String>, index: Int = 0) {
                 Box(
                     modifier = Modifier
                         .size(width = 4.dp, height = 20.dp)
-                        .background(kdHeroBrush(), RoundedCornerShape(2.dp)),
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f), RoundedCornerShape(2.dp)),
                 )
                 Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
@@ -575,7 +578,7 @@ fun KdNavBar(
                         Icon(
                             icon,
                             contentDescription = label,
-                            tint = if (active) scheme.onPrimary else scheme.onSurfaceVariant,
+                            tint = if (active) KD_ON_HERO else scheme.onSurfaceVariant,
                             modifier = Modifier.size(22.dp),
                         )
                     }

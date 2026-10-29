@@ -2,6 +2,7 @@ package com.kiedziedojade.app.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -192,7 +193,7 @@ fun SearchScreen(
 
         item {
             Appear(2) {
-                // CTA: pełna pigułka w sygnaturowym gradiencie
+                // CTA: pełna pigułka w sygnaturowej bieli
                 Surface(
                     onClick = onFind,
                     shape = CircleShape,
@@ -203,7 +204,8 @@ fun SearchScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(kdHeroBrush()),
+                            .background(kdHeroBrush())
+                            .border(1.dp, kdHeroEdge(), CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -269,24 +271,14 @@ private fun HeroCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(30.dp))
-            .background(kdHeroBrush()),
+            .background(kdHeroBrush())
+            .border(1.dp, kdHeroEdge(), RoundedCornerShape(30.dp)),
     ) {
-        // szklany refleks od góry — jak światło na wypukłej karcie
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f to Color.White.copy(alpha = 0.34f),
-                        0.55f to Color.Transparent,
-                    ),
-                ),
-        )
         // mały „bilet” w prawym dolnym rogu
         Surface(
             shape = RoundedCornerShape(14.dp),
-            color = Color.White.copy(alpha = 0.20f),
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.45f)),
+            color = KD_ON_HERO.copy(alpha = 0.05f),
+            border = BorderStroke(1.dp, KD_ON_HERO.copy(alpha = 0.12f)),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(14.dp),
@@ -325,7 +317,7 @@ private fun HeroCard(
                 StatusChip(
                     text = t("Brak sieci — pokazuję rozkład", "No network — showing the timetable"),
                     color = KD_ON_HERO,
-                    background = Color.White.copy(alpha = 0.30f),
+                    background = KD_ON_HERO.copy(alpha = 0.06f),
                     icon = Icons.Filled.WifiOff,
                 )
             }
@@ -381,25 +373,28 @@ private fun SearchStack(
                 )
             }
         }
-        // przekładka na szwie — sygnaturowy bursztyn, dokładnie na środku
+        // przekładka na szwie — mała, biała, dokładnie na środku
         Surface(
             onClick = onSwap,
             shape = CircleShape,
             color = Color.Transparent,
-            modifier = Modifier.size(36.dp),
+            modifier = Modifier.size(40.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(kdHeroBrush(), CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Filled.SwapVert,
-                    contentDescription = t("Zamień", "Swap"),
-                    tint = KD_ON_HERO,
-                    modifier = Modifier.size(18.dp),
-                )
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .background(kdHeroBrush(), CircleShape)
+                        .border(1.dp, kdHeroEdge(), CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Filled.SwapVert,
+                        contentDescription = t("Zamień", "Swap"),
+                        tint = KD_ON_HERO,
+                        modifier = Modifier.size(15.dp),
+                    )
+                }
             }
         }
     }
@@ -589,6 +584,7 @@ private fun QuickDestination(
                 modifier = Modifier
                     .size(42.dp)
                     .background(kdHeroBrush(), RoundedCornerShape(14.dp))
+                    .border(1.dp, kdHeroEdge(), RoundedCornerShape(14.dp))
                     .padding(3.dp),
                 contentAlignment = Alignment.Center,
             ) {

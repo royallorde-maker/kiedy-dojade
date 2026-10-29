@@ -14,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -757,7 +758,8 @@ fun SplashScreen() {
                     modifier = Modifier
                         .size(88.dp)
                         .clip(RoundedCornerShape(28.dp))
-                        .background(kdHeroBrush()),
+                        .background(kdHeroBrush())
+                        .border(1.dp, kdHeroEdge(), RoundedCornerShape(28.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
                     // refleks na płytce

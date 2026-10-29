@@ -10,6 +10,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -611,6 +612,7 @@ fun NavScreen(
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         modifier = Modifier
                                             .background(kdHeroBrush(), RoundedCornerShape(14.dp))
+                                            .border(1.dp, kdHeroEdge(), RoundedCornerShape(14.dp))
                                             .padding(horizontal = 8.dp, vertical = 5.dp),
                                     ) {
                                         Icon(

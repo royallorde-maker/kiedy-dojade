@@ -231,6 +231,19 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.5.4",
+                lines = listOf(
+                    t(
+                        "Bursztyn ustąpił bieli: karta powitalna, przycisk „Znajdź połączenie”, przekładka zamiany i podświetlenie aktywnej zakładki są teraz białe z ciemnym tuszem. Przycisk zamiany miejsc jest mniejszy i siedzi dokładnie na środku szwu.",
+                        "Amber gave way to white: the welcome card, the “Find a connection” button, the swap knob and the active tab highlight are now white with dark ink. The from/to swap button is smaller and sits exactly in the middle of the seam.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.5.3",
                 lines = listOf(
                     t(
