@@ -337,7 +337,8 @@ private fun HeroCard(
 
 /**
  * Stos „skąd / dokąd” w jednym szkle: pola przedzielone włoską kreską,
- * a przycisk zamiany siedzi dokładnie na szwie przy prawej krawędzi.
+ * a przycisk zamiany siedzi dokładnie na środku szwu — z dala od przycisku
+ * GPS w polu „skąd”, żeby nic się nie nakładało.
  */
 @Composable
 private fun SearchStack(
@@ -349,7 +350,7 @@ private fun SearchStack(
     gpsSelected: Boolean,
     onSwap: () -> Unit,
 ) {
-    Box(contentAlignment = Alignment.CenterEnd) {
+    Box(contentAlignment = Alignment.Center) {
         GlassPane(shape = RoundedCornerShape(28.dp), modifier = Modifier.fillMaxWidth()) {
             Column {
                 StackField(
@@ -363,11 +364,11 @@ private fun SearchStack(
                     trailingSelected = gpsSelected,
                     onTrailingClick = onUseGps,
                 )
-                // szwa: włoska kreska, wyspa pod okrągły przycisk zamiany
+                // szew: włoska kreska, którą w środku przecina bursztynowa przekładka
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 56.dp, end = 76.dp)
+                        .padding(start = 56.dp, end = 56.dp)
                         .height(1.dp)
                         .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f)),
                 )
@@ -380,14 +381,12 @@ private fun SearchStack(
                 )
             }
         }
-        // przekładka na szwie — sygnaturowy bursztyn
+        // przekładka na szwie — sygnaturowy bursztyn, dokładnie na środku
         Surface(
             onClick = onSwap,
             shape = CircleShape,
             color = Color.Transparent,
-            modifier = Modifier
-                .padding(end = 16.dp)
-                .size(40.dp),
+            modifier = Modifier.size(36.dp),
         ) {
             Box(
                 modifier = Modifier
@@ -399,7 +398,7 @@ private fun SearchStack(
                     Icons.Filled.SwapVert,
                     contentDescription = t("Zamień", "Swap"),
                     tint = KD_ON_HERO,
-                    modifier = Modifier.size(19.dp),
+                    modifier = Modifier.size(18.dp),
                 )
             }
         }

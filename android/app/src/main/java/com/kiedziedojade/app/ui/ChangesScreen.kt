@@ -231,6 +231,19 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.5.3",
+                lines = listOf(
+                    t(
+                        "Jasne motywy: karty i pasek nawigacji mają teraz prawdziwy kontur — biała obwódka znikała na jasnym tle i wszystko wyglądało płasko. Przycisk zamiany miejsc nie wchodzi już na przycisk GPS — siedzi na środku szwu, więc nic się nie nakłada.",
+                        "Light themes: cards and the nav bar now have a real outline — the white rim disappeared on light backgrounds and everything looked flat. The from/to swap button no longer collides with the GPS button — it sits in the middle of the seam, so nothing overlaps.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.5.2",
                 lines = listOf(
                     t(

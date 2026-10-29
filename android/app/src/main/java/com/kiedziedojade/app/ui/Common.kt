@@ -51,6 +51,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -85,15 +86,30 @@ fun Appear(index: Int = 0, content: @Composable () -> Unit) {
 }
 
 /**
- * Oświetlona krawędź szkła: 1 dp obwódki, która od góry łapie światło,
- * a przy dole gaśnie. Rysowana jako prawdziwa obwódka (stroke), nie jako
- * biała mgła na całej powierzchni.
+ * Oświetlona krawędź szkła. W ciemnych motywach to biała poświata od góry,
+ * która gaśnie przy dole. W jasnych motywach biała krawędź byłaby niewidoczna
+ * (szkło zlewałoby się z tłem), więc używamy prawdziwej, ciemniejszej obwódki
+ * z palety — karta dostaje kontur zamiast płaskiej plamy.
  */
-private fun glassBorder(topAlpha: Float = 0.22f): Brush = Brush.verticalGradient(
-    0f to Color.White.copy(alpha = topAlpha),
-    0.45f to Color.White.copy(alpha = topAlpha * 0.35f),
-    1f to Color.White.copy(alpha = 0.06f),
-)
+@Composable
+private fun glassBorder(topAlpha: Float = 0.22f): Brush {
+    val scheme = MaterialTheme.colorScheme
+    val dark = scheme.background.luminance() < 0.5f
+    return if (dark) {
+        Brush.verticalGradient(
+            0f to Color.White.copy(alpha = topAlpha),
+            0.45f to Color.White.copy(alpha = topAlpha * 0.35f),
+            1f to Color.White.copy(alpha = 0.06f),
+        )
+    } else {
+        val a = (topAlpha / 0.22f).coerceIn(0.45f, 1f)
+        Brush.verticalGradient(
+            0f to scheme.outline.copy(alpha = 0.80f * a),
+            0.5f to scheme.outline.copy(alpha = 0.55f * a),
+            1f to scheme.outline.copy(alpha = 0.35f * a),
+        )
+    }
+}
 
 /**
  * Karta bazowa całej apki: półprzezroczysty profil + cienka, oświetlona
