@@ -1,36 +1,60 @@
 {
-  "generatedAt": "2026-10-28T16:27:58.512Z",
+  "generatedAt": "2026-10-29T03:04:48.505Z",
   "source": "https://szczecinek.kiedyprzyjedzie.pl (Komunikacja Miejska Szczecinek)",
   "city": "Szczecinek",
   "timezone": "Europe/Warsaw",
   "stopsRevision": 2090,
   "horizon": {
-    "from": "2026-10-28",
+    "from": "2026-10-29",
     "to": "2026-12-31"
   },
   "fingerprints": {
-    "p1": "7a778028b9b1285c",
-    "p2": "a6f2ef45a3937c8f",
-    "p3": "f36fb2da02254221",
-    "p4": "997a6f6e855600f4"
+    "p1": "162d56e9dc3ecd5a",
+    "p2": "e12b03b1b529beee",
+    "p3": "f0be39a4d393589f",
+    "p4": "2c6582eda09674d5",
+    "p5": "d592374ad80990e1",
+    "p6": "9bf5e20b020b29c1",
+    "p7": "898d3c5cb25879c5",
+    "p8": "40ed8c1e58b8a288"
   },
   "patterns": {
     "p1": {
       "type": "workday",
-      "days": 39,
-      "sampleDay": "2026-10-28"
+      "days": 2,
+      "sampleDay": "2026-10-29"
     },
     "p2": {
       "type": "sat",
-      "days": 8,
+      "days": 1,
       "sampleDay": "2026-10-31"
     },
     "p3": {
       "type": "sun",
-      "days": 13,
+      "days": 1,
       "sampleDay": "2026-11-01"
     },
     "p4": {
+      "type": "workday_noschool",
+      "days": 1,
+      "sampleDay": "2026-11-02"
+    },
+    "p5": {
+      "type": "workday_noschool",
+      "days": 35,
+      "sampleDay": "2026-11-03"
+    },
+    "p6": {
+      "type": "sat",
+      "days": 7,
+      "sampleDay": "2026-11-07"
+    },
+    "p7": {
+      "type": "sun",
+      "days": 12,
+      "sampleDay": "2026-11-08"
+    },
+    "p8": {
       "type": "workday_noschool",
       "days": 5,
       "sampleDay": "2026-12-23"
@@ -38,7 +62,7 @@
   },
   "counts": {
     "stops": 113,
-    "trips": 1106
+    "trips": 3678
   },
-  "requestCount": 735
+  "requestCount": 3762
 }
