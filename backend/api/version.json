@@ -1,8 +1,8 @@
 {
-  "versionCode": 32,
-  "versionName": "1.5.2",
+  "versionCode": 33,
+  "versionName": "1.5.3",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.5.2 - szklo bez mgly, czytelny tekst w ciemnych motywach",
+  "changelog": "release: android 1.5.3 - jasne szklo z konturem, przekladka na srodku szwu",
   "force": false,
-  "publishedAt": "2026-10-29T22:17:50Z"
+  "publishedAt": "2026-10-29T22:31:44Z"
 }
