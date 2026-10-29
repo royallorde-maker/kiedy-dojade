@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-29T03:04:48.505Z",
+  "generatedAt": "2026-10-29T20:35:26.427Z",
   "source": "https://szczecinek.kiedyprzyjedzie.pl (Komunikacja Miejska Szczecinek)",
   "city": "Szczecinek",
   "timezone": "Europe/Warsaw",
@@ -62,7 +62,7 @@
   },
   "counts": {
     "stops": 113,
-    "trips": 3678
+    "trips": 2572
   },
-  "requestCount": 3762
+  "requestCount": 1190
 }
