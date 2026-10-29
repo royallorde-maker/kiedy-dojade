@@ -1,8 +1,8 @@
 {
-  "versionCode": 28,
-  "versionName": "1.4.23",
+  "versionCode": 29,
+  "versionName": "1.4.24",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.23 - zoom jazdy szerzy, marszu blizej, bez licznika dojazd",
+  "changelog": "release: android 1.4.24 - ekran startowy w klimacie kart platniczych",
   "force": false,
-  "publishedAt": "2026-10-28T16:28:31Z"
+  "publishedAt": "2026-10-29T20:34:06Z"
 }
