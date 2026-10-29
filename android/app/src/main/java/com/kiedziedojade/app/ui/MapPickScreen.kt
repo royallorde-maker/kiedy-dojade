@@ -215,7 +215,7 @@ fun MapPickScreen(
 
         GlassPane(
             shape = RoundedCornerShape(26.dp),
-            fill = scheme.surfaceContainer.copy(alpha = 0.74f),
+            fill = scheme.surfaceContainer.copy(alpha = 0.92f),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()

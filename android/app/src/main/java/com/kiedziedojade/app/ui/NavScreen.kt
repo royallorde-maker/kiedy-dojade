@@ -526,7 +526,7 @@ fun NavScreen(
         ) {
             GlassPane(
                 shape = RoundedCornerShape(26.dp),
-                fill = scheme.surfaceContainer.copy(alpha = 0.68f),
+                fill = scheme.surfaceContainer.copy(alpha = 0.90f),
                 modifier = Modifier.fillMaxWidth(),
             ) {
             Column(modifier = Modifier.padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 10.dp)) {
@@ -642,7 +642,7 @@ fun NavScreen(
 
             GlassPane(
                 shape = RoundedCornerShape(26.dp),
-                fill = scheme.surfaceContainer.copy(alpha = 0.68f),
+                fill = scheme.surfaceContainer.copy(alpha = 0.90f),
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding(),

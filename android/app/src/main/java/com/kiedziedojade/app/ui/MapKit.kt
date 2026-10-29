@@ -154,7 +154,7 @@ fun MapZoomControls(
     val scheme = MaterialTheme.colorScheme
     GlassPane(
         shape = RoundedCornerShape(22.dp),
-        fill = scheme.surfaceContainer.copy(alpha = 0.66f),
+        fill = scheme.surfaceContainer.copy(alpha = 0.88f),
         modifier = modifier,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

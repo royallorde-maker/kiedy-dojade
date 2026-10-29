@@ -1,11 +1,13 @@
 package com.kiedziedojade.app.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -338,5 +340,14 @@ fun schemeFor(theme: AppTheme): androidx.compose.material3.ColorScheme = when (t
 
 @Composable
 fun KiedyDojadeTheme(theme: AppTheme = AppTheme.SYSTEM, content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = schemeFor(theme), typography = AppTypography, content = content)
+    MaterialTheme(colorScheme = schemeFor(theme), typography = AppTypography) {
+        // Kolor tekstu musi być ustawiony u samego źródła: pełnoekranowe
+        // nakładki (prowadzenie, wybieracz) są poza Scaffoldem, więc bez tego
+        // domyślny kolor Compose (czarny) zostawał czarny także w ciemnych
+        // motywach i nagłówki znikały na ciemnym szkle.
+        CompositionLocalProvider(
+            LocalContentColor provides MaterialTheme.colorScheme.onBackground,
+            content = content,
+        )
+    }
 }

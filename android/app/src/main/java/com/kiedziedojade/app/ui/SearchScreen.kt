@@ -387,7 +387,7 @@ private fun SearchStack(
             color = Color.Transparent,
             modifier = Modifier
                 .padding(end = 16.dp)
-                .size(44.dp),
+                .size(40.dp),
         ) {
             Box(
                 modifier = Modifier
@@ -399,7 +399,7 @@ private fun SearchStack(
                     Icons.Filled.SwapVert,
                     contentDescription = t("Zamień", "Swap"),
                     tint = KD_ON_HERO,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(19.dp),
                 )
             }
         }
@@ -423,7 +423,7 @@ private fun StackField(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 13.dp),
+            .padding(horizontal = 16.dp, vertical = 15.dp),
     ) {
         Box(
             modifier = Modifier
@@ -485,7 +485,7 @@ private fun AnnouncementCard(announcement: Api.Announcement, onDismiss: () -> Un
     var hasMore by remember { mutableStateOf(false) }
     GlassPane(
         shape = RoundedCornerShape(24.dp),
-        fill = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.50f),
+        fill = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.65f),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(modifier = Modifier.padding(start = 14.dp, top = 10.dp, bottom = 10.dp)) {

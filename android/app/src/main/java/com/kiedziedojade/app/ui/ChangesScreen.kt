@@ -231,6 +231,19 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.5.2",
+                lines = listOf(
+                    t(
+                        "Szkło bez mgły: karty nie są już zalane białą poświatą — mają prawdziwą, cienką obwódkę, więc mapa i tło prześwitują, a tekst pozostaje ostry. Naprawiony czarny tekst w ciemnych motywach na ekranie prowadzenia, wyborze miejsca i wyborze punktu na mapie. Przełącznik „skąd/dokąd” dostał więcej powietrza.",
+                        "Glass without fog: cards are no longer washed with a white sheen — they have a real thin rim, so the map and background show through while text stays crisp. Fixed black text in dark themes on navigation, the place picker and the map-point picker. The from/to swap knob got more breathing room.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.5.1",
                 lines = listOf(
                     t(

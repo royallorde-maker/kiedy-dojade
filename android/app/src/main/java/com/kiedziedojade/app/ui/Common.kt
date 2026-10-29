@@ -9,6 +9,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -84,25 +85,19 @@ fun Appear(index: Int = 0, content: @Composable () -> Unit) {
 }
 
 /**
- * Szkło: półprzezroczysty profil z oświetloną krawędzią od góry. Światło
- * pada z góry, więc górna krawędź łapie refleks, a dolna gaśnie w tle —
- * dokładnie jak szyba nad kolorem tła.
+ * Oświetlona krawędź szkła: 1 dp obwódki, która od góry łapie światło,
+ * a przy dole gaśnie. Rysowana jako prawdziwa obwódka (stroke), nie jako
+ * biała mgła na całej powierzchni.
  */
-private fun glassBorder(topAlpha: Float = 0.30f): Brush = Brush.verticalGradient(
+private fun glassBorder(topAlpha: Float = 0.22f): Brush = Brush.verticalGradient(
     0f to Color.White.copy(alpha = topAlpha),
-    0.35f to Color.White.copy(alpha = topAlpha * 0.30f),
-    1f to Color.White.copy(alpha = 0.05f),
-)
-
-/** Refleks na górnej krawędzi wypełnienia — dwoista poświata szkła. */
-private fun glassSheen(): Brush = Brush.verticalGradient(
-    0f to Color.White.copy(alpha = 0.09f),
-    0.5f to Color.Transparent,
+    0.45f to Color.White.copy(alpha = topAlpha * 0.35f),
+    1f to Color.White.copy(alpha = 0.06f),
 )
 
 /**
- * Karta bazowa całej apki: szkło na tle, 26 dp promienia, oświetlona
- * krawędź. Wypełnienie jest półprzezroczyste — to ono robi efekt szyby.
+ * Karta bazowa całej apki: półprzezroczysty profil + cienka, oświetlona
+ * obwódka. Głębia bierze się z obwódki, nie z mgły na treści.
  */
 @Composable
 fun KdCard(
@@ -112,6 +107,7 @@ fun KdCard(
     content: @Composable () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(26.dp)
     val fill = when {
         highlighted -> scheme.primary.copy(alpha = 0.22f)
         else -> scheme.surfaceContainer.copy(alpha = 0.62f)
@@ -119,9 +115,9 @@ fun KdCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(26.dp))
+            .clip(shape)
             .background(fill)
-            .background(glassSheen())
+            .border(1.dp, glassBorder(), shape)
             .then(
                 if (onClick != null) {
                     Modifier.clickable { onClick() }
@@ -130,14 +126,6 @@ fun KdCard(
                 },
             ),
     ) {
-        // oświetlona krawędź — rysowana nad zawartością, cienka jak włos
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(
-                    glassBorder(),
-                ),
-        )
         Column(modifier = Modifier.padding(16.dp)) { content() }
     }
 }
@@ -161,9 +149,9 @@ fun kdHeroBrush(): Brush = Brush.linearGradient(
 val KD_ON_HERO = Color(0xFF2A1503)
 
 /**
- * Wspólne szkło całej apki: półprzezroczyste wypełnienie, poświata
- * od góry i oświetlona krawędź. Wszystkie panele na tle (karty prowadzenia,
- * paski na mapie) budują się na tym samym szkle.
+ * Wspólne szkło całej apki: półprzezroczyste wypełnienie + cienka,
+ * oświetlona obwódka. Wszystkie panele na tle (karty prowadzenia, paski
+ * na mapie) budują się na tym samym szkle.
  */
 @Composable
 fun GlassPane(
@@ -176,13 +164,8 @@ fun GlassPane(
         modifier = modifier
             .clip(shape)
             .background(fill)
-            .background(glassSheen()),
+            .border(1.dp, glassBorder(), shape),
     ) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(glassBorder()),
-        )
         content()
     }
 }
@@ -521,17 +504,16 @@ fun KdNavBar(
 ) {
     val scheme = MaterialTheme.colorScheme
     val density = androidx.compose.ui.platform.LocalDensity.current
+    val capsuleShape = RoundedCornerShape(30.dp)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(30.dp))
-            .background(scheme.surfaceContainer.copy(alpha = 0.72f))
-            .background(glassSheen()),
+            .clip(capsuleShape)
+            .background(scheme.surfaceContainer.copy(alpha = 0.92f))
+            .border(1.dp, glassBorder(0.16f), capsuleShape),
     ) {
-        // oświetlona krawędź kapsuły
-        Box(modifier = Modifier.matchParentSize().background(glassBorder(0.26f)))
         Row(
             modifier = Modifier
                 .fillMaxWidth()

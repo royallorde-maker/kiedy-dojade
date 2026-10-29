@@ -435,7 +435,7 @@ fun MapScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 GlassPane(
                     shape = RoundedCornerShape(24.dp),
-                    fill = scheme.surfaceContainer.copy(alpha = 0.62f),
+                    fill = scheme.surfaceContainer.copy(alpha = 0.88f),
                     modifier = Modifier.weight(1f),
                 ) {
                     LazyRow(
