@@ -231,6 +231,19 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.5.5",
+                lines = listOf(
+                    t(
+                        "Grafit zostaje jedynym motywem: pozostałe palety i wybór motywu zniknęły z Ustawień. Aplikacja zawsze trzyma ciemny grafit, niezależnie od jasnego/ciemnego ustawienia telefonu.",
+                        "Graphite is now the only theme: the other palettes and the theme picker are gone from Settings. The app always stays dark graphite, regardless of the phone's light/dark setting.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.5.4",
                 lines = listOf(
                     t(

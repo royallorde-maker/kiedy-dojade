@@ -1,10 +1,7 @@
 package com.kiedziedojade.app.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -14,34 +11,27 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.NewReleases
-import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,16 +44,12 @@ import com.kiedziedojade.app.core.MapStyle
 import com.kiedziedojade.app.core.Prefs
 import com.kiedziedojade.app.core.World
 import com.kiedziedojade.app.core.fmtTimestamp
-import com.kiedziedojade.app.ui.theme.AppTheme
-import com.kiedziedojade.app.ui.theme.schemeFor
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     world: World,
     prefs: Prefs,
-    appTheme: AppTheme,
-    onThemeChange: (String) -> Unit,
     mapStyle: MapStyle,
     onMapStyleChange: (MapStyle) -> Unit,
     dataNote: String?,
@@ -82,7 +68,7 @@ fun SettingsScreen(
             Appear(0) {
                 ScreenHeader(
                     title = t("Ustawienia", "Settings"),
-                    subtitle = t("Motyw, mapa, język i dane", "Theme, map, language and data"),
+                    subtitle = t("Mapa, język i dane", "Map, language and data"),
                     large = true,
                 )
             }
@@ -160,50 +146,6 @@ fun SettingsScreen(
             Appear(2) {
                 KdCard {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            t("Motyw", "Theme"),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    // dwa kafelki w rzędzie — nazwy motywów są długie, a kafelek
-                    // pokazuje ich prawdziwe kolory, więc nie trzeba zgadywać
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        AppTheme.entries.chunked(2).forEach { rowThemes ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                rowThemes.forEach { th ->
-                                    ThemeOption(
-                                        theme = th,
-                                        label = t(themeLabelPl(th), themeLabelEn(th)),
-                                        selected = appTheme == th,
-                                        onClick = { onThemeChange(th.name) },
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        t(
-                            "„System” idzie za jasnym/ciemnym ustawieniem telefonu.",
-                            "\u201ESystem\u201D follows the phone's light/dark setting.",
-                        ),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-
-        item {
-            Appear(3) {
-                KdCard {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.Map, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
@@ -238,7 +180,7 @@ fun SettingsScreen(
         }
 
         item {
-            Appear(4) {
+            Appear(3) {
                 KdCard {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.Storage, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -309,7 +251,7 @@ fun SettingsScreen(
         }
 
         item {
-            Appear(5) {
+            Appear(4) {
                 KdCard {
                     LinkRow(
                         label = "KiedyPrzyjedzie.pl — Szczecinek",
@@ -381,107 +323,4 @@ private fun LinkRow(label: String, onClick: () -> Unit) {
             modifier = Modifier.size(16.dp),
         )
     }
-}
-
-/** Kafelek motywu z podglądem jego tła i akcentu — wybór bez zgadywania. */
-@Composable
-private fun ThemeOption(
-    theme: AppTheme,
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val scheme = schemeFor(theme)
-    Surface(
-        modifier = modifier.heightIn(min = 54.dp),
-        shape = RoundedCornerShape(14.dp),
-        color = if (selected) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerHigh
-        },
-        onClick = onClick,
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-        ) {
-            Box {
-                ThemeSwatch(
-                    background = scheme.background,
-                    accent = scheme.primary,
-                    ring = scheme.outlineVariant,
-                )
-                // Znaczek siedzi na próbce koloru, nie zabiera miejsca nazwie.
-                if (selected) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .offset(x = 3.dp, y = (-3).dp)
-                            .size(13.dp)
-                            .background(MaterialTheme.colorScheme.primary, CircleShape),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.Filled.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(9.dp),
-                        )
-                    }
-                }
-            }
-            Spacer(Modifier.width(8.dp))
-            Text(
-                label,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-@Composable
-private fun ThemeSwatch(background: Color, accent: Color, ring: Color) {
-    Box(modifier = Modifier.size(22.dp)) {
-        Box(
-            modifier = Modifier
-                .size(20.dp)
-                .background(background, CircleShape)
-                .border(1.dp, ring, CircleShape),
-        )
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .offset(x = (-1).dp, y = (-1).dp)
-                .size(8.dp)
-                .background(accent, CircleShape),
-        )
-    }
-}
-
-private fun themeLabelPl(t: AppTheme): String = when (t) {
-    AppTheme.SYSTEM -> "System"
-    AppTheme.MONO -> "Mono"
-    AppTheme.GRAFIT -> "Grafit"
-    AppTheme.MLEKO -> "Mleko"
-    AppTheme.CANDY -> "Cukierek"
-    AppTheme.BURSZTYN -> "Bursztyn"
-    AppTheme.LAS -> "Las"
-    AppTheme.LAWENDA -> "Lawenda"
-}
-
-private fun themeLabelEn(t: AppTheme): String = when (t) {
-    AppTheme.SYSTEM -> "System"
-    AppTheme.MONO -> "Mono"
-    AppTheme.GRAFIT -> "Graphite"
-    AppTheme.MLEKO -> "Milk"
-    AppTheme.CANDY -> "Candy"
-    AppTheme.BURSZTYN -> "Amber"
-    AppTheme.LAS -> "Forest"
-    AppTheme.LAWENDA -> "Lavender"
 }

@@ -15,7 +15,6 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -80,7 +79,6 @@ import com.kiedziedojade.app.core.SavedPlace
 import com.kiedziedojade.app.core.World
 import com.kiedziedojade.app.core.nearestStops
 import com.kiedziedojade.app.tracking.RideTrackingService
-import com.kiedziedojade.app.ui.theme.AppTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -114,8 +112,6 @@ enum class PickerTarget { FROM, TO, BOARD }
 fun KdApp(
     prefs: Prefs,
     repo: DataRepo,
-    appTheme: AppTheme,
-    onThemeChange: (String) -> Unit,
     openTab: Int? = null,
     onOpenTabHandled: () -> Unit = {},
     openTracking: Boolean = false,
@@ -225,13 +221,8 @@ fun KdApp(
         }
     }
 
-    // czy motyw jest ciemny (decyduje m.in. o filtrze kafelków mapy)
-    val systemDark = isSystemInDarkTheme()
-    val mapDark = when (appTheme) {
-        AppTheme.SYSTEM -> systemDark
-        AppTheme.MLEKO -> false
-        else -> true
-    }
+    // Grafit jest jedynym motywem, więc mapa zawsze w ciemnym wariancie.
+    val mapDark = true
 
     fun setFrom(ref: PlaceRef?) {
         from = ref
@@ -574,8 +565,6 @@ fun KdApp(
                                     SettingsScreen(
                                         world = w,
                                         prefs = prefs,
-                                        appTheme = appTheme,
-                                        onThemeChange = onThemeChange,
                                         mapStyle = mapStyle,
                                         onMapStyleChange = { setMapStyle(it) },
                                         dataNote = dataNote,

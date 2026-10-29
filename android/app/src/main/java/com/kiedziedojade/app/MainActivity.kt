@@ -6,21 +6,16 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.core.view.WindowCompat
 import com.kiedziedojade.app.core.DataRepo
 import com.kiedziedojade.app.core.I18n
 import com.kiedziedojade.app.core.Lang
 import com.kiedziedojade.app.core.Prefs
 import com.kiedziedojade.app.ui.KdApp
-import com.kiedziedojade.app.ui.theme.AppTheme
+import com.kiedziedojade.app.ui.theme.KD_WINDOW_BG
 import com.kiedziedojade.app.ui.theme.KiedyDojadeTheme
-import com.kiedziedojade.app.ui.theme.appThemeOf
 import com.kiedziedojade.app.update.isOnline
 
 class MainActivity : ComponentActivity() {
@@ -45,37 +40,19 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            var themeName by rememberSaveable { mutableStateOf(prefs.theme) }
-            val theme = appThemeOf(themeName)
-            val systemDark = isSystemInDarkTheme()
-
-            // Tło okna + jasne/ciemne ikony pasków — bez białego flesza przy starcie.
-            LaunchedEffect(theme, systemDark) {
-                val dark = when (theme) {
-                    AppTheme.SYSTEM -> systemDark
-                    AppTheme.MLEKO -> false
-                    else -> true
-                }
-                val windowTheme = when {
-                    theme != AppTheme.SYSTEM -> theme
-                    systemDark -> AppTheme.MONO
-                    else -> AppTheme.MLEKO
-                }
-                window.setBackgroundDrawable(ColorDrawable(windowTheme.windowBg.toInt()))
+            // Grafit jest jedynym motywem: ciemne tło okna i jasne ikony
+            // pasków od razu, bez białego flesza przy starcie.
+            LaunchedEffect(Unit) {
+                window.setBackgroundDrawable(ColorDrawable(KD_WINDOW_BG.toInt()))
                 val controller = WindowCompat.getInsetsController(window, window.decorView)
-                controller.isAppearanceLightStatusBars = !dark
-                controller.isAppearanceLightNavigationBars = !dark
+                controller.isAppearanceLightStatusBars = false
+                controller.isAppearanceLightNavigationBars = false
             }
 
-            KiedyDojadeTheme(theme) {
+            KiedyDojadeTheme {
                 KdApp(
                     prefs = prefs,
                     repo = repo,
-                    appTheme = theme,
-                    onThemeChange = {
-                        prefs.theme = it
-                        themeName = it
-                    },
                     openTab = tabRequest.value,
                     onOpenTabHandled = { tabRequest.value = null },
                     openTracking = trackingRequest.value,
