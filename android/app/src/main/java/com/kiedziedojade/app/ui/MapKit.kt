@@ -152,10 +152,9 @@ fun MapZoomControls(
     onRecenter: (() -> Unit)? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = scheme.surfaceContainer.copy(alpha = 0.94f),
-        shadowElevation = 4.dp,
+    GlassPane(
+        shape = RoundedCornerShape(22.dp),
+        fill = scheme.surfaceContainer.copy(alpha = 0.66f),
         modifier = modifier,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -200,7 +199,6 @@ fun MapZoomControls(
         }
     }
 }
-
 /**
  * Kropka przystanku — własny Drawable, bo GradientDrawable nie ma
  * rozmiaru intrinsic, a Marker go wymaga.

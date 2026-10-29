@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -26,7 +27,6 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -433,10 +433,9 @@ fun MapScreen(
                 .padding(start = 12.dp, end = 12.dp, top = 10.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = scheme.surfaceContainer.copy(alpha = 0.95f),
-                    shadowElevation = 2.dp,
+                GlassPane(
+                    shape = RoundedCornerShape(24.dp),
+                    fill = scheme.surfaceContainer.copy(alpha = 0.62f),
                     modifier = Modifier.weight(1f),
                 ) {
                     LazyRow(
@@ -468,7 +467,7 @@ fun MapScreen(
                     }
                 }
                 Spacer(Modifier.width(8.dp))
-                SmallFloatingActionButton(
+                Surface(
                     onClick = {
                         requester.request { fix ->
                             if (fix != null) {
@@ -488,8 +487,18 @@ fun MapScreen(
                             }
                         }
                     },
+                    shape = CircleShape,
+                    color = scheme.primary,
+                    modifier = Modifier.size(44.dp),
                 ) {
-                    Icon(Icons.Filled.MyLocation, contentDescription = t("Moja lokalizacja", "My location"))
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Icon(
+                            Icons.Filled.MyLocation,
+                            contentDescription = t("Moja lokalizacja", "My location"),
+                            tint = scheme.onPrimary,
+                            modifier = Modifier.size(21.dp),
+                        )
+                    }
                 }
             }
             MapAttribution(

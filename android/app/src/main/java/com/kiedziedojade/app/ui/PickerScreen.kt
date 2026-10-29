@@ -114,8 +114,10 @@ fun PickerScreen(
             placeholder = { Text(t("Szukaj miejsca", "Search places"), maxLines = 1, overflow = TextOverflow.Ellipsis) },
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
             singleLine = true,
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(28.dp),
             colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.75f),
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.60f),
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
             ),

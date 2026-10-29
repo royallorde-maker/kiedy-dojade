@@ -15,10 +15,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -213,10 +213,9 @@ fun MapPickScreen(
                 .padding(end = 12.dp),
         )
 
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = scheme.surfaceContainer,
-            shadowElevation = 10.dp,
+        GlassPane(
+            shape = RoundedCornerShape(26.dp),
+            fill = scheme.surfaceContainer.copy(alpha = 0.74f),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
@@ -263,12 +262,22 @@ fun MapPickScreen(
                         Text(t("Anuluj", "Cancel"))
                     }
                     Spacer(Modifier.width(8.dp))
-                    Button(
+                    Surface(
                         onClick = {
                             map?.mapCenter?.let { onPick(it.latitude, it.longitude) }
                         },
+                        shape = CircleShape,
+                        color = Color.Transparent,
+                        contentColor = KD_ON_HERO,
                     ) {
-                        Text(t("Wybierz ten punkt", "Choose this point"))
+                        Text(
+                            t("Wybierz ten punkt", "Choose this point"),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .background(kdHeroBrush(), CircleShape)
+                                .padding(horizontal = 18.dp, vertical = 12.dp),
+                        )
                     }
                 }
                 MapAttribution(

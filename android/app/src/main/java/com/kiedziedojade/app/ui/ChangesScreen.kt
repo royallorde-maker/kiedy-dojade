@@ -231,6 +231,19 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.5.1",
+                lines = listOf(
+                    t(
+                        "Szklarz dospadł reszty ekranów: karta instrukcji prowadzenia i pasek przyjazdu to teraz szkło nad mapą (przycisk „Google Maps” dostał bursztyn), filtr linii na mapie, przyciski zbliżenia i lokalizacji zmieniły materiał, okno wyszukiwania miejsc jest pełną pigułką, a wybór punktu na mapie zamyka się w szklanej karcie z bursztynowym przyciskiem.",
+                        "The glassmaker finished the remaining surfaces: the navigation instruction card and arrival bar are glass over the map (the \"Google Maps\" spot got amber), the map's line filter, zoom and locate controls got the new material, the place-search field is a full pill, and the map-point picker now sits in a glass card with an amber confirm button.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.5.0",
                 lines = listOf(
                     t(

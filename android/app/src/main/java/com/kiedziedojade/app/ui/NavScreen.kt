@@ -9,6 +9,7 @@ import android.os.VibratorManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -523,13 +524,12 @@ fun NavScreen(
                 .statusBarsPadding()
                 .padding(horizontal = 12.dp, vertical = 10.dp),
         ) {
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = scheme.surfaceContainer,
-                shadowElevation = 6.dp,
+            GlassPane(
+                shape = RoundedCornerShape(26.dp),
+                fill = scheme.surfaceContainer.copy(alpha = 0.68f),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Column(modifier = Modifier.padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 10.dp)) {
+            Column(modifier = Modifier.padding(start = 14.dp, end = 8.dp, top = 12.dp, bottom = 10.dp)) {
                     Row(verticalAlignment = Alignment.Top) {
                         LegDot(instruction.icon, instruction.accent)
                         Spacer(Modifier.width(12.dp))
@@ -603,13 +603,15 @@ fun NavScreen(
                                     onClick = {
                                         openGoogleMapsNav(context, gTarget.first, gTarget.second)
                                     },
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = scheme.primaryContainer,
-                                    contentColor = scheme.onPrimaryContainer,
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = Color.Transparent,
+                                    contentColor = KD_ON_HERO,
                                 ) {
                                     Column(
                                         horizontalAlignment = Alignment.CenterHorizontally,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                                        modifier = Modifier
+                                            .background(kdHeroBrush(), RoundedCornerShape(14.dp))
+                                            .padding(horizontal = 8.dp, vertical = 5.dp),
                                     ) {
                                         Icon(
                                             Icons.Filled.Navigation,
@@ -638,10 +640,9 @@ fun NavScreen(
                 style = mapStyle,
             )
 
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = scheme.surfaceContainer,
-                shadowElevation = 6.dp,
+            GlassPane(
+                shape = RoundedCornerShape(26.dp),
+                fill = scheme.surfaceContainer.copy(alpha = 0.68f),
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding(),

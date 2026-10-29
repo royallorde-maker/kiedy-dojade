@@ -333,39 +333,7 @@ private fun HeroCard(
     }
 }
 
-/** Wspólne szkło stosu wyszukiwania — połysk + oświetlona krawędź. */
-@Composable
-private fun GlassPane(
-    shape: RoundedCornerShape,
-    modifier: Modifier = Modifier,
-    fill: Color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.62f),
-    content: @Composable () -> Unit,
-) {
-    Box(
-        modifier = modifier
-            .clip(shape)
-            .background(fill)
-            .background(
-                Brush.verticalGradient(
-                    0f to Color.White.copy(alpha = 0.09f),
-                    0.5f to Color.Transparent,
-                ),
-            ),
-    ) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f to Color.White.copy(alpha = 0.30f),
-                        0.35f to Color.White.copy(alpha = 0.09f),
-                        1f to Color.White.copy(alpha = 0.05f),
-                    ),
-                ),
-        )
-        content()
-    }
-}
+/** Wspólne szkło stosu wyszukiwania — patrz GlassPane w Common.kt. */
 
 /**
  * Stos „skąd / dokąd” w jednym szkle: pola przedzielone włoską kreską,

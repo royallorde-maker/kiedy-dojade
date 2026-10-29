@@ -160,6 +160,33 @@ fun kdHeroBrush(): Brush = Brush.linearGradient(
 /** Kolor tekstu/ikon na karcie hero. */
 val KD_ON_HERO = Color(0xFF2A1503)
 
+/**
+ * Wspólne szkło całej apki: półprzezroczyste wypełnienie, poświata
+ * od góry i oświetlona krawędź. Wszystkie panele na tle (karty prowadzenia,
+ * paski na mapie) budują się na tym samym szkle.
+ */
+@Composable
+fun GlassPane(
+    shape: RoundedCornerShape,
+    modifier: Modifier = Modifier,
+    fill: Color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.62f),
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(fill)
+            .background(glassSheen()),
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(glassBorder()),
+        )
+        content()
+    }
+}
+
 /** "Dziś" / "Jutro" / a short date for anything further away. */
 fun relativeDay(iso: String, today: String = todayStr()): String {
     val day = runCatching { isoToDate(iso) }.getOrNull() ?: return iso
