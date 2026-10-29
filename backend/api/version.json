@@ -1,8 +1,8 @@
 {
-  "versionCode": 29,
-  "versionName": "1.4.24",
+  "versionCode": 30,
+  "versionName": "1.5.0",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.4.24 - ekran startowy w klimacie kart platniczych",
+  "changelog": "release: android 1.5.0 - interfejs od zera: szklany jezyk, pływająca nawigacja, stos szukania",
   "force": false,
-  "publishedAt": "2026-10-29T20:34:06Z"
+  "publishedAt": "2026-10-29T21:37:57Z"
 }
