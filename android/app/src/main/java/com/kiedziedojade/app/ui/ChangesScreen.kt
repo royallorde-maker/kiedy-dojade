@@ -231,6 +231,19 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.5.0",
+                lines = listOf(
+                    t(
+                        "Przebudowany interfejs od zera: pływająca szklana kapsuła nawigacji zamiast klasycznego paska, pole „skąd/dokąd” w jednej szybie z bursztynową przekładką na szwie, popularne cele na poziomej szynie kafelków, pełne kolorowe znaczki linii jak na autobusach i nowe otwarcie aplikacji. Cała apka ma teraz wspólny język szkła: poświata, oświetlona krawędź i duże zaokrąglenia.",
+                        "The interface rebuilt from scratch: a floating glass capsule for navigation instead of the classic bar, a single-glass \"from/to\" stack with an amber swap knob on the seam, popular destinations on a horizontal tile rail, solid colored line badges like on the buses, and a new splash. The whole app now speaks one glass language: sheen, top-lit edges and big rounds.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.4.24",
                 lines = listOf(
                     t(

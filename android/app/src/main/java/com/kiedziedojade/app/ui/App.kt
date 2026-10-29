@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -55,6 +56,8 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -380,55 +383,17 @@ fun KdApp(
         } else {
             Scaffold(
                 bottomBar = {
-                    val navColors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                        indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    KdNavBar(
+                        selected = tab,
+                        onSelect = { tab = it },
+                        tabs = listOf(
+                            Icons.Filled.Search to t("Szukaj", "Plan"),
+                            Icons.Filled.DirectionsBus to t("Tablica", "Board"),
+                            Icons.Filled.Map to t("Mapa", "Map"),
+                            Icons.Filled.Star to t("Ulubione", "Saved"),
+                            Icons.Filled.Tune to t("Opcje", "Options"),
+                        ),
                     )
-                    NavigationBar(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        tonalElevation = 0.dp,
-                    ) {
-                        NavigationBarItem(
-                            selected = tab == 0,
-                            onClick = { tab = 0 },
-                            colors = navColors,
-                            icon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                            label = { Text(t("Szukaj", "Plan")) },
-                        )
-                        NavigationBarItem(
-                            selected = tab == 1,
-                            onClick = { tab = 1 },
-                            colors = navColors,
-                            icon = { Icon(Icons.Filled.DirectionsBus, contentDescription = null) },
-                            label = { Text(t("Tablica", "Board")) },
-                        )
-                        NavigationBarItem(
-                            selected = tab == 2,
-                            onClick = { tab = 2 },
-                            colors = navColors,
-                            icon = { Icon(Icons.Filled.Map, contentDescription = null) },
-                            label = { Text(t("Mapa", "Map")) },
-                        )
-                        NavigationBarItem(
-                            selected = tab == 3,
-                            onClick = { tab = 3 },
-                            colors = navColors,
-                            icon = { Icon(Icons.Filled.Star, contentDescription = null) },
-                            // „Favourites” łamie się na dwie linie przy 360 dp.
-                            label = { Text(t("Ulubione", "Saved")) },
-                        )
-                        NavigationBarItem(
-                            selected = tab == 4,
-                            onClick = { tab = 4 },
-                            colors = navColors,
-                            icon = { Icon(Icons.Filled.Tune, contentDescription = null) },
-                            // „Ustawienia” nie mieści się w piątej zakładce przy 360 dp.
-                            label = { Text(t("Opcje", "Options")) },
-                        )
-                    }
                 },
             ) { padding ->
                 Box(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -772,48 +737,69 @@ fun LoadingBlock(text: String) {
 
 @Composable
 fun SplashScreen() {
-    // Surface ustawia właściwy kolor treści w KAŻDYM motywie — wcześniej tytuł
-    // był czarny na ciemnym tle (brak Surface = domyślny czarny contentColor).
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+        // wielka bursztynowa poświata za szyldem — plener zamiast pustki
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        0f to MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                        0.6f to Color.Transparent,
+                    ),
+                ),
+            contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(84.dp)
-                    .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(26.dp)),
-                contentAlignment = Alignment.Center,
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Icon(
-                    Icons.Filled.DirectionsBus,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(44.dp),
+                Box(
+                    modifier = Modifier
+                        .size(88.dp)
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(kdHeroBrush()),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    // refleks na płytce
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    0f to Color.White.copy(alpha = 0.35f),
+                                    0.6f to Color.Transparent,
+                                ),
+                            ),
+                    )
+                    Icon(
+                        Icons.Filled.DirectionsBus,
+                        contentDescription = null,
+                        tint = KD_ON_HERO,
+                        modifier = Modifier.size(44.dp),
+                    )
+                }
+                Spacer(Modifier.size(20.dp))
+                Text(
+                    "KiedyDojadę",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Spacer(Modifier.size(4.dp))
+                Text(
+                    "SZCZECINEK",
+                    style = MaterialTheme.typography.labelMedium,
+                    letterSpacing = 4.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.size(26.dp))
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .size(width = 132.dp, height = 4.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                 )
             }
-            androidx.compose.foundation.layout.Spacer(Modifier.size(18.dp))
-            Text(
-                "KiedyDojadę",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Text(
-                "SZCZECINEK",
-                style = MaterialTheme.typography.labelMedium,
-                letterSpacing = 2.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            androidx.compose.foundation.layout.Spacer(Modifier.size(26.dp))
-            LinearProgressIndicator(
-                modifier = Modifier
-                    .size(width = 132.dp, height = 4.dp)
-                    .clip(RoundedCornerShape(2.dp)),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-            )
         }
     }
 }

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -42,7 +43,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -59,6 +64,10 @@ import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.LocalTime
 
+/* ------------------------------------------------------------------ */
+/*  Język wizualny „KD Glass”: szkło, światło od góry, gradient signature */
+/* ------------------------------------------------------------------ */
+
 /** Wejście „karta po karcie” — jak w reszcie apki. */
 @Composable
 fun Appear(index: Int = 0, content: @Composable () -> Unit) {
@@ -74,7 +83,27 @@ fun Appear(index: Int = 0, content: @Composable () -> Unit) {
     Box(modifier = Modifier.alpha(alpha).offset(y = shift)) { content() }
 }
 
-/** Karta w stylu apki: duże zaokrąglenie, kolor kontenera, delikatna obwódka. */
+/**
+ * Szkło: półprzezroczysty profil z oświetloną krawędzią od góry. Światło
+ * pada z góry, więc górna krawędź łapie refleks, a dolna gaśnie w tle —
+ * dokładnie jak szyba nad kolorem tła.
+ */
+private fun glassBorder(topAlpha: Float = 0.30f): Brush = Brush.verticalGradient(
+    0f to Color.White.copy(alpha = topAlpha),
+    0.35f to Color.White.copy(alpha = topAlpha * 0.30f),
+    1f to Color.White.copy(alpha = 0.05f),
+)
+
+/** Refleks na górnej krawędzi wypełnienia — dwoista poświata szkła. */
+private fun glassSheen(): Brush = Brush.verticalGradient(
+    0f to Color.White.copy(alpha = 0.09f),
+    0.5f to Color.Transparent,
+)
+
+/**
+ * Karta bazowa całej apki: szkło na tle, 26 dp promienia, oświetlona
+ * krawędź. Wypełnienie jest półprzezroczyste — to ono robi efekt szyby.
+ */
 @Composable
 fun KdCard(
     modifier: Modifier = Modifier,
@@ -83,18 +112,32 @@ fun KdCard(
     content: @Composable () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    Surface(
+    val fill = when {
+        highlighted -> scheme.primary.copy(alpha = 0.22f)
+        else -> scheme.surfaceContainer.copy(alpha = 0.62f)
+    }
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
-        shape = RoundedCornerShape(24.dp),
-        color = if (highlighted) {
-            scheme.primaryContainer
-        } else {
-            scheme.surfaceContainer
-        },
-        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.4f)),
+            .clip(RoundedCornerShape(26.dp))
+            .background(fill)
+            .background(glassSheen())
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable { onClick() }
+                } else {
+                    Modifier
+                },
+            ),
     ) {
+        // oświetlona krawędź — rysowana nad zawartością, cienka jak włos
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    glassBorder(),
+                ),
+        )
         Column(modifier = Modifier.padding(16.dp)) { content() }
     }
 }
@@ -164,15 +207,27 @@ fun greetingPrefix(): String {
     }
 }
 
+/** Nagłówek sekcji: bursztynowa kreska + rozstrzelany nadtytuł. */
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text.uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        letterSpacing = 1.4.sp,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
         modifier = modifier.padding(horizontal = 4.dp, vertical = 6.dp),
-    )
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 14.dp, height = 3.dp)
+                .background(kdHeroBrush(), RoundedCornerShape(2.dp)),
+        )
+        Text(
+            text = text.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            letterSpacing = 1.6.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 private val LINE_COLORS = listOf(
@@ -186,17 +241,18 @@ fun lineColor(line: String): Color {
     return LINE_COLORS[h % LINE_COLORS.size]
 }
 
-/** Numer linii jako kolorowy znacznik. */
+/** Numer linii jako pełny, kolorowy znaczek — biel na kolorze jak na autobusie. */
 @Composable
 fun LineChip(line: String, big: Boolean = false) {
     val color = lineColor(line)
     Surface(
-        shape = RoundedCornerShape(if (big) 12.dp else 9.dp),
-        color = color.copy(alpha = 0.20f),
+        shape = RoundedCornerShape(if (big) 12.dp else 8.dp),
+        color = color,
+        shadowElevation = if (big) 6.dp else 2.dp,
     ) {
         Text(
             text = line,
-            color = color,
+            color = Color.White,
             fontWeight = FontWeight.Bold,
             fontSize = if (big) 20.sp else 13.sp,
             modifier = Modifier.padding(
@@ -234,7 +290,7 @@ fun LiveBadge(
     }
 }
 
-/** Mała pigułka statusu (opóźnienie, NŻ, odwołany, szacowany). */
+/** Mała pigułka statusu (opóźnienie, NŻ, odwołany, szacowany) — pełne kapsułki. */
 @Composable
 fun StatusChip(
     text: String,
@@ -242,11 +298,11 @@ fun StatusChip(
     background: Color = color.copy(alpha = 0.14f),
     icon: ImageVector? = null,
 ) {
-    Surface(shape = RoundedCornerShape(8.dp), color = background) {
+    Surface(shape = CircleShape, color = background) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
         ) {
             if (icon != null) Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(13.dp))
             Text(text, color = color, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium)
@@ -274,19 +330,28 @@ fun EmptyState(icon: ImageVector, title: String, text: String) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .size(76.dp)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                icon, contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(32.dp),
+        // szkło z bursztynowym kręgiem w tle
+        Box(contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier
+                    .size(76.dp)
+                    .background(kdHeroBrush(), CircleShape)
+                    .alpha(0.16f),
             )
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.7f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    icon, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
         }
-        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Text(
             text,
             style = MaterialTheme.typography.bodyMedium,
@@ -296,7 +361,7 @@ fun EmptyState(icon: ImageVector, title: String, text: String) {
     }
 }
 
-/** Nagłówek z opcjonalnym powrotem — jak TabHero w pozostałych ekranach. */
+/** Nagłówek z opcjonalnym powrotem — duży, ciasny, plakatowy. */
 @Composable
 fun ScreenHeader(
     title: String,
@@ -359,7 +424,14 @@ fun LegDot(icon: ImageVector, color: Color) {
 fun InfoCard(title: String, lines: List<String>, index: Int = 0) {
     Appear(index) {
         KdCard(modifier = Modifier.padding(vertical = 4.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(width = 4.dp, height = 20.dp)
+                        .background(kdHeroBrush(), RoundedCornerShape(2.dp)),
+                )
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
             Spacer(Modifier.height(6.dp))
             lines.forEach { line ->
                 Row(
@@ -402,4 +474,96 @@ fun BusIcon(size: Int = 17) {
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.size(size.dp),
     )
+}
+
+/* ------------------------------------------------------------------ */
+/*  Pływający pasek nawigacji — kapsuła ze szkła z gradientową ramką   */
+/* ------------------------------------------------------------------ */
+
+private data class NavTabSpec(val icon: ImageVector, val label: String)
+
+/**
+ * Dolna nawigacja apki: pływająca kapsuła ze szkła, aktywna zakładka
+ * dostaje bursztynową pigułkę-podświetlenie. Zero Materialowych domyślności.
+ */
+@Composable
+fun KdNavBar(
+    selected: Int,
+    onSelect: (Int) -> Unit,
+    tabs: List<Pair<ImageVector, String>>,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(30.dp))
+            .background(scheme.surfaceContainer.copy(alpha = 0.72f))
+            .background(glassSheen()),
+    ) {
+        // oświetlona krawędź kapsuły
+        Box(modifier = Modifier.matchParentSize().background(glassBorder(0.26f)))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 6.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            tabs.forEachIndexed { index, (icon, label) ->
+                val active = index == selected
+                val selAlpha by animateFloatAsState(
+                    if (active) 1f else 0f,
+                    tween(220),
+                    label = "navSel",
+                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(24.dp))
+                        .clickable { onSelect(index) }
+                        .padding(vertical = 7.dp),
+                ) {
+                    val pillW = with(density) { 56.dp.toPx() }
+                    val pillH = with(density) { 36.dp.toPx() }
+                    val pillR = with(density) { 18.dp.toPx() }
+                    val brush = kdHeroBrush()
+                    Box(
+                        modifier = Modifier
+                            .size(width = 56.dp, height = 36.dp)
+                            .drawBehind {
+                                if (selAlpha > 0.01f) {
+                                    drawRoundRect(
+                                        brush = brush,
+                                        topLeft = Offset.Zero,
+                                        size = Size(pillW, pillH),
+                                        cornerRadius = CornerRadius(pillR, pillR),
+                                        alpha = selAlpha,
+                                    )
+                                }
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            icon,
+                            contentDescription = label,
+                            tint = if (active) scheme.onPrimary else scheme.onSurfaceVariant,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                        color = if (active) scheme.onSurface else scheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
 }
