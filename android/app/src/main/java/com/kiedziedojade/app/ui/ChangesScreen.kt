@@ -231,6 +231,23 @@ fun ChangesScreen(prefs: Prefs, onBack: (() -> Unit)? = null) {
 
         item {
             InfoCard(
+                title = "1.5.6",
+                lines = listOf(
+                    t(
+                        "Tablica przystanku sama przechodzi na nowy dzień o północy: rozkład i wzorzec dnia zmieniają się bez wychodzenia z ekranu, a odjazdy na żywo startują od nowa.",
+                        "The stop board now rolls over at midnight by itself: the timetable and day pattern change without leaving the screen, and live departures start fresh.",
+                    ),
+                    t(
+                        "Obrót telefonu nie chowa już otwartego wyboru miejsca ani godziny i nie odtwarza ekranu startowego. Ukryty komunikat pozostaje ukryty po obrocie.",
+                        "Rotating the phone no longer closes the open place or time picker or replays the splash screen. A dismissed announcement stays dismissed after rotation.",
+                    ),
+                ),
+                index = 0,
+            )
+        }
+
+        item {
+            InfoCard(
                 title = "1.5.5",
                 lines = listOf(
                     t(

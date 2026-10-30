@@ -97,8 +97,11 @@ fun StopScreen(
     }
 
     val stop = world.stops[stopIndex]
-    val date = serviceDate ?: todayStr()
-    val isToday = date == todayStr()
+    // „Dziś” musi być stanem, nie wartością czytaną raz przy wejściu: po
+    // północy rozkład i tablica mają same przejść na nowy dzień.
+    var today by remember { mutableStateOf(todayStr()) }
+    val date = serviceDate ?: today
+    val isToday = date == today
     val lifecycleOwner = LocalLifecycleOwner.current
     var board by remember(stop.id, date) { mutableStateOf<List<Api.LiveRow>?>(null) }
     var boardLoaded by remember(stop.id, date) { mutableStateOf(false) }
@@ -106,7 +109,19 @@ fun StopScreen(
     var expandedTrip by remember(stop.id, date) { mutableStateOf<Long?>(null) }
     var now by remember(stop.id, date) { mutableIntStateOf(nowMinutes()) }
 
-    LaunchedEffect(stop.id, lifecycleOwner, isToday) {
+    // Zegar i data dnia: działa też dla przyszłego rozkładu, żeby dokładnie
+    // o północy włączyć odjazdy na żywo i przełączyć wzorzec dnia.
+    LaunchedEffect(stop.id, lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                today = todayStr()
+                now = nowMinutes()
+                delay(20_000)
+            }
+        }
+    }
+
+    LaunchedEffect(stop.id, lifecycleOwner, date, isToday) {
         if (!isToday) {
             boardLoaded = true
             return@LaunchedEffect
@@ -121,16 +136,6 @@ fun StopScreen(
                 }
                 boardLoaded = true
                 delay(30_000)
-            }
-        }
-    }
-
-    LaunchedEffect(stopIndex, lifecycleOwner, isToday) {
-        if (!isToday) return@LaunchedEffect
-        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            while (true) {
-                now = nowMinutes()
-                delay(20_000)
             }
         }
     }

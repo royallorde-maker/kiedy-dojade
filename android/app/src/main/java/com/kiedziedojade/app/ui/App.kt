@@ -132,18 +132,19 @@ fun KdApp(
     val stack = rememberSaveable(saver = StackSaver) {
         mutableStateListOf<Route>(Route.Plan)
     }
-    var picker by remember { mutableStateOf<PickerTarget?>(null) }
-    var mapPicker by remember { mutableStateOf<PickerTarget?>(null) }
+    var picker by rememberSaveable { mutableStateOf<PickerTarget?>(null) }
+    var mapPicker by rememberSaveable { mutableStateOf<PickerTarget?>(null) }
 
     var from by remember { mutableStateOf(prefs.lastFrom?.toRef()) }
     var to by remember { mutableStateOf(prefs.lastTo?.toRef()) }
     /** -1 = teraz; inaczej minuty od północy wybrane przez użytkownika */
     var departMin by rememberSaveable { mutableIntStateOf(-1) }
-    var showTimePicker by remember { mutableStateOf(false) }
+    var showTimePicker by rememberSaveable { mutableStateOf(false) }
     var boardStop by remember { mutableIntStateOf(prefs.boardStop) }
     var mapStyle by remember { mutableStateOf(MapStyle.from(prefs.mapStyle)) }
-    var dismissedAlert by remember { mutableStateOf<Int?>(null) }
-    var showSplash by remember { mutableStateOf(true) }
+    var dismissedAlert by rememberSaveable { mutableStateOf<Int?>(null) }
+    // Obrót nie może odtwarzać ekranu startowego ani chować otwartego wyboru miejsca.
+    var showSplash by rememberSaveable { mutableStateOf(true) }
     /** prowadzenie po wybranym połączeniu (pełnoekranowe, jak nawigacja) */
     var nav by remember { mutableStateOf(prefs.activeItinerary) }
 
