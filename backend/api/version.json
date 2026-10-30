@@ -1,8 +1,8 @@
 {
-  "versionCode": 35,
-  "versionName": "1.5.5",
+  "versionCode": 36,
+  "versionName": "1.5.6",
   "apkUrl": "https://github.com/royallorde-maker/kiedy-dojade/releases/latest/download/app-release.apk",
-  "changelog": "release: android 1.5.5 - tylko motyw Grafit",
+  "changelog": "release: android 1.5.6 - tablica po polnocy i obrot ekranu",
   "force": false,
-  "publishedAt": "2026-10-29T23:17:44Z"
+  "publishedAt": "2026-10-30T12:18:48Z"
 }
